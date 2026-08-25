@@ -14,7 +14,20 @@ import bugReportRoutes from "./routes/bugreport";
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
+const ALLOWED_ORIGINS = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  /\.vercel\.app$/,
+].filter(Boolean) as (string | RegExp)[];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const ok = ALLOWED_ORIGINS.some((o) => (o instanceof RegExp ? o.test(origin) : o === origin));
+    callback(null, ok);
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
