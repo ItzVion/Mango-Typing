@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+:root {
+  --bg-main: #ffffff;
+  --card-bg: #f7f7f7;
+  --card-border: #e2e2e2;
+  --text-primary: #0a0a0a;
+  --text-muted: #6b6b6b;
+  --error: #d92d20;
+  --nav-bg: rgba(255, 255, 255, 0.75);
+  --nav-border: rgba(0, 0, 0, 0.08);
+}
+
+html.dark {
+  --bg-main: #0a0a0a;
+  --card-bg: #161616;
+  --card-border: #262626;
+  --text-primary: #f5f5f5;
+  --text-muted: #9a9a9a;
+  --error: #ff6b61;
+  --nav-bg: rgba(15, 15, 15, 0.75);
+  --nav-border: rgba(255, 255, 255, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  margin: 0;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.glass-nav {
+  background: var(--nav-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--nav-border);
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+}
+
+@keyframes caretBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.animate-caret { animation: caretBlink 1s infinite; }
+
+/* Typing Tutor / typing surfaces — fixed responsive box, wraps instead of
+   overflowing horizontally, no manual scrolling required. */
+.type-box {
+  width: 100%;
+  max-width: 720px;
+  max-height: 40vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  line-height: 2.1;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+@media (max-width: 640px) {
+  .type-box { max-height: 45vh; font-size: 0.95rem; line-height: 2; }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* ── Dark mode text-visibility fix ──────────────────────────────────────────
+   Many components use light-mode-only Tailwind opacity utilities like
+   text-black/40. In dark mode that stays literally black-on-black and
+   becomes unreadable. Rather than touching every file, remap every black/N
+   utility actually used in this app to the equivalent white/N when dark
+   mode is active. Uses ~= (exact whitespace-separated token match) so a
+   base class like text-black/70 doesn't also get matched inside the
+   separate token hover:text-black/70. */
+html.dark [class~="text-black/25"] { color: rgba(255, 255, 255, 0.55) !important; }
+html.dark [class~="text-black/30"] { color: rgba(255, 255, 255, 0.6) !important; }
+html.dark [class~="text-black/40"] { color: rgba(255, 255, 255, 0.65) !important; }
+html.dark [class~="text-black/50"] { color: rgba(255, 255, 255, 0.72) !important; }
+html.dark [class~="text-black/60"] { color: rgba(255, 255, 255, 0.8) !important; }
+html.dark [class~="text-black/70"] { color: rgba(255, 255, 255, 0.85) !important; }
+html.dark [class~="hover:text-black/70"]:hover { color: rgba(255, 255, 255, 0.95) !important; }
+html.dark [class~="bg-black/5"] { background-color: rgba(255, 255, 255, 0.06) !important; }
+html.dark [class~="bg-black/10"] { background-color: rgba(255, 255, 255, 0.1) !important; }
+html.dark [class~="bg-black/70"] { background-color: rgba(0, 0, 0, 0.7) !important; }
+html.dark [class~="border-black/10"] { border-color: rgba(255, 255, 255, 0.12) !important; }
+html.dark [class~="border-black/30"] { border-color: rgba(255, 255, 255, 0.3) !important; }
+html.dark [class~="hover:text-black"]:hover { color: #fff !important; }
+html.dark [class~="text-neutral-400"] { color: rgba(255, 255, 255, 0.55) !important; }
+

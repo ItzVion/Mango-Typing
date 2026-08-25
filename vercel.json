@@ -1,0 +1,12 @@
+{
+  "installCommand": "npm install --prefix server && npm install --prefix client && npx --prefix server prisma generate",
+  "buildCommand": "npm run build --prefix client",
+  "outputDirectory": "client/dist",
+  "functions": {
+    "server/src/index.ts": { "includeFiles": "server/prisma/**" }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/server/src/index.ts" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

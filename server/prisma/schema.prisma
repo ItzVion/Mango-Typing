@@ -1,0 +1,114 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  username     String       @unique
+  passwordHash String?
+  googleId     String?      @unique
+  avatarUrl    String?
+  role         String       @default("USER")
+  hasDonated   Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+
+  tests        TypingTest[]
+  donations    Donation[]
+}
+
+model Sheet {
+  id         Int          @id @default(autoincrement())
+  title      String
+  topic      String
+  content    String
+  wordCount  Int
+  charCount  Int
+  difficulty String       @default("easy")
+  createdAt  DateTime     @default(now())
+
+  tests      TypingTest[]
+}
+
+// Every completed test by a logged-in user is linked via userId and
+// shown in their profile/dashboard history. Guest tests have userId = null
+// and are never shown on any account.
+model TypingTest {
+  id          String   @id @default(uuid())
+  userId      String?
+  sheetId     Int
+  mode        String   @default("paper") // "paper" (paper to screen) | "screen" (screen to screen)
+  wpm         Float
+  rawWpm      Float
+  accuracy    Float
+  errors      Int
+  durationSec Int
+  secondStats String   // JSON string: [{sec, wpm, raw, errors}]
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sheet       Sheet    @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Single-row table holding site-wide settings editable only by the owner
+// (vion4712@gmail.com) via /payedit. Razorpay keys, donation blurb text.
+model Settings {
+  id                    Int      @id @default(1)
+  razorpayKeyId         String?
+  razorpayKeySecret     String?
+  donationMessage       String   @default("Every rupee helps keep the servers running, the domains renewed, and new features shipping. Thank you for supporting VC Typing!")
+  updatedAt             DateTime @updatedAt
+}
+
+model Donation {
+  id                String   @id @default(uuid())
+  userId            String?
+  amountRupees      Int
+  razorpayOrderId   String   @unique
+  razorpayPaymentId String?
+  status            String   @default("created") // created | paid | failed
+  createdAt         DateTime @default(now())
+
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+// Editable legal page content (privacy / refund / terms), managed from
+// /admin -> Editor by the owner. slug is one of: "privacy", "refund", "terms".
+// content is plain text with blank-line-separated paragraphs, rendered
+// as one <p> per paragraph on the public page.
+model LegalPage {
+  slug      String   @id
+  content   String
+  updatedAt DateTime @updatedAt
+}
+
+// Pending email/password registration awaiting OTP confirmation — mirrors
+// deathsmp-web's otp_tokens table. Row is deleted once verified, or
+// overwritten if the same email registers again before confirming.
+model OtpToken {
+  email        String   @id
+  token        String
+  expiresAt    DateTime
+  username     String
+  passwordHash String
+}
+
+model VerificationCode {
+  id          String   @id @default(uuid())
+  userId      String
+  purpose     String
+  token       String
+  targetEmail String?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([userId, purpose])
+}
