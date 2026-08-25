@@ -3,10 +3,10 @@
   "buildCommand": "npm run build --prefix client",
   "outputDirectory": "client/dist",
   "functions": {
-    "server/src/index.ts": { "includeFiles": "server/prisma/**" }
+    "api/index.ts": { "includeFiles": "server/prisma/**" }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/server/src/index.ts" },
+    { "source": "/api/(.*)", "destination": "/api/index.ts" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
