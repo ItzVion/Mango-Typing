@@ -147,12 +147,14 @@ export const Auth = () => {
     }
   };
 
+  const googleInitialized = useRef(false);
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || !window.google || !googleBtnRef.current || step === "otp") return;
+    if (!GOOGLE_CLIENT_ID || !window.google || !googleBtnRef.current || googleInitialized.current) return;
     window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
     window.google.accounts.id.renderButton(googleBtnRef.current, { theme: "outline", size: "large", width: 320 });
+    googleInitialized.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  }, []);
 
   return (
     <div className="max-w-4xl mx-auto grid md:grid-cols-2 rounded-2xl overflow-hidden border border-[var(--card-border)]">
@@ -189,6 +191,13 @@ export const Auth = () => {
         transition={{ duration: 0.4 }}
         className="p-6 flex flex-col gap-4 overflow-hidden bg-[var(--card-bg)]"
       >
+      {step !== "otp" && (
+        <div className="relative">
+          {GOOGLE_CLIENT_ID ? (
+            <div ref={googleBtnRef} className={`flex justify-center transition-opacity ${!agreed ? "opacity-40" : ""}`} />
+          ) : null}
+        </div>
+      )}
       <AnimatePresence mode="wait">
         {step !== "otp" ? (
           <motion.div
@@ -208,34 +217,24 @@ export const Auth = () => {
               {step === "login" ? "Sign In" : "Create Account"}
             </motion.h2>
 
-            <div className="relative">
-              {GOOGLE_CLIENT_ID ? (
-                <div ref={googleBtnRef} className={`flex justify-center transition-opacity ${!agreed ? "opacity-40" : ""}`} />
-              ) : (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                  type="button"
-                  onClick={() => {
-                    if (!agreed) {
-                      setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.");
-                      return;
-                    }
-                    setNotice("Google sign-in isn't set up yet — coming soon.");
-                  }}
-                  className="flex items-center justify-center gap-2 border border-[var(--card-border)] rounded-xl py-2 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5"
-                >
-                  <GoogleLogo />
-                  Continue with Google
-                </motion.button>
-              )}
-              {!agreed && (
-                <div
-                  className="absolute inset-0 cursor-not-allowed"
-                  onClick={() => setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.")}
-                />
-              )}
-            </div>
+            {!GOOGLE_CLIENT_ID && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                type="button"
+                onClick={() => {
+                  if (!agreed) {
+                    setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.");
+                    return;
+                  }
+                  setNotice("Google sign-in isn't set up yet — coming soon.");
+                }}
+                className="flex items-center justify-center gap-2 border border-[var(--card-border)] rounded-xl py-2 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5"
+              >
+                <GoogleLogo />
+                Continue with Google
+              </motion.button>
+            )}
 
             <div className="flex items-center gap-3 text-black/30 text-xs">
               <div className="flex-1 h-px bg-black/10" />
