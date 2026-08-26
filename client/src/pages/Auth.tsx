@@ -238,7 +238,7 @@ export const Auth = () => {
               <input
                 type="checkbox"
                 checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
+                onChange={(e) => { setAgreed(e.target.checked); if (e.target.checked) setError(""); }}
                 className="mt-0.5 h-4 w-4 shrink-0 accent-[#F5A623]"
               />
               <span>

@@ -24,19 +24,27 @@ import { DonationHistory } from "./pages/DonationHistory";
 import { Settings } from "./pages/Settings";
 import { api } from "./api/client";
 import { useAuthStore } from "./stores/authStore";
+
 const pageTransition = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -16 },
 };
+
 export default function App() {
   const setUser = useAuthStore((s) => s.setUser);
   const location = useLocation();
+
   useEffect(() => {
     if (localStorage.getItem("vc_token")) {
       api.me().then(setUser).catch(() => localStorage.removeItem("vc_token"));
     }
   }, [setUser]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }, [location.pathname]);
+
   return (
     <>
       <Navbar />
