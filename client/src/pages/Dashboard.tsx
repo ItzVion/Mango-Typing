@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { BackButton } from "../components/BackButton";
 import { SupportSection } from "../components/SupportSection";
+import { TypingHero } from "../components/TypingHero";
 
 type Phase = "idle" | "choose";
 
@@ -29,14 +30,13 @@ export const Dashboard = () => {
               exit={{ opacity: 0, y: -10 }}
               className="flex flex-col items-center gap-6"
             >
-              <motion.h1
+              <motion.div
                 initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 transition={{ duration: 0.6 }}
-                className="text-5xl sm:text-6xl font-bold"
               >
-                VC TYPING
-              </motion.h1>
+                <TypingHero />
+              </motion.div>
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -49,12 +49,19 @@ export const Dashboard = () => {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.45, type: "spring", stiffness: 260, damping: 18 }}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.06, y: -3, boxShadow: "0 12px 30px -8px rgba(245,166,35,0.5)" }}
+                whileTap={{ scale: 0.93, y: 0 }}
                 onClick={() => setPhase("choose")}
-                className="px-8 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold"
+                className="px-8 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold relative overflow-hidden"
               >
-                Start
+                <motion.span
+                  className="absolute inset-0"
+                  style={{ background: "#F5A623" }}
+                  initial={{ x: "-100%" }}
+                  whileHover={{ x: 0 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                />
+                <span className="relative">Start</span>
               </motion.button>
               <motion.div
                 initial={{ opacity: 0 }}
