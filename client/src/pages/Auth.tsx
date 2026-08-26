@@ -34,6 +34,8 @@ export const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [agreed, setAgreed] = useState(false);
+const agreedRef = useRef(false);
+useEffect(() => { agreedRef.current = agreed; }, [agreed]);
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
   const googleBtnRef = useRef<HTMLDivElement>(null);
@@ -107,7 +109,7 @@ export const Auth = () => {
   };
 
   const handleGoogleCredential = async (response: any) => {
-    if (!agreed) {
+    if (!agreedRef.current) {
       setError("Please agree to the Terms, Privacy Policy and Refund Policy first.");
       return;
     }
