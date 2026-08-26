@@ -3,6 +3,30 @@ import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
+import { KeyboardArt } from "../components/KeyboardArt";
+
+// Per-character blur/slide-in text — same effect family as motion-primitives'
+// TextEffect, built directly on framer-motion so no extra CLI/package/path-alias
+// setup is needed in this project.
+const BlurText = ({ text, className }: { text: string; className?: string }) => {
+  const container = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.025 } },
+  };
+  const item = {
+    hidden: { opacity: 0, filter: "blur(8px)", y: 6 },
+    visible: { opacity: 1, filter: "blur(0px)", y: 0, transition: { duration: 0.35 } },
+  };
+  return (
+    <motion.span variants={container} initial="hidden" animate="visible" className={className}>
+      {text.split("").map((ch, i) => (
+        <motion.span key={i} variants={item} className="inline-block">
+          {ch === " " ? "\u00A0" : ch}
+        </motion.span>
+      ))}
+    </motion.span>
+  );
+};
 
 declare global {
   interface Window {
@@ -34,8 +58,8 @@ export const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [agreed, setAgreed] = useState(false);
-const agreedRef = useRef(false);
-useEffect(() => { agreedRef.current = agreed; }, [agreed]);
+  const agreedRef = useRef(false);
+  useEffect(() => { agreedRef.current = agreed; }, [agreed]);
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
   const googleBtnRef = useRef<HTMLDivElement>(null);
@@ -131,12 +155,40 @@ useEffect(() => { agreedRef.current = agreed; }, [agreed]);
   }, [step]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="max-w-sm mx-auto card p-6 flex flex-col gap-4 overflow-hidden"
-    >
+    <div className="max-w-4xl mx-auto grid md:grid-cols-2 rounded-2xl overflow-hidden border border-[var(--card-border)]">
+      {/* Left: branded panel with the tilted keyboard illustration */}
+      <div className="hidden md:flex relative flex-col justify-between bg-black text-white p-8 overflow-hidden">
+        <div
+          className="absolute -right-24 -bottom-24 w-[420px] h-[420px] opacity-90"
+          style={{ transform: "rotate(45deg)" }}
+        >
+          <KeyboardArt />
+        </div>
+        <div
+          className="absolute -right-10 -bottom-10 w-[300px] h-[300px] rounded-full blur-3xl opacity-20"
+          style={{ background: "#F5A623" }}
+        />
+        <div className="relative z-10">
+          <BlurText text="VC TYPING" className="text-2xl font-bold font-mono" />
+        </div>
+        <div className="relative z-10 max-w-xs">
+          <BlurText
+            text={step === "login" ? "Welcome back." : "Type faster, track everything."}
+            className="text-xl font-semibold block mb-2"
+          />
+          <p className="text-white/50 text-sm">
+            Practice tests, games, and a tutor — with your full history saved to one account.
+          </p>
+        </div>
+      </div>
+
+      {/* Right: the actual form, unchanged logic */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="p-6 flex flex-col gap-4 overflow-hidden bg-[var(--card-bg)]"
+      >
       <AnimatePresence mode="wait">
         {step !== "otp" ? (
           <motion.div
@@ -348,5 +400,6 @@ useEffect(() => { agreedRef.current = agreed; }, [agreed]);
         )}
       </AnimatePresence>
     </motion.div>
+    </div>
   );
 };
