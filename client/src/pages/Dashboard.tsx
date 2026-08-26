@@ -44,17 +44,18 @@ export const Dashboard = () => {
                 className="text-black/50 max-w-md"
               >
                 Typing tests, games, and a tutor — all in one place. WPM, accuracy, and full history saved to your account.
-<motion.button
-  initial={{ opacity: 0, scale: 0.8 }}
-  animate={{ opacity: 1, scale: 1 }}
-  transition={{ delay: 0.45, type: "spring", stiffness: 260, damping: 18 }}
-  whileHover={{ scale: 1.05, y: -2 }}
-  whileTap={{ scale: 0.95 }}
-  onClick={() => setPhase("choose")}
-  className="px-8 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold"
->
-  Start
-</motion.button>
+              </motion.p>
+              <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.45, type: "spring", stiffness: 260, damping: 18 }}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setPhase("choose")}
+              className="px-8 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold"
+              >
+              Start
+              </motion.button>
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1, y: [0, 8, 0] }}
