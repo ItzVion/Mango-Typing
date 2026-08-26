@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BackButton } from "../../components/BackButton";
 
-type GameKey = "balloon" | "car";
+type GameKey = "balloon" | "car" | "boss";
 type Difficulty = "easy" | "medium" | "hard";
 
 const GAMES: { key: GameKey; title: string; desc: string; emoji: string }[] = [
   { key: "balloon", title: "Balloon Pop", desc: "Letters fall — type the key to pop the balloon before it lands.", emoji: "🎈" },
   { key: "car", title: "Car Race", desc: "Type each word, hit space/enter to confirm, and keep your speed up.", emoji: "🏎️" },
+  { key: "boss", title: "Boss Fight", desc: "Type 5–7 letter words to attack the boss before it defeats you. No repeats.", emoji: "👹" },
 ];
 
 const DURATIONS = [60, 120, 180, 300];

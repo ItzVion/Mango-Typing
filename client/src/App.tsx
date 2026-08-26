@@ -18,6 +18,7 @@ import { Terms } from "./pages/legal/Terms";
 import { GamesHub } from "./pages/Games/GamesHub";
 import { BalloonGame } from "./pages/Games/BalloonGame";
 import { CarGame } from "./pages/Games/CarGame";
+import { BossGame } from "./pages/Games/BossGame";
 import { TutorHub } from "./pages/Tutor/TutorHub";
 import { LessonRunner } from "./pages/Tutor/LessonRunner";
 import { DonationHistory } from "./pages/DonationHistory";
@@ -73,6 +74,7 @@ export default function App() {
               <Route path="/games" element={<GamesHub />} />
               <Route path="/games/balloon" element={<BalloonGame />} />
               <Route path="/games/car" element={<CarGame />} />
+              <Route path="/games/boss" element={<BossGame />} />
               <Route path="/tutor" element={<TutorHub />} />
               <Route path="/tutor/:lessonId" element={<LessonRunner />} />
               <Route path="/donations" element={<DonationHistory />} />

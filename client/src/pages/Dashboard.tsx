@@ -9,7 +9,7 @@ type Phase = "idle" | "choose";
 
 const OPTIONS = [
   { key: "test", title: "Typing Test", desc: "Print a sheet, type from paper — or type straight from the screen.", to: "/sheets", emoji: "📄" },
-  { key: "games", title: "Typing Games", desc: "Balloon pop and car racing, with three difficulty tiers.", to: "/games", emoji: "🎮" },
+  { key: "games", title: "Typing Games", desc: "Balloon pop, car racing, and boss battles, with three difficulty tiers.", to: "/games", emoji: "🎮" },
   { key: "tutor", title: "Typing Tutor", desc: "Step-by-step lessons, home row to full sentences, with an on-screen keyboard.", to: "/tutor", emoji: "⌨️" },
 ];
 
@@ -46,15 +46,15 @@ export const Dashboard = () => {
                 Typing tests, games, and a tutor — all in one place. WPM, accuracy, and full history saved to your account.
               </motion.p>
               <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.45, type: "spring", stiffness: 260, damping: 18 }}
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setPhase("choose")}
-              className="px-8 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.45, type: "spring", stiffness: 260, damping: 18 }}
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setPhase("choose")}
+                className="px-8 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold"
               >
-              Start
+                Start
               </motion.button>
               <motion.div
                 initial={{ opacity: 0 }}
