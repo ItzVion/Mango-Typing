@@ -96,7 +96,7 @@ export const TypingHero = () => {
           className="inline-block w-[0.5ch] ml-1 align-middle"
           style={{ backgroundColor: "#F5A623", height: "0.85em" }}
           animate={done ? { opacity: [1, 0, 1] } : { opacity: 1 }}
-          transition={done ? { duration: 0.9, repeat: Infinity, ease: "steps(1)" } : {}}
+          transition={done ? { duration: 0.9, repeat: Infinity, ease: "linear" } : {}}
         />
       </motion.h1>
     </div>
