@@ -99,7 +99,7 @@ export const AdminPanel = () => {
 
 // ── Payments ────────────────────────────────────────────────────────────
 const PaymentsTab = () => {
-  const [form, setForm] = useState({ razorpayKeyId: "", razorpayKeySecret: "", donationMessage: "" });
+  const [form, setForm] = useState({ razorpayKeyId: "", razorpayKeySecret: "", donationMessage: "", maintenanceMode: false });
   const [status, setStatus] = useState("");
   const [ready, setReady] = useState(false);
 
@@ -109,6 +109,7 @@ const PaymentsTab = () => {
         razorpayKeyId: s.razorpayKeyId ?? "",
         razorpayKeySecret: s.razorpayKeySecret ?? "",
         donationMessage: s.donationMessage ?? "",
+        maintenanceMode: s.maintenanceMode ?? false,
       });
       setReady(true);
     });
@@ -155,6 +156,21 @@ const PaymentsTab = () => {
           value={form.donationMessage}
           onChange={(e) => setForm({ ...form, donationMessage: e.target.value })}
           className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2 min-h-24"
+        />
+      </label>
+
+      <label className="flex items-center justify-between gap-3 text-sm card p-4" style={{ borderColor: form.maintenanceMode ? "var(--error)" : undefined }}>
+        <div>
+          <div className="font-semibold">Website Down</div>
+          <div className="text-black/40 text-xs mt-0.5">
+            When on, every visitor sees a "temporarily down" page instead of the site — you'll still be able to reach /admin.
+          </div>
+        </div>
+        <input
+          type="checkbox"
+          checked={form.maintenanceMode}
+          onChange={(e) => setForm({ ...form, maintenanceMode: e.target.checked })}
+          className="w-5 h-5 shrink-0 accent-[#dc2626]"
         />
       </label>
 

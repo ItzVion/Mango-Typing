@@ -24,8 +24,10 @@ import { LessonRunner } from "./pages/Tutor/LessonRunner";
 import { DonationHistory } from "./pages/DonationHistory";
 import { Settings } from "./pages/Settings";
 import { NotFound } from "./pages/NotFound";
-import { api } from "./api/client";
+import { MaintenancePage } from "./pages/MaintenancePage";
+import { api, OWNER_EMAIL } from "./api/client";
 import { useAuthStore } from "./stores/authStore";
+import { useState } from "react";
 
 const pageTransition = {
   initial: { opacity: 0, y: 16 },
@@ -35,13 +37,27 @@ const pageTransition = {
 
 export default function App() {
   const setUser = useAuthStore((s) => s.setUser);
+  const user = useAuthStore((s) => s.user);
   const location = useLocation();
+  const [maintenance, setMaintenance] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem("vc_token")) {
       api.me().then(setUser).catch(() => localStorage.removeItem("vc_token"));
     }
   }, [setUser]);
+
+  useEffect(() => {
+    api.publicSettings().then((s) => setMaintenance(!!s.maintenanceMode)).catch(() => {});
+  }, []);
+
+  // Maintenance mode blocks everyone except the owner and the /auth and
+  // /admin routes, so the owner can always sign in and flip it back off.
+  const isOwner = user?.email === OWNER_EMAIL;
+  const allowedDuringMaintenance = location.pathname === "/auth" || location.pathname === "/admin";
+  if (maintenance && !isOwner && !allowedDuringMaintenance) {
+    return <MaintenancePage />;
+  }
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });

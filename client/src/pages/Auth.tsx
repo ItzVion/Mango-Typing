@@ -177,10 +177,27 @@ export const Auth = () => {
   // the AnimatePresence-keyed block below so it never gets unmounted.
   const googleInitialized = useRef(false);
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || !window.google || !googleBtnRef.current || googleInitialized.current) return;
-    window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
-    window.google.accounts.id.renderButton(googleBtnRef.current, { theme: "outline", size: "large", width: 320 });
-    googleInitialized.current = true;
+    if (!GOOGLE_CLIENT_ID) return;
+    // Google's script tag is async/defer, so on a hard refresh it can still be
+    // loading when this effect first runs — a single one-shot check missed it
+    // and never retried, which is why the button sometimes never appeared.
+    // Poll briefly until the script is actually ready.
+    const tryInit = () => {
+      if (googleInitialized.current || !window.google || !googleBtnRef.current) return false;
+      window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
+      window.google.accounts.id.renderButton(googleBtnRef.current, { theme: "outline", size: "large", width: 320 });
+      googleInitialized.current = true;
+      return true;
+    };
+    if (tryInit()) return;
+    const interval = setInterval(() => {
+      if (tryInit()) clearInterval(interval);
+    }, 150);
+    const timeout = setTimeout(() => clearInterval(interval), 10000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
