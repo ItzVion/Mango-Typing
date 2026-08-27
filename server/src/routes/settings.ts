@@ -13,6 +13,7 @@ router.get("/public", async (_req: Request, res: Response) => {
     razorpayConfigured: !!(s?.razorpayKeyId && s?.razorpayKeySecret),
     razorpayKeyId: s?.razorpayKeyId ?? null, // publishable key id — safe to expose, needed by checkout.js
     maintenanceMode: s?.maintenanceMode ?? false,
+    supportEmail: s?.supportEmail ?? "vctyping.11@gmail.com",
   });
 });
 
@@ -23,7 +24,7 @@ router.get("/", requireOwner, async (_req: AuthRequest, res: Response) => {
 });
 
 router.patch("/", requireOwner, async (req: AuthRequest, res: Response) => {
-  const { razorpayKeyId, razorpayKeySecret, donationMessage, maintenanceMode } = req.body;
+  const { razorpayKeyId, razorpayKeySecret, donationMessage, maintenanceMode, supportEmail } = req.body;
   const s = await prisma.settings.upsert({
     where: { id: 1 },
     update: {
@@ -31,8 +32,9 @@ router.patch("/", requireOwner, async (req: AuthRequest, res: Response) => {
       ...(razorpayKeySecret !== undefined ? { razorpayKeySecret } : {}),
       ...(donationMessage !== undefined ? { donationMessage } : {}),
       ...(maintenanceMode !== undefined ? { maintenanceMode } : {}),
+      ...(supportEmail !== undefined ? { supportEmail } : {}),
     },
-    create: { id: 1, razorpayKeyId, razorpayKeySecret, donationMessage, maintenanceMode },
+    create: { id: 1, razorpayKeyId, razorpayKeySecret, donationMessage, maintenanceMode, supportEmail },
   });
   res.json(s);
 });

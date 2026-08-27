@@ -66,6 +66,7 @@ model Settings {
   razorpayKeySecret     String?
   donationMessage       String   @default("Every rupee helps keep the servers running, the domains renewed, and new features shipping. Thank you for supporting VC Typing!")
   maintenanceMode       Boolean  @default(false)
+  supportEmail          String   @default("vctyping.11@gmail.com")
   updatedAt             DateTime @updatedAt
 }
 

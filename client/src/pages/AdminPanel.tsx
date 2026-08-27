@@ -99,7 +99,7 @@ export const AdminPanel = () => {
 
 // ── Payments ────────────────────────────────────────────────────────────
 const PaymentsTab = () => {
-  const [form, setForm] = useState({ razorpayKeyId: "", razorpayKeySecret: "", donationMessage: "", maintenanceMode: false });
+  const [form, setForm] = useState({ razorpayKeyId: "", razorpayKeySecret: "", donationMessage: "", maintenanceMode: false, supportEmail: "" });
   const [status, setStatus] = useState("");
   const [ready, setReady] = useState(false);
 
@@ -110,6 +110,7 @@ const PaymentsTab = () => {
         razorpayKeySecret: s.razorpayKeySecret ?? "",
         donationMessage: s.donationMessage ?? "",
         maintenanceMode: s.maintenanceMode ?? false,
+        supportEmail: s.supportEmail ?? "",
       });
       setReady(true);
     });
@@ -156,6 +157,16 @@ const PaymentsTab = () => {
           value={form.donationMessage}
           onChange={(e) => setForm({ ...form, donationMessage: e.target.value })}
           className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2 min-h-24"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        Support Email <span className="text-black/40 text-xs">(shown in the footer)</span>
+        <input
+          value={form.supportEmail}
+          onChange={(e) => setForm({ ...form, supportEmail: e.target.value })}
+          className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2"
+          placeholder="support@example.com"
         />
       </label>
 
