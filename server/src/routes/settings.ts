@@ -24,7 +24,10 @@ router.get("/", requireOwner, async (_req: AuthRequest, res: Response) => {
 });
 
 router.patch("/", requireOwner, async (req: AuthRequest, res: Response) => {
-  const { razorpayKeyId, razorpayKeySecret, donationMessage, maintenanceMode, supportEmail } = req.body;
+  const {
+    razorpayKeyId, razorpayKeySecret, donationMessage, maintenanceMode, supportEmail,
+    smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpFrom, smtpFromName,
+  } = req.body;
   const s = await prisma.settings.upsert({
     where: { id: 1 },
     update: {
@@ -33,8 +36,18 @@ router.patch("/", requireOwner, async (req: AuthRequest, res: Response) => {
       ...(donationMessage !== undefined ? { donationMessage } : {}),
       ...(maintenanceMode !== undefined ? { maintenanceMode } : {}),
       ...(supportEmail !== undefined ? { supportEmail } : {}),
+      ...(smtpHost !== undefined ? { smtpHost } : {}),
+      ...(smtpPort !== undefined ? { smtpPort: smtpPort === "" ? null : Number(smtpPort) } : {}),
+      ...(smtpSecure !== undefined ? { smtpSecure } : {}),
+      ...(smtpUser !== undefined ? { smtpUser } : {}),
+      ...(smtpPass !== undefined ? { smtpPass } : {}),
+      ...(smtpFrom !== undefined ? { smtpFrom } : {}),
+      ...(smtpFromName !== undefined ? { smtpFromName } : {}),
     },
-    create: { id: 1, razorpayKeyId, razorpayKeySecret, donationMessage, maintenanceMode, supportEmail },
+    create: {
+      id: 1, razorpayKeyId, razorpayKeySecret, donationMessage, maintenanceMode, supportEmail,
+      smtpHost, smtpPort: smtpPort ? Number(smtpPort) : null, smtpSecure, smtpUser, smtpPass, smtpFrom, smtpFromName,
+    },
   });
   res.json(s);
 });

@@ -5,7 +5,7 @@ import { api, OWNER_EMAIL } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { BackButton } from "../components/BackButton";
 
-type Tab = "payments" | "editor" | "users" | "donations";
+type Tab = "payments" | "editor" | "users" | "donations" | "email";
 type LegalSlug = "privacy" | "refund" | "terms";
 
 type AdminUser = {
@@ -30,6 +30,7 @@ type AdminDonation = {
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "payments", label: "Payments" },
+  { key: "email", label: "Email" },
   { key: "editor", label: "Editor" },
   { key: "users", label: "Users" },
   { key: "donations", label: "Donations" },
@@ -88,6 +89,7 @@ export const AdminPanel = () => {
           transition={{ duration: 0.2 }}
         >
           {tab === "payments" && <PaymentsTab />}
+          {tab === "email" && <EmailTab />}
           {tab === "editor" && <EditorTab />}
           {tab === "users" && <UsersTab />}
           {tab === "donations" && <DonationsTab />}
@@ -198,7 +200,130 @@ const PaymentsTab = () => {
   );
 };
 
-// ── Editor (privacy / refund / terms) ──────────────────────────────────
+// ── Email (SMTP) ─────────────────────────────────────────────────────────
+const EmailTab = () => {
+  const [form, setForm] = useState({
+    smtpHost: "", smtpPort: "", smtpSecure: false, smtpUser: "", smtpPass: "", smtpFrom: "", smtpFromName: "",
+  });
+  const [status, setStatus] = useState("");
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    api.ownerSettings().then((s) => {
+      setForm({
+        smtpHost: s.smtpHost ?? "",
+        smtpPort: s.smtpPort != null ? String(s.smtpPort) : "",
+        smtpSecure: s.smtpSecure ?? false,
+        smtpUser: s.smtpUser ?? "",
+        smtpPass: s.smtpPass ?? "",
+        smtpFrom: s.smtpFrom ?? "",
+        smtpFromName: s.smtpFromName ?? "",
+      });
+      setReady(true);
+    });
+  }, []);
+
+  const save = async () => {
+    setStatus("Saving…");
+    try {
+      await api.updateSettings(form);
+      setStatus("Saved.");
+    } catch (e: any) {
+      setStatus(e.message || "Failed to save");
+    }
+  };
+
+  if (!ready) return <p className="text-black/40 text-sm">Loading…</p>;
+
+  return (
+    <div className="flex flex-col gap-5 card p-6">
+      <p className="text-black/40 text-xs -mt-1">
+        Used for account verification codes. Leave blank to fall back to the server's SMTP_* environment variables.
+      </p>
+
+      <label className="flex flex-col gap-1 text-sm">
+        SMTP_HOST
+        <input
+          value={form.smtpHost}
+          onChange={(e) => setForm({ ...form, smtpHost: e.target.value })}
+          className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2"
+          placeholder="smtp.zoho.in"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        SMTP_PORT
+        <input
+          value={form.smtpPort}
+          onChange={(e) => setForm({ ...form, smtpPort: e.target.value.replace(/\D/g, "") })}
+          className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2"
+          placeholder="465"
+        />
+      </label>
+
+      <label className="flex items-center justify-between gap-3 text-sm card p-4">
+        <span>SMTP_SECURE</span>
+        <input
+          type="checkbox"
+          checked={form.smtpSecure}
+          onChange={(e) => setForm({ ...form, smtpSecure: e.target.checked })}
+          className="w-5 h-5 shrink-0 accent-[#F5A623]"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        SMTP_USER
+        <input
+          value={form.smtpUser}
+          onChange={(e) => setForm({ ...form, smtpUser: e.target.value })}
+          className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2"
+          placeholder="vctyping@zohomail.in"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        SMTP_PASS
+        <input
+          type="password"
+          value={form.smtpPass}
+          onChange={(e) => setForm({ ...form, smtpPass: e.target.value })}
+          className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2"
+          placeholder="••••••••••"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        SMTP_FROM
+        <input
+          value={form.smtpFrom}
+          onChange={(e) => setForm({ ...form, smtpFrom: e.target.value })}
+          className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2"
+          placeholder="vctyping@zohomail.in"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        SMTP_FROM_NAME
+        <input
+          value={form.smtpFromName}
+          onChange={(e) => setForm({ ...form, smtpFromName: e.target.value })}
+          className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2"
+          placeholder="VC TYPING"
+        />
+      </label>
+
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={save}
+        className="px-6 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold"
+      >
+        Save
+      </motion.button>
+      {status && <p className="text-black/40 text-sm">{status}</p>}
+    </div>
+  );
+};
 const LEGAL_PAGES: { slug: LegalSlug; label: string }[] = [
   { slug: "privacy", label: "Privacy Policy" },
   { slug: "refund", label: "Refund Policy" },
