@@ -1,10 +1,9 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
 import { requireOwner, AuthRequest, OWNER_EMAIL } from "../middleware/auth";
+import { prisma } from "../lib/db";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const DEFAULT_LEGAL: Record<string, string> = {
   privacy:

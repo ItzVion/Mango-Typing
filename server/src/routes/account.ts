@@ -1,12 +1,11 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { PrismaClient } from "@prisma/client";
 import { requireAuth, AuthRequest } from "../middleware/auth";
 import { sendOtpEmail } from "../lib/mailer";
+import { prisma } from "../lib/db";
 
 const router = Router();
-const prisma = new PrismaClient();
 const CODE_TTL_MS = 10 * 60 * 1000;
 
 function makeCode() {

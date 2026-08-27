@@ -1,9 +1,8 @@
 import { Router, Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
 import { optionalAuth, requireAuth, AuthRequest } from "../middleware/auth";
+import { prisma } from "../lib/db";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Submit a completed test.
 // If a valid token is sent, the test is linked to that user (userId) and

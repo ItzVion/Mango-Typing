@@ -1,9 +1,8 @@
 import { Router, Request, Response } from "express";
 import crypto from "crypto";
-import { PrismaClient } from "@prisma/client";
 import { optionalAuth, requireAuth, AuthRequest } from "../middleware/auth";
+import { prisma } from "../lib/db";
 const router = Router();
-const prisma = new PrismaClient();
 async function getRazorpayKeys() {
   const s = await prisma.settings.findUnique({ where: { id: 1 } });
   return { keyId: s?.razorpayKeyId ?? null, keySecret: s?.razorpayKeySecret ?? null };

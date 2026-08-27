@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { prisma } from "../lib/db";
 
 const JWT_SECRET = process.env.JWT_SECRET || "vc-typing-secret-key";
 
@@ -46,9 +47,6 @@ export async function requireOwner(req: AuthRequest, res: Response, next: NextFu
   try {
     const payload = jwt.verify(header.slice(7), JWT_SECRET) as { id: string };
     req.userId = payload.id;
-    // Lazy import to avoid circular deps
-    const { PrismaClient } = await import("@prisma/client");
-    const prisma = new PrismaClient();
     const user = await prisma.user.findUnique({ where: { id: payload.id } });
     if (!user || user.email !== OWNER_EMAIL) return res.status(403).json({ error: "Owner only" });
     next();

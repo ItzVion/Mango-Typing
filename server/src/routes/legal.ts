@@ -1,9 +1,8 @@
 import { Router, Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
 import { DEFAULT_LEGAL } from "./admin";
+import { prisma } from "../lib/db";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Public, unauthenticated — used by the Privacy/Refund/Terms pages.
 router.get("/:slug", async (req: Request, res: Response): Promise<any> => {

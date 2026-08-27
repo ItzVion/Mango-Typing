@@ -1,7 +1,5 @@
 import nodemailer from "nodemailer";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "./db";
 
 // SMTP config can be edited live from Admin (stored in Settings) — falls
 // back to env vars if the admin hasn't set anything in the DB yet. We build
@@ -10,7 +8,7 @@ const prisma = new PrismaClient();
 async function getTransporter() {
   const s = await prisma.settings.findUnique({ where: { id: 1 } });
   const host = s?.smtpHost || process.env.SMTP_HOST;
-  const port = s?.smtpPort ?? Number(process.env.SMTP_PORT) || 587;
+  const port = s?.smtpPort ?? (Number(process.env.SMTP_PORT) || 587);
   const secure = s?.smtpSecure ?? process.env.SMTP_SECURE === "true";
   const user = s?.smtpUser || process.env.SMTP_USER;
   const pass = s?.smtpPass || process.env.SMTP_PASS;

@@ -1,9 +1,8 @@
 import { Router, Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
 import { requireOwner, AuthRequest } from "../middleware/auth";
+import { prisma } from "../lib/db";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Public: donation blurb + whether Razorpay is configured (never leaks the key secret).
 router.get("/public", async (_req: Request, res: Response) => {
