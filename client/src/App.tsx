@@ -23,6 +23,7 @@ import { TutorHub } from "./pages/Tutor/TutorHub";
 import { LessonRunner } from "./pages/Tutor/LessonRunner";
 import { DonationHistory } from "./pages/DonationHistory";
 import { Settings } from "./pages/Settings";
+import { NotFound } from "./pages/NotFound";
 import { api } from "./api/client";
 import { useAuthStore } from "./stores/authStore";
 
@@ -79,6 +80,7 @@ export default function App() {
               <Route path="/tutor/:lessonId" element={<LessonRunner />} />
               <Route path="/donations" element={<DonationHistory />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </motion.div>
         </AnimatePresence>

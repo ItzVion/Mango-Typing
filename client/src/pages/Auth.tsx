@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { KeyboardArt } from "../components/KeyboardArt";
+import { OtpInput } from "../components/OtpInput";
 
 // Per-character blur/slide-in text — same effect family as motion-primitives'
 // TextEffect, built directly on framer-motion so no extra CLI/package/path-alias
@@ -394,13 +395,7 @@ export const Auth = () => {
               We sent a 6-digit code to <span className="font-semibold">{form.email}</span>. Enter it below to finish creating your account.
             </p>
 
-            <input
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="000000"
-              inputMode="numeric"
-              className={`${inputClass} text-center text-2xl tracking-[0.5em] font-bold`}
-            />
+            <OtpInput value={otp} onChange={setOtp} length={6} />
 
             <AnimatePresence>
               {error && (

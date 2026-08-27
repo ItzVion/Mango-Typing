@@ -11,7 +11,10 @@ export const Navbar = () => {
   const { user, logout } = useAuthStore();
   const { theme, toggle } = useThemeStore();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const mobileNavRef = useRef<HTMLDivElement>(null);
 
   const links = [
     { name: "Dashboard", path: "/" },
@@ -22,16 +25,25 @@ export const Navbar = () => {
   ];
 
   useEffect(() => {
-    if (!menuOpen) return;
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen && !mobileNavOpen) return;
     const handleClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+      if (mobileNavRef.current && !mobileNavRef.current.contains(e.target as Node)) setMobileNavOpen(false);
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [menuOpen]);
+  }, [menuOpen, mobileNavOpen]);
 
   useEffect(() => {
     setMenuOpen(false);
+    setMobileNavOpen(false);
   }, [location.pathname]);
 
   const handleLogout = () => {
@@ -46,7 +58,8 @@ export const Navbar = () => {
         initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="glass-nav grid grid-cols-[auto_1fr_auto] items-center w-full max-w-5xl px-4 sm:px-6 py-3 rounded-2xl gap-2"
+        className="glass-nav grid grid-cols-[auto_1fr_auto] items-center w-full max-w-5xl px-4 sm:px-6 py-3 rounded-2xl gap-2 transition-shadow"
+        style={scrolled ? { boxShadow: "0 8px 30px -12px rgba(0,0,0,0.25)" } : {}}
       >
         <Link to="/" className="font-bold text-base sm:text-lg tracking-wider shrink-0 flex items-center justify-self-start">
           <motion.img
@@ -58,7 +71,8 @@ export const Navbar = () => {
           />
         </Link>
 
-        <div className="flex items-center justify-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar min-w-0 justify-self-center">
+        {/* Desktop nav links */}
+        <div className="hidden sm:flex items-center justify-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar min-w-0 justify-self-center">
           {links.map((l) => (
             <Link
               key={l.path}
@@ -81,6 +95,55 @@ export const Navbar = () => {
               )}
             </Link>
           ))}
+        </div>
+
+        {/* Mobile: hamburger replaces the cramped link row */}
+        <div className="flex sm:hidden justify-self-center relative" ref={mobileNavRef}>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setMobileNavOpen((o) => !o)}
+            aria-label="Open navigation"
+            className="w-9 h-9 rounded-xl flex flex-col items-center justify-center gap-1 border border-[var(--card-border)]"
+          >
+            <motion.span
+              animate={mobileNavOpen ? { rotate: 45, y: 5 } : { rotate: 0, y: 0 }}
+              className="w-4 h-[2px] rounded-full"
+              style={{ backgroundColor: "var(--text-primary)" }}
+            />
+            <motion.span
+              animate={mobileNavOpen ? { opacity: 0 } : { opacity: 1 }}
+              className="w-4 h-[2px] rounded-full"
+              style={{ backgroundColor: "var(--text-primary)" }}
+            />
+            <motion.span
+              animate={mobileNavOpen ? { rotate: -45, y: -5 } : { rotate: 0, y: 0 }}
+              className="w-4 h-[2px] rounded-full"
+              style={{ backgroundColor: "var(--text-primary)" }}
+            />
+          </motion.button>
+
+          <AnimatePresence>
+            {mobileNavOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                className="card absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] w-44 py-2 flex flex-col overflow-hidden z-50"
+              >
+                {links.map((l) => (
+                  <Link
+                    key={l.path}
+                    to={l.path}
+                    className="px-4 py-2.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    style={location.pathname === l.path ? { color: "var(--text-primary)" } : { color: "var(--text-muted)" }}
+                  >
+                    {l.name}
+                  </Link>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="flex items-center gap-2 shrink-0 justify-self-end">
