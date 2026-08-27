@@ -16,7 +16,12 @@ async function request(path: string, opts: RequestInit = {}) {
       ...(opts.headers || {}),
     },
   });
-  const data = await res.json();
+  let data: any = null;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(res.ok ? "Unexpected response from server." : `Server error (${res.status}). Please try again.`);
+  }
   if (!res.ok) throw new Error(data.error || "Request failed");
   return data;
 }

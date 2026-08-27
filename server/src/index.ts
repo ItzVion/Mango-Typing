@@ -1,4 +1,5 @@
 import "dotenv/config";
+import "express-async-errors";
 import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth";
@@ -41,6 +42,18 @@ app.use("/api/account", accountRoutes);
 app.use("/api/bugreport", bugReportRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+// Unmatched /api/* routes -> JSON 404 instead of falling through to index.html
+app.use("/api", (_req, res) => res.status(404).json({ error: "Not found" }));
+
+// Catches every thrown/rejected error from the routes above (including
+// Prisma/Turso connection failures) and always returns JSON instead of
+// letting it become a raw HTML crash page that breaks res.json() on the client.
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("Unhandled error:", err);
+  if (res.headersSent) return;
+  res.status(err?.status || 500).json({ error: err?.message || "Internal server error" });
+});
 
 if (!process.env.VERCEL) {
   app.listen(PORT, () => console.log(`VC TYPING server running on http://localhost:${PORT}`));
