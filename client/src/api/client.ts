@@ -31,6 +31,8 @@ export const api = {
     request("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
   googleLogin: (credential: string) =>
     request("/auth/google", { method: "POST", body: JSON.stringify({ credential }) }),
+  googleComplete: (credential: string, username: string, password: string) =>
+    request("/auth/google/complete", { method: "POST", body: JSON.stringify({ credential, username, password }) }),
   me: () => request("/auth/me"),
   sheets: () => request("/sheets"),
   sheet: (id: number) => request(`/sheets/${id}`),

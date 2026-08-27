@@ -366,8 +366,8 @@ function RunningTest({
 
       <div className="card w-full max-w-2xl h-3 overflow-hidden">
         <div
-          className="h-full bg-black dark:bg-white transition-all"
-          style={{ width: `${duration ? ((duration - timeLeft) / duration) * 100 : 0}%` }}
+          className="h-full transition-all"
+          style={{ width: `${duration ? ((duration - timeLeft) / duration) * 100 : 0}%`, backgroundColor: "#F5A623" }}
         />
       </div>
 

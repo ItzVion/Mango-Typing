@@ -117,8 +117,10 @@ router.get("/me", requireAuth, async (req: AuthRequest, res: Response): Promise<
 });
 
 // Google Sign-In: client sends the ID token from Google Identity Services,
-// we verify it server-side and find-or-create the matching user.
-// Requires GOOGLE_CLIENT_ID set in .env — without it this always 500s.
+// we verify it server-side. Existing users log straight in. A brand-new
+// Google account does NOT get silently created here — we tell the client to
+// collect a username + password first (so the account also works for
+// manual email/password login later), then POST /google/complete finishes it.
 router.post("/google", async (req: Request, res: Response): Promise<any> => {
   if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: "Google Sign-In not configured on this server yet" });
   const { credential } = req.body;
@@ -137,16 +139,53 @@ router.post("/google", async (req: Request, res: Response): Promise<any> => {
 
   if (!user) {
     const base = payload.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "") || "user";
-    let username = base;
+    let suggestedUsername = base;
     let n = 1;
-    while (await prisma.user.findUnique({ where: { username } })) username = `${base}${n++}`;
+    while (await prisma.user.findUnique({ where: { username: suggestedUsername } })) suggestedUsername = `${base}${n++}`;
+    return res.json({ needsSetup: true, email: payload.email, suggestedUsername });
+  }
 
-    user = await prisma.user.create({
-      data: { email: payload.email, username, googleId: payload.sub, avatarUrl: payload.picture ?? null },
-    });
-  } else if (!user.googleId) {
+  if (!user.googleId) {
     user = await prisma.user.update({ where: { id: user.id }, data: { googleId: payload.sub, avatarUrl: user.avatarUrl ?? payload.picture ?? null } });
   }
+
+  res.json({ token: sign(user), user: publicUser(user) });
+});
+
+// Step 2 for a brand-new Google account: re-verify the same credential, then
+// actually create the user with the username/password they just chose.
+router.post("/google/complete", async (req: Request, res: Response): Promise<any> => {
+  if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: "Google Sign-In not configured on this server yet" });
+  const { credential, username, password } = req.body;
+  if (!credential || !username || !password) return res.status(400).json({ error: "All fields required" });
+  if (username.trim().length < 3) return res.status(400).json({ error: "Username must be at least 3 characters." });
+  if (password.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters." });
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID });
+    payload = ticket.getPayload();
+  } catch {
+    return res.status(400).json({ error: "Invalid Google token" });
+  }
+  if (!payload?.email) return res.status(400).json({ error: "Invalid Google token" });
+
+  const existing = await prisma.user.findFirst({ where: { OR: [{ googleId: payload.sub }, { email: payload.email }] } });
+  if (existing) return res.status(400).json({ error: "An account with this Google email already exists." });
+
+  const existingUsername = await prisma.user.findUnique({ where: { username: username.trim() } });
+  if (existingUsername) return res.status(400).json({ error: "That username is already taken." });
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const user = await prisma.user.create({
+    data: {
+      email: payload.email,
+      username: username.trim(),
+      passwordHash,
+      googleId: payload.sub,
+      avatarUrl: payload.picture ?? null,
+    },
+  });
 
   res.json({ token: sign(user), user: publicUser(user) });
 });

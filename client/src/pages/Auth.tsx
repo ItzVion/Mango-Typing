@@ -45,7 +45,7 @@ const GoogleLogo = () => (
   </svg>
 );
 
-type Step = "login" | "register" | "otp";
+type Step = "login" | "register" | "otp" | "googleSetup";
 
 const inputClass = "bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2 w-full outline-none focus:border-black/40 dark:focus:border-white/40 transition-colors";
 
@@ -63,6 +63,8 @@ export const Auth = () => {
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
   const googleBtnRef = useRef<HTMLDivElement>(null);
+  const [pendingGoogleCredential, setPendingGoogleCredential] = useState<string | null>(null);
+  const [googleSetupForm, setGoogleSetupForm] = useState({ username: "", password: "" });
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -140,6 +142,12 @@ export const Auth = () => {
     setError("");
     try {
       const res = await api.googleLogin(response.credential);
+      if (res.needsSetup) {
+        setPendingGoogleCredential(response.credential);
+        setGoogleSetupForm({ username: res.suggestedUsername || "", password: "" });
+        setStep("googleSetup");
+        return;
+      }
       login(res.token, res.user);
       navigate("/");
     } catch (e: any) {
@@ -147,6 +155,25 @@ export const Auth = () => {
     }
   };
 
+  const completeGoogleSetup = async () => {
+    if (!pendingGoogleCredential) return;
+    setError("");
+    setLoading(true);
+    try {
+      const res = await api.googleComplete(pendingGoogleCredential, googleSetupForm.username, googleSetupForm.password);
+      login(res.token, res.user);
+      navigate("/");
+    } catch (e: any) {
+      setError(e.message || "Couldn't finish setting up your account");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initialize Google's button exactly once — it used to re-init on every
+  // login/register switch, which destroyed and briefly re-created the button
+  // (looked like a flash-then-vanish). The container div now lives outside
+  // the AnimatePresence-keyed block below so it never gets unmounted.
   const googleInitialized = useRef(false);
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID || !window.google || !googleBtnRef.current || googleInitialized.current) return;
@@ -184,22 +211,32 @@ export const Auth = () => {
         </div>
       </div>
 
-      {/* Right: the actual form, unchanged logic */}
+      {/* Right: the actual form */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
         className="p-6 flex flex-col gap-4 overflow-hidden bg-[var(--card-bg)]"
       >
-      {step !== "otp" && (
-        <div className="relative">
-          {GOOGLE_CLIENT_ID ? (
+      {/* Google button container lives here, OUTSIDE the step-keyed
+          AnimatePresence block, so switching login/register never
+          unmounts/remounts it (that unmount was the flash-then-vanish bug). */}
+      {(step === "login" || step === "register") && (
+        <div className="relative order-first">
+          {GOOGLE_CLIENT_ID && (
             <div ref={googleBtnRef} className={`flex justify-center transition-opacity ${!agreed ? "opacity-40" : ""}`} />
-          ) : null}
+          )}
+          {GOOGLE_CLIENT_ID && !agreed && (
+            <div
+              className="absolute inset-0 cursor-not-allowed"
+              onClick={() => setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.")}
+            />
+          )}
         </div>
       )}
+
       <AnimatePresence mode="wait">
-        {step !== "otp" ? (
+        {step === "login" || step === "register" ? (
           <motion.div
             key={step}
             initial={{ opacity: 0, x: step === "register" ? 40 : -40 }}
@@ -340,7 +377,7 @@ export const Auth = () => {
               {step === "login" ? "Need an account? Register" : "Have an account? Sign In"}
             </button>
           </motion.div>
-        ) : (
+        ) : step === "otp" ? (
           <motion.div
             key="otp"
             initial={{ opacity: 0, scale: 0.92 }}
@@ -394,6 +431,59 @@ export const Auth = () => {
 
             <button onClick={() => setStep("register")} className="text-black/30 text-xs">
               ← Wrong email? Go back
+            </button>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="googleSetup"
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.92 }}
+            transition={{ type: "spring", stiffness: 260, damping: 22 }}
+            className="flex flex-col gap-4"
+          >
+            <h2 className="text-xl font-bold text-center">Almost done</h2>
+            <p className="text-black/50 text-sm text-center">
+              First time signing in with Google — pick a username and password so you can also log in with email later.
+            </p>
+
+            <input
+              placeholder="Username"
+              value={googleSetupForm.username}
+              onChange={(e) => setGoogleSetupForm({ ...googleSetupForm, username: e.target.value })}
+              className={inputClass}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={googleSetupForm.password}
+              onChange={(e) => setGoogleSetupForm({ ...googleSetupForm, password: e.target.value })}
+              className={inputClass}
+            />
+
+            <AnimatePresence>
+              {error && (
+                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[var(--error)] text-sm text-center">
+                  {error}
+                </motion.p>
+              )}
+            </AnimatePresence>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={completeGoogleSetup}
+              disabled={loading || googleSetupForm.username.trim().length < 3 || googleSetupForm.password.length < 6}
+              className="bg-black text-white dark:bg-white dark:text-black rounded-xl py-2 font-semibold disabled:opacity-40"
+            >
+              {loading ? "Creating account…" : "Finish Sign Up"}
+            </motion.button>
+
+            <button
+              onClick={() => { setPendingGoogleCredential(null); setError(""); setStep("login"); }}
+              className="text-black/30 text-xs"
+            >
+              ← Cancel
             </button>
           </motion.div>
         )}
