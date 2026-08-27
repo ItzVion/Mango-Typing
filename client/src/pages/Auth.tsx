@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useAnimation } from "framer-motion";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { KeyboardArt } from "../components/KeyboardArt";
@@ -64,6 +64,15 @@ export const Auth = () => {
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
   const googleBtnRef = useRef<HTMLDivElement>(null);
+  const googleBtnControls = useAnimation();
+
+  // Animate the Google button on login/register switch WITHOUT unmounting it
+  // (unmounting is what caused it to sometimes vanish for good — see the
+  // polling init effect below). This just replays a little slide/fade on the
+  // same persistent DOM node whenever `step` changes.
+  useEffect(() => {
+    googleBtnControls.start({ opacity: [0, 1], y: [-8, 0] });
+  }, [step, googleBtnControls]);
   const [pendingGoogleCredential, setPendingGoogleCredential] = useState<string | null>(null);
   const [googleSetupForm, setGoogleSetupForm] = useState({ username: "", password: "" });
 
@@ -237,21 +246,25 @@ export const Auth = () => {
         className="p-6 flex flex-col gap-4 overflow-hidden bg-[var(--card-bg)]"
       >
       {/* Google button container lives here, OUTSIDE the step-keyed
-          AnimatePresence block, so switching login/register never
-          unmounts/remounts it (that unmount was the flash-then-vanish bug). */}
-      {(step === "login" || step === "register") && (
-        <div className="relative order-first">
-          {GOOGLE_CLIENT_ID && (
-            <div ref={googleBtnRef} className={`flex justify-center transition-opacity ${!agreed ? "opacity-40" : ""}`} />
-          )}
-          {GOOGLE_CLIENT_ID && !agreed && (
-            <div
-              className="absolute inset-0 cursor-not-allowed"
-              onClick={() => setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.")}
-            />
-          )}
-        </div>
-      )}
+          AnimatePresence block, so switching steps never unmounts/remounts
+          it (that unmount was the flash-then-vanish bug). Hidden with CSS
+          instead of a conditional render for the otp/googleSetup steps, so
+          it truly never leaves the DOM once Google's script has attached
+          its button to this node. */}
+      <motion.div
+        animate={googleBtnControls}
+        className={`relative order-first ${step === "login" || step === "register" ? "" : "hidden"}`}
+      >
+        {GOOGLE_CLIENT_ID && (
+          <div ref={googleBtnRef} className={`flex justify-center transition-opacity ${!agreed ? "opacity-40" : ""}`} />
+        )}
+        {GOOGLE_CLIENT_ID && !agreed && (
+          <div
+            className="absolute inset-0 cursor-not-allowed"
+            onClick={() => setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.")}
+          />
+        )}
+      </motion.div>
 
       <AnimatePresence mode="wait">
         {step === "login" || step === "register" ? (
