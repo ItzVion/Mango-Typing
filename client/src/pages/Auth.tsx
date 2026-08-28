@@ -245,6 +245,26 @@ export const Auth = () => {
         transition={{ duration: 0.4 }}
         className="p-6 flex flex-col gap-4 overflow-hidden bg-[var(--card-bg)]"
       >
+      {/* Heading lives here, OUTSIDE the step-keyed AnimatePresence block,
+          right above the Google button — so the visual order is always
+          "Sign In / Create Account" heading, then Google, then "or", then
+          the manual form. Only the text cross-fades; the container itself
+          never unmounts, for the same reason as the Google button below. */}
+      {(step === "login" || step === "register") && (
+        <AnimatePresence mode="wait">
+          <motion.h2
+            key={step}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2 }}
+            className="text-2xl font-bold text-center"
+          >
+            {step === "login" ? "Sign In" : "Create Account"}
+          </motion.h2>
+        </AnimatePresence>
+      )}
+
       {/* Google button container lives here, OUTSIDE the step-keyed
           AnimatePresence block, so switching steps never unmounts/remounts
           it (that unmount was the flash-then-vanish bug). Hidden with CSS
@@ -253,7 +273,7 @@ export const Auth = () => {
           its button to this node. */}
       <motion.div
         animate={googleBtnControls}
-        className={`relative order-first ${step === "login" || step === "register" ? "" : "hidden"}`}
+        className={`relative ${step === "login" || step === "register" ? "" : "hidden"}`}
       >
         {GOOGLE_CLIENT_ID && (
           <div ref={googleBtnRef} className={`flex justify-center transition-opacity ${!agreed ? "opacity-40" : ""}`} />
@@ -276,15 +296,6 @@ export const Auth = () => {
             transition={{ duration: 0.25, ease: "easeOut" }}
             className="flex flex-col gap-4"
           >
-            <motion.h2
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-2xl font-bold text-center"
-            >
-              {step === "login" ? "Sign In" : "Create Account"}
-            </motion.h2>
-
             {!GOOGLE_CLIENT_ID && (
               <motion.button
                 whileHover={{ scale: 1.02 }}

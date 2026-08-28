@@ -29,12 +29,20 @@ const sheets = [
   { title: "Typing Test 15", topic: "Innovation & Engineering", content: P(`Innovation combines imagination with practical solutions. Inventors and entrepreneurs identify problems, test prototypes, and refine designs through feedback. Progress often comes from continuous improvement rather than sudden breakthroughs. `.repeat(10)) },
 ];
 
+// 5 easy / 5 medium / 5 hard, in the same order as `sheets` above.
+const DIFFICULTIES: ("easy" | "medium" | "hard")[] = [
+  "easy", "easy", "easy", "easy", "easy",
+  "medium", "medium", "medium", "medium", "medium",
+  "hard", "hard", "hard", "hard", "hard",
+];
+
 async function main() {
   await prisma.typingTest.deleteMany();
   await prisma.sheet.deleteMany();
   await prisma.settings.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } });
 
-  for (const s of sheets) {
+  for (let i = 0; i < sheets.length; i++) {
+    const s = sheets[i];
     await prisma.sheet.create({
       data: {
         title: s.title,
@@ -42,6 +50,7 @@ async function main() {
         content: s.content,
         wordCount: s.content.split(" ").length,
         charCount: s.content.length,
+        difficulty: DIFFICULTIES[i] ?? "easy",
       },
     });
   }

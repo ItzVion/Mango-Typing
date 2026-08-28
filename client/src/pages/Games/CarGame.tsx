@@ -1,31 +1,48 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BackButton } from "../../components/BackButton";
 
-const WORD_BANK = [
-  "the","quick","brown","fox","jumps","over","lazy","dog","and","runs",
-  "into","forest","near","river","while","birds","sing","above","trees",
-  "sun","sets","behind","hills","as","night","falls","cold","wind","blows",
-  "through","open","fields","where","cattle","graze","under","clear","sky",
-  "children","play","games","laughing","loudly","until","evening","comes",
-  "quietly","home","dinner","waits","warm","family","gathers","around","table",
+type Difficulty = "easy" | "medium" | "hard";
+
+const WORD_BANK_EASY = [
+  "the","fox","dog","and","runs","into","near","sing","above","trees",
+  "sun","sets","hills","as","night","cold","wind","open","sky","play",
+  "games","home","warm","table","fast","slow","road","car","gas","stop",
 ];
+const WORD_BANK_MEDIUM = [
+  "quick","brown","jumps","over","lazy","forest","river","while","birds",
+  "behind","falls","blows","fields","where","cattle","graze","under","clear",
+  "children","laughing","loudly","until","evening","comes","quietly","dinner",
+  "waits","family","gathers","around","engine","throttle","gravel","tunnel",
+];
+const WORD_BANK_HARD = [
+  "acceleration","tremendous","overtaking","competitive","turbocharged",
+  "aerodynamic","suspension","navigation","dashboard","windscreen",
+  "combustion","transmission","horsepower","championship","instrument",
+  "reflection","determined","adventurous","spectacular","magnificent",
+];
+
+const DIFFICULTY_SETTINGS: Record<Difficulty, { bank: string[]; decayPerSec: number; gainCorrect: number }> = {
+  easy: { bank: WORD_BANK_EASY, decayPerSec: 3, gainCorrect: 12 },
+  medium: { bank: WORD_BANK_MEDIUM, decayPerSec: 4, gainCorrect: 10 },
+  hard: { bank: WORD_BANK_HARD, decayPerSec: 5.5, gainCorrect: 8 },
+};
 
 const MAX_SPEED = 120;
 const START_SPEED = 25;
-const GAIN_CORRECT = 10;
 const GAIN_PARTIAL = 3.3;
-const DECAY_PER_SEC = 4;
-const DURATION_SEC = 60;
 const QUEUE_SIZE = 6;
-
-function randomWord() {
-  return WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)];
-}
 
 export const CarGame = () => {
   const navigate = useNavigate();
+  const { state } = useLocation() as { state?: { difficulty: Difficulty; duration: number } };
+  const difficulty = state?.difficulty ?? "easy";
+  const DURATION_SEC = state?.duration ?? 60;
+  const { bank: WORD_BANK, decayPerSec: DECAY_PER_SEC, gainCorrect: GAIN_CORRECT } = DIFFICULTY_SETTINGS[difficulty];
+
+  const randomWord = () => WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)];
+
   const [queue, setQueue] = useState<string[]>(() =>
     Array.from({ length: QUEUE_SIZE }, randomWord)
   );
@@ -230,6 +247,10 @@ export const CarGame = () => {
         <div>
           <div className="text-2xl font-bold">{distanceKm.toFixed(2)} km</div>
           <div className="text-black/40 text-xs">Distance</div>
+        </div>
+        <div>
+          <div className="text-2xl font-bold capitalize">{difficulty}</div>
+          <div className="text-black/40 text-xs">Difficulty</div>
         </div>
       </div>
 
