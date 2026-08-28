@@ -55,7 +55,7 @@ export const AdminPanel = () => {
       .finally(() => setLoaded(true));
   }, [user]);
 
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/auth" state={{ from: "/admin" }} replace />;
   if (loaded && (!allowed || user.email !== OWNER_EMAIL)) return <Navigate to="/" replace />;
   if (!loaded) return <p className="text-black/40 text-center mt-16">Loading…</p>;
 

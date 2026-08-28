@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion, useAnimation } from "framer-motion";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
@@ -63,6 +63,8 @@ export const Auth = () => {
   useEffect(() => { agreedRef.current = agreed; }, [agreed]);
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = (location.state as { from?: string } | null)?.from || "/";
   const googleBtnRef = useRef<HTMLDivElement>(null);
   const googleBtnControls = useAnimation();
 
@@ -92,7 +94,7 @@ export const Auth = () => {
     try {
       const res = await api.login(form.identifier, form.password);
       login(res.token, res.user);
-      navigate("/");
+      navigate(redirectTo);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -124,7 +126,7 @@ export const Auth = () => {
     try {
       const res = await api.verifyOtp(form.email, otp);
       login(res.token, res.user);
-      navigate("/");
+      navigate(redirectTo);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -159,7 +161,7 @@ export const Auth = () => {
         return;
       }
       login(res.token, res.user);
-      navigate("/");
+      navigate(redirectTo);
     } catch (e: any) {
       setError(e.message || "Google sign-in failed");
     }
@@ -172,7 +174,7 @@ export const Auth = () => {
     try {
       const res = await api.googleComplete(pendingGoogleCredential, googleSetupForm.username, googleSetupForm.password);
       login(res.token, res.user);
-      navigate("/");
+      navigate(redirectTo);
     } catch (e: any) {
       setError(e.message || "Couldn't finish setting up your account");
     } finally {
