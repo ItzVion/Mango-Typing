@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { AnimatePresence, motion, useAnimation } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { KeyboardArt } from "../components/KeyboardArt";
@@ -48,7 +48,49 @@ const GoogleLogo = () => (
 
 type Step = "login" | "register" | "otp" | "googleSetup";
 
-const inputClass = "bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2 w-full outline-none focus:border-black/40 dark:focus:border-white/40 transition-colors";
+const inputClass =
+  "bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2 w-full outline-none focus:border-black/40 dark:focus:border-white/40 transition-colors";
+
+// Google's Identity Services script renders its button into a real DOM node
+// exactly once. If that node ever unmounts (e.g. because it lives inside a
+// step-keyed AnimatePresence block that gets torn down on every Sign In <->
+// Register switch), the button is gone for good until a full page reload.
+// This hook owns that one persistent node and its one-time init, completely
+// decoupled from whatever step the form is currently on.
+function useGoogleSignIn(onCredential: (credential: string) => void, enabled: boolean) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef(false);
+  const onCredentialRef = useRef(onCredential);
+  onCredentialRef.current = onCredential;
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+    // Google's script tag is async/defer, so on a hard refresh it can still
+    // be loading when this effect first runs. Poll briefly until it's ready
+    // instead of a single check that can miss the window entirely.
+    const tryInit = () => {
+      if (initializedRef.current || !window.google || !containerRef.current) return false;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: (response: any) => onCredentialRef.current(response.credential),
+      });
+      window.google.accounts.id.renderButton(containerRef.current, { theme: "outline", size: "large", width: 320 });
+      initializedRef.current = true;
+      return true;
+    };
+    if (tryInit()) return;
+    const interval = setInterval(() => {
+      if (tryInit()) clearInterval(interval);
+    }, 150);
+    const timeout = setTimeout(() => clearInterval(interval), 10000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  return { containerRef, visible: enabled };
+}
 
 export const Auth = () => {
   const [step, setStep] = useState<Step>("login");
@@ -60,21 +102,15 @@ export const Auth = () => {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [agreed, setAgreed] = useState(false);
   const agreedRef = useRef(false);
-  useEffect(() => { agreedRef.current = agreed; }, [agreed]);
+  useEffect(() => {
+    agreedRef.current = agreed;
+  }, [agreed]);
+
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = (location.state as { from?: string } | null)?.from || "/";
-  const googleBtnRef = useRef<HTMLDivElement>(null);
-  const googleBtnControls = useAnimation();
 
-  // Animate the Google button on login/register switch WITHOUT unmounting it
-  // (unmounting is what caused it to sometimes vanish for good — see the
-  // polling init effect below). This just replays a little slide/fade on the
-  // same persistent DOM node whenever `step` changes.
-  useEffect(() => {
-    googleBtnControls.start({ opacity: [0, 1], y: [-8, 0] });
-  }, [step, googleBtnControls]);
   const [pendingGoogleCredential, setPendingGoogleCredential] = useState<string | null>(null);
   const [googleSetupForm, setGoogleSetupForm] = useState({ username: "", password: "" });
 
@@ -146,26 +182,30 @@ export const Auth = () => {
     }
   };
 
-  const handleGoogleCredential = async (response: any) => {
-    if (!agreedRef.current) {
-      setError("Please agree to the Terms, Privacy Policy and Refund Policy first.");
-      return;
-    }
-    setError("");
-    try {
-      const res = await api.googleLogin(response.credential);
-      if (res.needsSetup) {
-        setPendingGoogleCredential(response.credential);
-        setGoogleSetupForm({ username: res.suggestedUsername || "", password: "" });
-        setStep("googleSetup");
+  const handleGoogleCredential = useCallback(
+    async (credential: string) => {
+      if (!agreedRef.current) {
+        setError("Please agree to the Terms, Privacy Policy and Refund Policy first.");
         return;
       }
-      login(res.token, res.user);
-      navigate(redirectTo);
-    } catch (e: any) {
-      setError(e.message || "Google sign-in failed");
-    }
-  };
+      setError("");
+      try {
+        const res = await api.googleLogin(credential);
+        if (res.needsSetup) {
+          setPendingGoogleCredential(credential);
+          setGoogleSetupForm({ username: res.suggestedUsername || "", password: "" });
+          setStep("googleSetup");
+          return;
+        }
+        login(res.token, res.user);
+        navigate(redirectTo);
+      } catch (e: any) {
+        setError(e.message || "Google sign-in failed");
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [redirectTo]
+  );
 
   const completeGoogleSetup = async () => {
     if (!pendingGoogleCredential) return;
@@ -182,44 +222,14 @@ export const Auth = () => {
     }
   };
 
-  // Initialize Google's button exactly once — it used to re-init on every
-  // login/register switch, which destroyed and briefly re-created the button
-  // (looked like a flash-then-vanish). The container div now lives outside
-  // the AnimatePresence-keyed block below so it never gets unmounted.
-  const googleInitialized = useRef(false);
-  useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return;
-    // Google's script tag is async/defer, so on a hard refresh it can still be
-    // loading when this effect first runs — a single one-shot check missed it
-    // and never retried, which is why the button sometimes never appeared.
-    // Poll briefly until the script is actually ready.
-    const tryInit = () => {
-      if (googleInitialized.current || !window.google || !googleBtnRef.current) return false;
-      window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
-      window.google.accounts.id.renderButton(googleBtnRef.current, { theme: "outline", size: "large", width: 320 });
-      googleInitialized.current = true;
-      return true;
-    };
-    if (tryInit()) return;
-    const interval = setInterval(() => {
-      if (tryInit()) clearInterval(interval);
-    }, 150);
-    const timeout = setTimeout(() => clearInterval(interval), 10000);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const showGoogleAndHeading = step === "login" || step === "register";
+  const google = useGoogleSignIn(handleGoogleCredential, showGoogleAndHeading);
 
   return (
     <div className="max-w-4xl mx-auto grid md:grid-cols-2 rounded-2xl overflow-hidden border border-[var(--card-border)]">
       {/* Left: branded panel with the tilted keyboard illustration */}
       <div className="hidden md:flex relative flex-col justify-between bg-black text-white p-8 overflow-hidden">
-        <div
-          className="absolute -right-24 -bottom-24 w-[420px] h-[420px] opacity-90"
-          style={{ transform: "rotate(45deg)" }}
-        >
+        <div className="absolute -right-24 -bottom-24 w-[420px] h-[420px] opacity-90" style={{ transform: "rotate(45deg)" }}>
           <KeyboardArt />
         </div>
         <div
@@ -247,286 +257,285 @@ export const Auth = () => {
         transition={{ duration: 0.4 }}
         className="p-6 flex flex-col gap-4 overflow-hidden bg-[var(--card-bg)]"
       >
-      {/* Heading lives here, OUTSIDE the step-keyed AnimatePresence block,
-          right above the Google button — so the visual order is always
-          "Sign In / Create Account" heading, then Google, then "or", then
-          the manual form. Only the text cross-fades; the container itself
-          never unmounts, for the same reason as the Google button below. */}
-      {(step === "login" || step === "register") && (
+        {/* Heading and Google button both live OUTSIDE the step-keyed
+            AnimatePresence block below, so switching Sign In <-> Register
+            never unmounts either of them — that unmount is what used to
+            make the Google button vanish for good. Visual order is fixed:
+            heading, then Google, then "or", then the manual form. */}
+        {showGoogleAndHeading && (
+          <AnimatePresence mode="wait">
+            <motion.h2
+              key={step}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.2 }}
+              className="text-2xl font-bold text-center"
+            >
+              {step === "login" ? "Sign In" : "Create Account"}
+            </motion.h2>
+          </AnimatePresence>
+        )}
+
+        <div className={`relative ${google.visible ? "" : "hidden"}`}>
+          {GOOGLE_CLIENT_ID && (
+            <div ref={google.containerRef} className={`flex justify-center transition-opacity ${!agreed ? "opacity-40" : ""}`} />
+          )}
+          {GOOGLE_CLIENT_ID && !agreed && (
+            <div
+              className="absolute inset-0 cursor-not-allowed"
+              onClick={() => setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.")}
+            />
+          )}
+        </div>
+
         <AnimatePresence mode="wait">
-          <motion.h2
-            key={step}
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: 0.2 }}
-            className="text-2xl font-bold text-center"
-          >
-            {step === "login" ? "Sign In" : "Create Account"}
-          </motion.h2>
-        </AnimatePresence>
-      )}
+          {step === "login" || step === "register" ? (
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, x: step === "register" ? 40 : -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: step === "register" ? -40 : 40 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="flex flex-col gap-4"
+            >
+              {!GOOGLE_CLIENT_ID && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  type="button"
+                  onClick={() => {
+                    if (!agreed) {
+                      setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.");
+                      return;
+                    }
+                    setNotice("Google sign-in isn't set up yet — coming soon.");
+                  }}
+                  className="flex items-center justify-center gap-2 border border-[var(--card-border)] rounded-xl py-2 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5"
+                >
+                  <GoogleLogo />
+                  Continue with Google
+                </motion.button>
+              )}
 
-      {/* Google button container lives here, OUTSIDE the step-keyed
-          AnimatePresence block, so switching steps never unmounts/remounts
-          it (that unmount was the flash-then-vanish bug). Hidden with CSS
-          instead of a conditional render for the otp/googleSetup steps, so
-          it truly never leaves the DOM once Google's script has attached
-          its button to this node. */}
-      <motion.div
-        animate={googleBtnControls}
-        className={`relative ${step === "login" || step === "register" ? "" : "hidden"}`}
-      >
-        {GOOGLE_CLIENT_ID && (
-          <div ref={googleBtnRef} className={`flex justify-center transition-opacity ${!agreed ? "opacity-40" : ""}`} />
-        )}
-        {GOOGLE_CLIENT_ID && !agreed && (
-          <div
-            className="absolute inset-0 cursor-not-allowed"
-            onClick={() => setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.")}
-          />
-        )}
-      </motion.div>
+              <div className="flex items-center gap-3 text-black/30 text-xs">
+                <div className="flex-1 h-px bg-black/10" />
+                or
+                <div className="flex-1 h-px bg-black/10" />
+              </div>
 
-      <AnimatePresence mode="wait">
-        {step === "login" || step === "register" ? (
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, x: step === "register" ? 40 : -40 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: step === "register" ? -40 : 40 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="flex flex-col gap-4"
-          >
-            {!GOOGLE_CLIENT_ID && (
+              {step === "register" && (
+                <motion.input
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  placeholder="Username"
+                  value={form.username}
+                  onChange={(e) => setForm({ ...form, username: e.target.value })}
+                  className={inputClass}
+                />
+              )}
+
+              {step === "login" ? (
+                <input
+                  placeholder="Email or username"
+                  value={form.identifier}
+                  onChange={(e) => setForm({ ...form, identifier: e.target.value })}
+                  className={inputClass}
+                />
+              ) : (
+                <input
+                  placeholder="Email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className={inputClass}
+                />
+              )}
+
+              <input
+                type="password"
+                placeholder="Password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                className={inputClass}
+              />
+
+              {step === "login" && (
+                <button
+                  type="button"
+                  onClick={() => setNotice("Password reset isn't set up yet — coming soon.")}
+                  className="text-black/40 text-xs text-left -mt-2"
+                >
+                  Forgot password?
+                </button>
+              )}
+
+              <label className="flex items-start gap-3 text-xs leading-relaxed text-black/50 dark:text-white/50 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => {
+                    setAgreed(e.target.checked);
+                    if (e.target.checked) setError("");
+                  }}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#F5A623]"
+                />
+                <span>
+                  By {step === "login" ? "signing in to" : "signing up on"} VC Typing, you agree to our{" "}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#D98C1F] dark:text-[#F5A623] underline">
+                    Terms &amp; Conditions
+                  </a>
+                  ,{" "}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#D98C1F] dark:text-[#F5A623] underline">
+                    Privacy Policy
+                  </a>{" "}
+                  and{" "}
+                  <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-[#D98C1F] dark:text-[#F5A623] underline">
+                    Refund Policy
+                  </a>
+                  .
+                </span>
+              </label>
+
+              <AnimatePresence>
+                {error && (
+                  <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[var(--error)] text-sm">
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+              {notice && <p className="text-black/40 text-sm">{notice}</p>}
+
+              <motion.button
+                whileHover={{ scale: agreed ? 1.02 : 1 }}
+                whileTap={{ scale: agreed ? 0.96 : 1 }}
+                onClick={step === "login" ? doLogin : doRegister}
+                disabled={loading || !agreed}
+                className="bg-black text-white dark:bg-white dark:text-black rounded-xl py-2 font-semibold disabled:opacity-40"
+              >
+                {loading ? "Please wait…" : step === "login" ? "Sign In" : "Send verification code"}
+              </motion.button>
+
+              <button
+                onClick={() => {
+                  setError("");
+                  setStep(step === "login" ? "register" : "login");
+                }}
+                className="text-black/40 text-sm"
+              >
+                {step === "login" ? "Need an account? Register" : "Have an account? Sign In"}
+              </button>
+            </motion.div>
+          ) : step === "otp" ? (
+            <motion.div
+              key="otp"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.92 }}
+              transition={{ type: "spring", stiffness: 260, damping: 22 }}
+              className="flex flex-col gap-4"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 16 }}
+                className="text-4xl text-center"
+              >
+                ✉️
+              </motion.div>
+              <h2 className="text-xl font-bold text-center">Check your email</h2>
+              <p className="text-black/50 text-sm text-center">
+                We sent a 6-digit code to <span className="font-semibold">{form.email}</span>. Enter it below to finish creating your account.
+              </p>
+
+              <OtpInput value={otp} onChange={setOtp} length={6} />
+
+              <AnimatePresence>
+                {error && (
+                  <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[var(--error)] text-sm text-center">
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+              {notice && <p className="text-black/40 text-sm text-center">{notice}</p>}
+
               <motion.button
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                type="button"
-                onClick={() => {
-                  if (!agreed) {
-                    setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.");
-                    return;
-                  }
-                  setNotice("Google sign-in isn't set up yet — coming soon.");
-                }}
-                className="flex items-center justify-center gap-2 border border-[var(--card-border)] rounded-xl py-2 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5"
+                whileTap={{ scale: 0.96 }}
+                onClick={doVerify}
+                disabled={loading || otp.length !== 6}
+                className="bg-black text-white dark:bg-white dark:text-black rounded-xl py-2 font-semibold disabled:opacity-40"
               >
-                <GoogleLogo />
-                Continue with Google
+                {loading ? "Verifying…" : "Verify & Create Account"}
               </motion.button>
-            )}
 
-            <div className="flex items-center gap-3 text-black/30 text-xs">
-              <div className="flex-1 h-px bg-black/10" />
-              or
-              <div className="flex-1 h-px bg-black/10" />
-            </div>
-
-            {step === "register" && (
-              <motion.input
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                placeholder="Username"
-                value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
-                className={inputClass}
-              />
-            )}
-
-            {step === "login" ? (
-              <input
-                placeholder="Email or username"
-                value={form.identifier}
-                onChange={(e) => setForm({ ...form, identifier: e.target.value })}
-                className={inputClass}
-              />
-            ) : (
-              <input
-                placeholder="Email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className={inputClass}
-              />
-            )}
-
-            <input
-              type="password"
-              placeholder="Password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className={inputClass}
-            />
-
-            {step === "login" && (
-              <button
-                type="button"
-                onClick={() => setNotice("Password reset isn't set up yet — coming soon.")}
-                className="text-black/40 text-xs text-left -mt-2"
-              >
-                Forgot password?
+              <button onClick={resend} disabled={resendCooldown > 0} className="text-black/40 text-sm disabled:opacity-40">
+                {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}
               </button>
-            )}
 
-            <label className="flex items-start gap-3 text-xs leading-relaxed text-black/50 dark:text-white/50 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => { setAgreed(e.target.checked); if (e.target.checked) setError(""); }}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[#F5A623]"
-              />
-              <span>
-                By {step === "login" ? "signing in to" : "signing up on"} VC Typing, you agree to our{" "}
-                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#D98C1F] dark:text-[#F5A623] underline">
-                  Terms &amp; Conditions
-                </a>
-                ,{" "}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#D98C1F] dark:text-[#F5A623] underline">
-                  Privacy Policy
-                </a>
-                {" "}and{" "}
-                <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-[#D98C1F] dark:text-[#F5A623] underline">
-                  Refund Policy
-                </a>
-                .
-              </span>
-            </label>
-
-            <AnimatePresence>
-              {error && (
-                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[var(--error)] text-sm">
-                  {error}
-                </motion.p>
-              )}
-            </AnimatePresence>
-            {notice && <p className="text-black/40 text-sm">{notice}</p>}
-
-            <motion.button
-              whileHover={{ scale: agreed ? 1.02 : 1 }}
-              whileTap={{ scale: agreed ? 0.96 : 1 }}
-              onClick={step === "login" ? doLogin : doRegister}
-              disabled={loading || !agreed}
-              className="bg-black text-white dark:bg-white dark:text-black rounded-xl py-2 font-semibold disabled:opacity-40"
-            >
-              {loading ? "Please wait…" : step === "login" ? "Sign In" : "Send verification code"}
-            </motion.button>
-
-            <button
-              onClick={() => {
-                setError("");
-                setStep(step === "login" ? "register" : "login");
-              }}
-              className="text-black/40 text-sm"
-            >
-              {step === "login" ? "Need an account? Register" : "Have an account? Sign In"}
-            </button>
-          </motion.div>
-        ) : step === "otp" ? (
-          <motion.div
-            key="otp"
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.92 }}
-            transition={{ type: "spring", stiffness: 260, damping: 22 }}
-            className="flex flex-col gap-4"
-          >
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 16 }} className="text-4xl text-center">
-              ✉️
+              <button onClick={() => setStep("register")} className="text-black/30 text-xs">
+                ← Wrong email? Go back
+              </button>
             </motion.div>
-            <h2 className="text-xl font-bold text-center">Check your email</h2>
-            <p className="text-black/50 text-sm text-center">
-              We sent a 6-digit code to <span className="font-semibold">{form.email}</span>. Enter it below to finish creating your account.
-            </p>
-
-            <OtpInput value={otp} onChange={setOtp} length={6} />
-
-            <AnimatePresence>
-              {error && (
-                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[var(--error)] text-sm text-center">
-                  {error}
-                </motion.p>
-              )}
-            </AnimatePresence>
-            {notice && <p className="text-black/40 text-sm text-center">{notice}</p>}
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={doVerify}
-              disabled={loading || otp.length !== 6}
-              className="bg-black text-white dark:bg-white dark:text-black rounded-xl py-2 font-semibold disabled:opacity-40"
+          ) : (
+            <motion.div
+              key="googleSetup"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.92 }}
+              transition={{ type: "spring", stiffness: 260, damping: 22 }}
+              className="flex flex-col gap-4"
             >
-              {loading ? "Verifying…" : "Verify & Create Account"}
-            </motion.button>
+              <h2 className="text-xl font-bold text-center">Almost done</h2>
+              <p className="text-black/50 text-sm text-center">
+                First time signing in with Google — pick a username and password so you can also log in with email later.
+              </p>
 
-            <button
-              onClick={resend}
-              disabled={resendCooldown > 0}
-              className="text-black/40 text-sm disabled:opacity-40"
-            >
-              {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}
-            </button>
+              <input
+                placeholder="Username"
+                value={googleSetupForm.username}
+                onChange={(e) => setGoogleSetupForm({ ...googleSetupForm, username: e.target.value })}
+                className={inputClass}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={googleSetupForm.password}
+                onChange={(e) => setGoogleSetupForm({ ...googleSetupForm, password: e.target.value })}
+                className={inputClass}
+              />
 
-            <button onClick={() => setStep("register")} className="text-black/30 text-xs">
-              ← Wrong email? Go back
-            </button>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="googleSetup"
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.92 }}
-            transition={{ type: "spring", stiffness: 260, damping: 22 }}
-            className="flex flex-col gap-4"
-          >
-            <h2 className="text-xl font-bold text-center">Almost done</h2>
-            <p className="text-black/50 text-sm text-center">
-              First time signing in with Google — pick a username and password so you can also log in with email later.
-            </p>
+              <AnimatePresence>
+                {error && (
+                  <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[var(--error)] text-sm text-center">
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
 
-            <input
-              placeholder="Username"
-              value={googleSetupForm.username}
-              onChange={(e) => setGoogleSetupForm({ ...googleSetupForm, username: e.target.value })}
-              className={inputClass}
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={googleSetupForm.password}
-              onChange={(e) => setGoogleSetupForm({ ...googleSetupForm, password: e.target.value })}
-              className={inputClass}
-            />
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={completeGoogleSetup}
+                disabled={loading || googleSetupForm.username.trim().length < 3 || googleSetupForm.password.length < 6}
+                className="bg-black text-white dark:bg-white dark:text-black rounded-xl py-2 font-semibold disabled:opacity-40"
+              >
+                {loading ? "Creating account…" : "Finish Sign Up"}
+              </motion.button>
 
-            <AnimatePresence>
-              {error && (
-                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[var(--error)] text-sm text-center">
-                  {error}
-                </motion.p>
-              )}
-            </AnimatePresence>
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={completeGoogleSetup}
-              disabled={loading || googleSetupForm.username.trim().length < 3 || googleSetupForm.password.length < 6}
-              className="bg-black text-white dark:bg-white dark:text-black rounded-xl py-2 font-semibold disabled:opacity-40"
-            >
-              {loading ? "Creating account…" : "Finish Sign Up"}
-            </motion.button>
-
-            <button
-              onClick={() => { setPendingGoogleCredential(null); setError(""); setStep("login"); }}
-              className="text-black/30 text-xs"
-            >
-              ← Cancel
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+              <button
+                onClick={() => {
+                  setPendingGoogleCredential(null);
+                  setError("");
+                  setStep("login");
+                }}
+                className="text-black/30 text-xs"
+              >
+                ← Cancel
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 };

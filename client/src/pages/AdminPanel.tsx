@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { api, OWNER_EMAIL } from "../api/client";
+import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { BackButton } from "../components/BackButton";
 
@@ -38,26 +38,25 @@ const TABS: { key: Tab; label: string }[] = [
 
 export const AdminPanel = () => {
   const user = useAuthStore((s) => s.user);
-  const [loaded, setLoaded] = useState(false);
-  const [allowed, setAllowed] = useState(false);
+  // The server (via ownerSettings, which is gated by requireOwner) is the
+  // single source of truth for who's allowed in here — we don't also
+  // hardcode/compare OWNER_EMAIL on the client, since that duplicated the
+  // server's check and could drift out of sync with it.
+  const [status, setStatus] = useState<"checking" | "allowed" | "denied">("checking");
   const [tab, setTab] = useState<Tab>("payments");
 
   useEffect(() => {
     if (!user) return;
-    if (user.email !== OWNER_EMAIL) {
-      setLoaded(true);
-      return;
-    }
+    setStatus("checking");
     api
       .ownerSettings()
-      .then(() => setAllowed(true))
-      .catch(() => setAllowed(false))
-      .finally(() => setLoaded(true));
+      .then(() => setStatus("allowed"))
+      .catch(() => setStatus("denied"));
   }, [user]);
 
   if (!user) return <Navigate to="/auth" state={{ from: "/admin" }} replace />;
-  if (loaded && (!allowed || user.email !== OWNER_EMAIL)) return <Navigate to="/" replace />;
-  if (!loaded) return <p className="text-black/40 text-center mt-16">Loading…</p>;
+  if (status === "denied") return <Navigate to="/" replace />;
+  if (status === "checking") return <p className="text-black/40 text-center mt-16">Loading…</p>;
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl mx-auto">
