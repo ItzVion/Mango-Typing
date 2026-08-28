@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { useThemeStore } from "../stores/themeStore";
-import { OWNER_EMAIL } from "../api/client";
 
 export const Navbar = () => {
   const location = useLocation();
@@ -21,7 +20,7 @@ export const Navbar = () => {
     { name: "Download", path: "/download" },
     { name: "Results", path: "/results" },
     { name: "Games", path: "/games" },
-    ...(user?.email === OWNER_EMAIL ? [{ name: "Admin", path: "/admin" }] : []),
+    ...(user?.isOwner ? [{ name: "Admin", path: "/admin" }] : []),
   ];
 
   useEffect(() => {

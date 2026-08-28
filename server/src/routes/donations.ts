@@ -11,8 +11,11 @@ async function getRazorpayKeys() {
 // Amount must be a whole number of rupees, minimum ₹1.
 router.post("/create-order", optionalAuth, async (req: AuthRequest, res: Response): Promise<any> => {
   const { amountRupees } = req.body;
-  const amount = Math.round(Number(amountRupees));
-  if (!amount || amount < 1) return res.status(400).json({ error: "Enter a valid amount" });
+  const raw = Number(amountRupees);
+  if (!Number.isFinite(raw) || !Number.isInteger(raw) || raw < 1 || raw > 100000) {
+    return res.status(400).json({ error: "Enter a whole number of rupees between ₹1 and ₹100,000" });
+  }
+  const amount = raw;
   const { keyId, keySecret } = await getRazorpayKeys();
   if (!keyId || !keySecret) {
     return res.status(503).json({ error: "Donations aren't set up yet — the owner needs to add Razorpay keys via /payedit" });
@@ -39,11 +42,23 @@ router.post("/verify", optionalAuth, async (req: AuthRequest, res: Response): Pr
   }
   const { keySecret } = await getRazorpayKeys();
   if (!keySecret) return res.status(503).json({ error: "Donations aren't set up yet" });
+
+  const existing = await prisma.donation.findUnique({ where: { razorpayOrderId: razorpay_order_id } });
+  if (!existing) return res.status(404).json({ error: "Unknown order" });
+  // Already verified — treat as success without re-processing, instead of
+  // silently re-running the update on every duplicate client call.
+  if (existing.status === "paid") return res.json({ ok: true });
+
   const expected = crypto
     .createHmac("sha256", keySecret)
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
     .digest("hex");
-  if (expected !== razorpay_signature) return res.status(400).json({ error: "Payment verification failed" });
+  const expectedBuf = Buffer.from(expected, "hex");
+  const givenBuf = Buffer.from(String(razorpay_signature), "hex");
+  const signatureValid =
+    expectedBuf.length === givenBuf.length && crypto.timingSafeEqual(expectedBuf, givenBuf);
+  if (!signatureValid) return res.status(400).json({ error: "Payment verification failed" });
+
   const donation = await prisma.donation.update({
     where: { razorpayOrderId: razorpay_order_id },
     data: { razorpayPaymentId: razorpay_payment_id, status: "paid" },

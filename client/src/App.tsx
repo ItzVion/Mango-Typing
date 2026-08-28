@@ -25,7 +25,7 @@ import { DonationHistory } from "./pages/DonationHistory";
 import { Settings } from "./pages/Settings";
 import { NotFound } from "./pages/NotFound";
 import { MaintenancePage } from "./pages/MaintenancePage";
-import { api, OWNER_EMAIL } from "./api/client";
+import { api } from "./api/client";
 import { useAuthStore } from "./stores/authStore";
 import { useState } from "react";
 
@@ -51,17 +51,17 @@ export default function App() {
     api.publicSettings().then((s) => setMaintenance(!!s.maintenanceMode)).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }, [location.pathname]);
+
   // Maintenance mode blocks everyone except the owner and the /auth and
   // /admin routes, so the owner can always sign in and flip it back off.
-  const isOwner = user?.email === OWNER_EMAIL;
+  const isOwner = !!user?.isOwner;
   const allowedDuringMaintenance = location.pathname === "/auth" || location.pathname === "/admin";
   if (maintenance && !isOwner && !allowedDuringMaintenance) {
     return <MaintenancePage />;
   }
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-  }, [location.pathname]);
 
   return (
     <>

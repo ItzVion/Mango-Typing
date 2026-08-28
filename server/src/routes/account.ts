@@ -165,10 +165,12 @@ router.post("/delete/confirm", requireAuth, async (req: AuthRequest, res: Respon
   const result = await consumeCode(req.userId!, "delete_account", code);
   if (!result.ok) return res.status(400).json({ error: result.error });
 
-  await prisma.donation.deleteMany({ where: { userId: req.userId } });
-  await prisma.typingTest.deleteMany({ where: { userId: req.userId } });
-  await prisma.verificationCode.deleteMany({ where: { userId: req.userId } });
-  await prisma.user.delete({ where: { id: req.userId } });
+  await prisma.$transaction([
+    prisma.donation.deleteMany({ where: { userId: req.userId } }),
+    prisma.typingTest.deleteMany({ where: { userId: req.userId } }),
+    prisma.verificationCode.deleteMany({ where: { userId: req.userId } }),
+    prisma.user.delete({ where: { id: req.userId } }),
+  ]);
 
   res.json({ success: true });
 });

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type User = { id: string; username: string; email: string; avatarUrl?: string | null; hasDonated?: boolean } | null;
+type User = { id: string; username: string; email: string; avatarUrl?: string | null; hasDonated?: boolean; isOwner?: boolean } | null;
 
 interface AuthState {
   user: User;

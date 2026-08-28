@@ -5,7 +5,7 @@ import { prisma } from "./db";
 // back to env vars if the admin hasn't set anything in the DB yet. We build
 // a fresh transporter per send rather than once at module load, since the
 // admin can change these values at any time without a redeploy.
-async function getTransporter() {
+export async function getTransporter() {
   const s = await prisma.settings.findUnique({ where: { id: 1 } });
   const host = s?.smtpHost || process.env.SMTP_HOST;
   const port = s?.smtpPort ?? (Number(process.env.SMTP_PORT) || 587);

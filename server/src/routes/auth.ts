@@ -16,8 +16,8 @@ function sign(user: { id: string; username: string }) {
   return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: "7d" });
 }
 
-function publicUser(user: { id: string; username: string; email: string; avatarUrl: string | null; hasDonated: boolean }) {
-  return { id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl, hasDonated: user.hasDonated };
+function publicUser(user: { id: string; username: string; email: string; avatarUrl: string | null; hasDonated: boolean; role: string }) {
+  return { id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl, hasDonated: user.hasDonated, isOwner: user.role === "OWNER" };
 }
 
 // Step 1 of registration: validate + stash the pending account, email a 6-digit

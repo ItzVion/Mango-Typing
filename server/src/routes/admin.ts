@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { requireOwner, AuthRequest, OWNER_EMAIL } from "../middleware/auth";
+import { requireOwner, AuthRequest } from "../middleware/auth";
 import { prisma } from "../lib/db";
 
 const router = Router();
@@ -38,7 +38,7 @@ router.post("/users", requireOwner, async (req: AuthRequest, res: Response): Pro
 router.delete("/users/:id", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => {
   const target = await prisma.user.findUnique({ where: { id: req.params.id } });
   if (!target) return res.status(404).json({ error: "User not found" });
-  if (target.email === OWNER_EMAIL) return res.status(400).json({ error: "Can't delete the owner account" });
+  if (target.role === "OWNER") return res.status(400).json({ error: "Can't delete an owner account" });
   await prisma.user.delete({ where: { id: req.params.id } });
   res.json({ ok: true });
 });
