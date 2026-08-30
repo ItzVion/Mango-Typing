@@ -167,7 +167,7 @@ export const CarGame = () => {
   if (status === "ready") {
     return (
       <div className="flex flex-col items-center gap-6 mt-16">
-        <BackButton to="/games" label="Back to Games" />
+        <BackButton to="/home/typing-games" label="Back to Games" />
         <h2 className="text-2xl font-bold">Speed Typer</h2>
         <p className="text-black/40 text-sm max-w-md text-center">
           Type each word correctly to gain speed. Wrong or skipped words slow you
@@ -192,7 +192,7 @@ export const CarGame = () => {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col items-center gap-6 mt-16"
       >
-        <BackButton to="/games" label="Back to Games" />
+        <BackButton to="/home/typing-games" label="Back to Games" />
         <h2 className="text-2xl font-bold">
           {overReason === "speed" ? "Ran Out of Speed! 🛑" : "Time's Up 🏁"}
         </h2>

@@ -14,7 +14,7 @@ export const DonationHistory = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto">
-      <BackButton to="/" label="Back" />
+      <BackButton to="/home" label="Back" />
       <h1 className="text-2xl font-bold">Donation History</h1>
 
       {donations === null ? (

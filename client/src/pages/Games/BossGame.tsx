@@ -146,7 +146,7 @@ export const BossGame = () => {
   if (status === "ready") {
     return (
       <div className="flex flex-col items-center gap-6 mt-16">
-        <BackButton to="/games" label="Back to Games" />
+        <BackButton to="/home/typing-games" label="Back to Games" />
         <h2 className="text-2xl font-bold">Boss Fight</h2>
         <p className="text-black/40 text-sm max-w-md text-center">
           Type the word shown to land a hit on the boss. Miss it and the boss
@@ -176,7 +176,7 @@ export const BossGame = () => {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col items-center gap-6 mt-16"
       >
-        <BackButton to="/games" label="Back to Games" />
+        <BackButton to="/home/typing-games" label="Back to Games" />
         <h2 className="text-2xl font-bold">
           {status === "won" ? "Boss Defeated! 🏆" : "You Were Defeated 💀"}
         </h2>

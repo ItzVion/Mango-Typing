@@ -152,7 +152,7 @@ export const TypingTest = () => {
         durationSec,
         secondStats,
       });
-      navigate("/test-result", { state: result });
+      navigate("/home/test-result", { state: result });
     } catch (err) {
       // Previously this only logged to the console and reset the finished
       // flag — from the person's side the Submit button just looked broken,
@@ -186,7 +186,7 @@ export const TypingTest = () => {
           transition={{ duration: 0.35, ease: "easeOut" }}
           className="flex flex-col items-center gap-6 mt-16"
         >
-          <BackButton to="/sheets" label="Back" />
+          <BackButton to="/home/tests" label="Back" />
           <h2 className="text-2xl font-bold">Choose a mode</h2>
           <div className="flex flex-col sm:flex-row gap-4">
             <motion.button

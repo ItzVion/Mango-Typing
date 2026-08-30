@@ -14,7 +14,7 @@ export const TutorHub = () => {
 
   return (
     <div className="flex flex-col gap-8">
-      <BackButton to="/" label="Back" />
+      <BackButton to="/home" label="Back" />
       <div>
         <h1 className="text-3xl font-bold">Typing Tutor</h1>
         <p className="text-black/40 text-sm mt-1">Start at Home Row and work your way up to full sentences.</p>
@@ -31,7 +31,7 @@ export const TutorHub = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
                 whileHover={{ y: -3 }}
-                onClick={() => navigate(`/tutor/${l.id}`)}
+                onClick={() => navigate(`/home/tutor/${l.id}`)}
                 className="card p-4 text-left"
               >
                 <h3 className="font-semibold text-sm">{l.title}</h3>

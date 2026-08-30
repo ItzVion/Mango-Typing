@@ -373,7 +373,7 @@ function DeleteSection() {
 export const Settings = () => {
   return (
     <div className="flex flex-col gap-6 max-w-lg mx-auto">
-      <BackButton to="/" label="Back" />
+      <BackButton to="/home" label="Back" />
       <h1 className="text-2xl font-bold">Settings</h1>
       <UsernameSection />
       <PasswordSection />

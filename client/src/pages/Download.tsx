@@ -44,7 +44,7 @@ export const Download = () => {
 
   return (
     <div className="flex flex-col gap-8">
-      <BackButton to="/" label="Back" />
+      <BackButton to="/home" label="Back" />
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold">Download Sheets</h1>
         <motion.button

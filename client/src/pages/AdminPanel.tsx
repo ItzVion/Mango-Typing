@@ -79,7 +79,7 @@ export const AdminPanel = () => {
     );
   }
   if (!user) return <Navigate to="/auth" state={{ from: "/admin" }} replace />;
-  if (status === "denied") return <Navigate to="/" replace />;
+  if (status === "denied") return <Navigate to="/home" replace />;
   if (status === "error") {
     return (
       <div className="max-w-md mx-auto mt-16 text-center flex flex-col gap-4">
@@ -94,7 +94,7 @@ export const AdminPanel = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl mx-auto">
-      <BackButton to="/" label="Back" />
+      <BackButton to="/home" label="Back" />
       <h1 className="text-2xl font-bold">Admin Panel</h1>
 
       <div className="flex gap-2 overflow-x-auto no-scrollbar">

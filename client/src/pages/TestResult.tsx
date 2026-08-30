@@ -10,9 +10,9 @@ export const TestResult = () => {
   if (!state) {
     return (
       <div className="flex flex-col gap-4">
-        <BackButton to="/" label="Back" />
+        <BackButton to="/home" label="Back" />
         <div className="text-center text-black/50">
-          No result data. <Link to="/sheets" className="underline">Pick a sheet</Link>
+          No result data. <Link to="/home/tests" className="underline">Pick a sheet</Link>
         </div>
       </div>
     );
@@ -20,7 +20,7 @@ export const TestResult = () => {
 
   return (
     <div className="flex flex-col items-center gap-8">
-      <BackButton to="/sheets" label="Back" />
+      <BackButton to="/home/tests" label="Back" />
 
       <motion.div
         initial={{ opacity: 0, y: -12, filter: "blur(6px)" }}
@@ -85,7 +85,7 @@ export const TestResult = () => {
       >
         <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.96 }}>
           <Link
-            to="/sheets"
+            to="/home/tests"
             className="inline-block px-6 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold"
           >
             Try Another Sheet

@@ -34,7 +34,7 @@ export const LessonRunner = () => {
   if (!lesson) {
     return (
       <div className="flex flex-col gap-4">
-        <BackButton to="/tutor" label="Back" />
+        <BackButton to="/home/tutor" label="Back" />
         <p className="text-black/40">Lesson not found.</p>
       </div>
     );
@@ -71,7 +71,7 @@ export const LessonRunner = () => {
   return (
     <div className="flex flex-col items-center gap-6 mt-4" onClick={() => inputRef.current?.focus()}>
       <div className="w-full flex items-center justify-between flex-wrap gap-2">
-        <BackButton to="/tutor" label="Back" />
+        <BackButton to="/home/tutor" label="Back" />
         <h2 className="font-semibold">{lesson.title}</h2>
       </div>
 
@@ -145,7 +145,7 @@ export const LessonRunner = () => {
               </button>
             ) : (
               <button
-                onClick={() => navigate("/tutor")}
+                onClick={() => navigate("/home/tutor")}
                 className="px-5 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm font-semibold"
               >
                 All Lessons

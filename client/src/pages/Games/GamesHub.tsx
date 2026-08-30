@@ -22,7 +22,7 @@ export const GamesHub = () => {
 
   return (
     <div className="flex flex-col items-center gap-6 mt-8">
-      <BackButton to="/" label="Back" />
+      <BackButton to="/home" label="Back" />
       <h1 className="text-3xl font-bold">Typing Games</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
@@ -81,7 +81,7 @@ export const GamesHub = () => {
               </div>
             </div>
             <button
-              onClick={() => navigate(`/games/${selected}`, { state: { difficulty, duration } })}
+              onClick={() => navigate(`/home/games/${selected}`, { state: { difficulty, duration } })}
               className="mt-2 px-6 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold"
             >
               Play

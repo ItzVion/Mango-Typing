@@ -39,7 +39,7 @@ export const History = () => {
   if (!user) {
     return (
       <div className="flex flex-col gap-4">
-        <BackButton to="/" label="Back" />
+        <BackButton to="/home" label="Back" />
         <div className="text-center text-black/50">
           Sign in to see your saved history. <Link to="/auth" className="underline">Sign in</Link>
         </div>
@@ -52,7 +52,7 @@ export const History = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      <BackButton to="/" label="Back" />
+      <BackButton to="/home" label="Back" />
       <motion.h1
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}

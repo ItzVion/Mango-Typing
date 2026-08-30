@@ -59,7 +59,7 @@ export const Sheets = () => {
   if (loadError) {
     return (
       <div className="flex flex-col gap-8">
-        <BackButton to="/" label="Back" />
+        <BackButton to="/home" label="Back" />
         <div className="card p-10 flex flex-col items-center gap-3 text-center">
           <p className="text-black/50 text-sm">Couldn't load the test sheets.</p>
           <button onClick={load} className="px-5 py-2 rounded-xl card font-semibold text-sm">
@@ -72,7 +72,7 @@ export const Sheets = () => {
 
   return (
     <div className="flex flex-col gap-8">
-      <BackButton to="/" label="Back" />
+      <BackButton to="/home" label="Back" />
       {loading ? (
         <div className="flex flex-col gap-4">
           {[0, 1].map((g) => (
@@ -121,7 +121,7 @@ export const Sheets = () => {
                     <div className="mt-2 flex gap-2">
                       <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex-1">
                         <Link
-                          to={`/test/${s.id}`}
+                          to={`/home/tests/${s.id}`}
                           className="block px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black text-center text-sm font-semibold"
                         >
                           Start

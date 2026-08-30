@@ -34,10 +34,10 @@ export const Navbar = () => {
   const mobileNavRef = useRef<HTMLDivElement>(null);
 
   const links = [
-    { name: "Dashboard", path: "/" },
+    { name: "Dashboard", path: "/home" },
     { name: "Download", path: "/download" },
     { name: "Results", path: "/results" },
-    { name: "Games", path: "/games" },
+    { name: "Games", path: "/home/typing-games" },
     ...(user?.isOwner ? [{ name: "Admin", path: "/admin" }] : []),
   ];
 

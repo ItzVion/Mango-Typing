@@ -1,10 +1,11 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate, useParams } from "react-router-dom";
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 import { BugReportButton } from "./components/BugReportButton";
-import { Dashboard } from "./pages/Dashboard";
+import { Landing } from "./pages/Landing";
+import { Home } from "./pages/Home";
 import { Sheets } from "./pages/Sheets";
 import { TypingTest } from "./pages/TypingTest";
 import { TestResult } from "./pages/TestResult";
@@ -99,10 +100,17 @@ export default function App() {
             transition={{ duration: 0.28, ease: "easeOut" }}
           >
             <Routes location={location}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/sheets" element={<Sheets />} />
-              <Route path="/test/:sheetId" element={<TypingTest />} />
-              <Route path="/test-result" element={<TestResult />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/home/tests" element={<Sheets />} />
+              <Route path="/home/tests/:sheetId" element={<TypingTest />} />
+              <Route path="/home/test-result" element={<TestResult />} />
+              <Route path="/home/typing-games" element={<GamesHub />} />
+              <Route path="/home/games/balloon" element={<BalloonGame />} />
+              <Route path="/home/games/car" element={<CarGame />} />
+              <Route path="/home/games/boss" element={<BossGame />} />
+              <Route path="/home/tutor" element={<TutorHub />} />
+              <Route path="/home/tutor/:lessonId" element={<LessonRunner />} />
               <Route path="/download" element={<Download />} />
               <Route path="/results" element={<History />} />
               <Route path="/auth" element={<Auth />} />
@@ -110,14 +118,20 @@ export default function App() {
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/refund" element={<Refund />} />
               <Route path="/terms" element={<Terms />} />
-              <Route path="/games" element={<GamesHub />} />
-              <Route path="/games/balloon" element={<BalloonGame />} />
-              <Route path="/games/car" element={<CarGame />} />
-              <Route path="/games/boss" element={<BossGame />} />
-              <Route path="/tutor" element={<TutorHub />} />
-              <Route path="/tutor/:lessonId" element={<LessonRunner />} />
               <Route path="/donations" element={<DonationHistory />} />
               <Route path="/settings" element={<Settings />} />
+
+              {/* Old URLs, kept working as redirects so existing links/bookmarks don't 404 */}
+              <Route path="/sheets" element={<Navigate to="/home/tests" replace />} />
+              <Route path="/test/:sheetId" element={<LegacyTestRedirect />} />
+              <Route path="/test-result" element={<Navigate to="/home/test-result" replace />} />
+              <Route path="/games" element={<Navigate to="/home/typing-games" replace />} />
+              <Route path="/games/balloon" element={<Navigate to="/home/games/balloon" replace />} />
+              <Route path="/games/car" element={<Navigate to="/home/games/car" replace />} />
+              <Route path="/games/boss" element={<Navigate to="/home/games/boss" replace />} />
+              <Route path="/tutor" element={<Navigate to="/home/tutor" replace />} />
+              <Route path="/tutor/:lessonId" element={<LegacyTutorRedirect />} />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </motion.div>
@@ -127,4 +141,17 @@ export default function App() {
       <BugReportButton />
     </>
   );
+}
+
+// Old dynamic routes (/test/:sheetId, /tutor/:lessonId) redirect to their
+// new nested location under /home, preserving the param so old shared links
+// still land on the right test/lesson instead of a dead end.
+function LegacyTestRedirect() {
+  const { sheetId } = useParams();
+  return <Navigate to={`/home/tests/${sheetId}`} replace />;
+}
+
+function LegacyTutorRedirect() {
+  const { lessonId } = useParams();
+  return <Navigate to={`/home/tutor/${lessonId}`} replace />;
 }

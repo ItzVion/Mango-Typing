@@ -149,7 +149,7 @@ export const BalloonGame = () => {
 
   return (
     <div className="flex flex-col items-center gap-4 mt-6">
-      <BackButton to="/games" label="Back to Games" />
+      <BackButton to="/home/typing-games" label="Back to Games" />
       <div className="flex gap-8 text-center">
         {[
           { label: "Time", value: `${timeLeft}s` },
@@ -253,7 +253,7 @@ export const BalloonGame = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate("/games")}
+                  onClick={() => navigate("/home/typing-games")}
                   className="px-5 py-2 rounded-xl border border-white/40"
                 >
                   Back to Games
