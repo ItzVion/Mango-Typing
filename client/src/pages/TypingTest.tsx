@@ -113,6 +113,9 @@ export const TypingTest = () => {
     if (!allowBackspace && e.key === "Backspace") e.preventDefault();
   };
 
+  const [submitError, setSubmitError] = useState(false);
+  const [lastTyped, setLastTyped] = useState("");
+
   const finish = () => {
     if (finishedRef.current) return;
     finishedRef.current = true;
@@ -129,6 +132,8 @@ export const TypingTest = () => {
   };
 
   const submit = async (finalTyped: string) => {
+    setLastTyped(finalTyped);
+    setSubmitError(false);
     const durationSec = duration || 1;
     const d = diffWords(finalTyped, text);
     const errors = d.wrongWords + d.skippedWords;
@@ -149,9 +154,18 @@ export const TypingTest = () => {
       });
       navigate("/test-result", { state: result });
     } catch (err) {
+      // Previously this only logged to the console and reset the finished
+      // flag — from the person's side the Submit button just looked broken,
+      // with no indication anything had gone wrong or any way to retry.
       console.error("Submit test failed:", err);
       finishedRef.current = false;
+      setSubmitError(true);
     }
+  };
+
+  const retrySubmit = () => {
+    finishedRef.current = true;
+    submit(lastTyped);
   };
 
   const pageVariants = {
@@ -289,6 +303,8 @@ export const TypingTest = () => {
           handleKeyDown={handleKeyDown}
           onCancel={cancelTest}
           onSubmit={finish}
+          submitError={submitError}
+          onRetrySubmit={retrySubmit}
         />
       )}
     </AnimatePresence>
@@ -308,6 +324,8 @@ function RunningTest({
   handleKeyDown,
   onCancel,
   onSubmit,
+  submitError,
+  onRetrySubmit,
 }: {
   text: string;
   mode: Mode;
@@ -321,6 +339,8 @@ function RunningTest({
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onCancel: () => void;
   onSubmit: () => void;
+  submitError: boolean;
+  onRetrySubmit: () => void;
 }) {
   const liveDiff = useMemo(() => diffWords(typed, text), [typed, text]);
   const elapsedSec = startedAt ? (Date.now() - startedAt) / 1000 : 0;
@@ -367,7 +387,10 @@ function RunningTest({
       <div className="card w-full max-w-2xl h-3 overflow-hidden">
         <div
           className="h-full transition-all"
-          style={{ width: `${duration ? ((duration - timeLeft) / duration) * 100 : 0}%`, backgroundColor: "#F5A623" }}
+          style={{
+            width: `${duration ? ((duration - timeLeft) / duration) * 100 : 0}%`,
+            background: "linear-gradient(90deg, #F5A623, #FFE9B8)",
+          }}
         />
       </div>
 
@@ -407,7 +430,7 @@ function RunningTest({
                           className={
                             isTyped
                               ? isCorrect
-                                ? "text-black dark:text-white"
+                                ? "text-[var(--text-primary)]"
                                 : "text-[var(--error)] bg-[var(--error)]/10"
                               : "text-black/25 dark:text-white/25"
                           }
@@ -428,7 +451,7 @@ function RunningTest({
                 status === "wrong" || status === "skipped"
                   ? "text-[var(--error)] bg-[var(--error)]/10"
                   : status === "correct"
-                    ? "text-black dark:text-white"
+                    ? "text-[var(--text-primary)]"
                     : "text-black/25 dark:text-white/25";
 
               return (
@@ -481,6 +504,30 @@ function RunningTest({
           SUBMIT
         </motion.button>
       </div>
+
+      <AnimatePresence>
+        {submitError && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            className="flex flex-col items-center gap-3 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-[var(--error)] text-sm font-medium">
+              Couldn't reach the server to save your result.
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onRetrySubmit}
+              className="px-6 py-2.5 rounded-xl card font-semibold text-sm"
+            >
+              Retry
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

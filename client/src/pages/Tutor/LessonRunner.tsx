@@ -102,7 +102,7 @@ export const LessonRunner = () => {
               className={
                 isTyped
                   ? isCorrect
-                    ? "text-black dark:text-white"
+                    ? "text-[var(--text-primary)]"
                     : "text-[var(--error)] bg-[var(--error)]/10"
                   : "text-black/25 dark:text-white/25"
               }
