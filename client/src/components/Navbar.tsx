@@ -4,6 +4,24 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { useThemeStore } from "../stores/themeStore";
 
+// Motion-primitives-style "Magnetic" effect: the element nudges slightly
+// toward the cursor within its own bounds, then springs back on leave.
+// Used sparingly (just the logo) — this is a flourish, not a workhorse.
+function useMagnetic(strength = 0.25) {
+  const ref = useRef<HTMLElement>(null);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const onMouseMove = (e: React.MouseEvent) => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left - rect.width / 2) * strength;
+    const y = (e.clientY - rect.top - rect.height / 2) * strength;
+    setOffset({ x, y });
+  };
+  const onMouseLeave = () => setOffset({ x: 0, y: 0 });
+  return { ref, offset, onMouseMove, onMouseLeave };
+}
+
 export const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,6 +69,8 @@ export const Navbar = () => {
     navigate("/");
   };
 
+  const magnetic = useMagnetic();
+
   return (
     <div className="fixed top-5 left-0 right-0 z-50 flex flex-col items-center px-4 gap-2">
       <motion.nav
@@ -60,10 +80,17 @@ export const Navbar = () => {
         className="glass-nav grid grid-cols-[auto_1fr_auto] items-center w-full max-w-5xl px-4 sm:px-6 py-3 rounded-2xl gap-2 transition-shadow"
         style={scrolled ? { boxShadow: "0 8px 30px -12px rgba(0,0,0,0.25)" } : {}}
       >
-        <Link to="/" className="font-bold text-base sm:text-lg tracking-wider shrink-0 flex items-center justify-self-start">
+        <Link
+          to="/"
+          className="font-bold text-base sm:text-lg tracking-wider shrink-0 flex items-center justify-self-start"
+          ref={magnetic.ref as React.RefObject<HTMLAnchorElement>}
+          onMouseMove={magnetic.onMouseMove}
+          onMouseLeave={magnetic.onMouseLeave}
+        >
           <motion.img
+            animate={{ x: magnetic.offset.x, y: magnetic.offset.y }}
+            transition={{ type: "spring", stiffness: 150, damping: 12 }}
             whileHover={{ rotate: -6, scale: 1.06 }}
-            transition={{ type: "spring", stiffness: 300, damping: 12 }}
             src={theme === "light" ? "/logo-dark-bg.svg" : "/logo-light-bg.svg"}
             alt="VC Typing"
             className="w-9 h-9 rounded-md"
