@@ -21,16 +21,16 @@ const DURATIONS = [
   { label: "10m", value: 600 },
 ];
 type Mode = "paper" | "screen";
-type Phase = "mode" | "duration" | "backspace" | "running";
+type Phase = "setup" | "running";
 
 export const TypingTest = () => {
   const { sheetId } = useParams();
   const navigate = useNavigate();
   const [text, setText] = useState("");
-  const [mode, setMode] = useState<Mode | null>(null);
-  const [phase, setPhase] = useState<Phase>("mode");
+  const [mode, setMode] = useState<Mode>("screen");
+  const [phase, setPhase] = useState<Phase>("setup");
   const [duration, setDuration] = useState<number | null>(null);
-  const [pendingDuration, setPendingDuration] = useState<number | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState(60);
   const [allowBackspace, setAllowBackspace] = useState(true);
   const [typed, setTyped] = useState("");
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -73,19 +73,8 @@ export const TypingTest = () => {
     caretRef.current?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
   }, [typed]);
 
-  const chooseMode = (m: Mode) => {
-    setMode(m);
-    setPhase("duration");
-  };
-
-  const chooseDuration = (secs: number) => {
-    setPendingDuration(secs);
-    setPhase("backspace");
-  };
-
-  const confirmBackspace = (allow: boolean) => {
-    setAllowBackspace(allow);
-    if (pendingDuration) start(pendingDuration);
+  const startTest = () => {
+    start(selectedDuration);
   };
 
   const start = (secs: number) => {
@@ -128,7 +117,7 @@ export const TypingTest = () => {
 
   const cancelTest = () => {
     finishedRef.current = true; // stop the timer's own finish() from also firing/submitting
-    navigate("/");
+    navigate("/home/tests");
   };
 
   const submit = async (finalTyped: string) => {
@@ -176,115 +165,98 @@ export const TypingTest = () => {
 
   return (
     <AnimatePresence mode="wait">
-      {phase === "mode" && (
+      {phase === "setup" && (
         <motion.div
-          key="mode"
+          key="setup"
           variants={pageVariants}
           initial="initial"
           animate="animate"
           exit="exit"
           transition={{ duration: 0.35, ease: "easeOut" }}
-          className="flex flex-col items-center gap-6 mt-16"
+          className="flex flex-col items-center gap-8 mt-16 w-full max-w-lg mx-auto"
         >
           <BackButton to="/home/tests" label="Back" />
-          <h2 className="text-2xl font-bold">Choose a mode</h2>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <motion.button
-              whileHover={{ y: -3, scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => chooseMode("paper")}
-              className="card p-6 w-64 text-left"
-            >
-              <h3 className="font-semibold mb-1">Paper to Screen</h3>
-              <p className="text-black/40 text-xs">Text stays hidden — type from your printed sheet.</p>
-            </motion.button>
-            <motion.button
-              whileHover={{ y: -3, scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => chooseMode("screen")}
-              className="card p-6 w-64 text-left"
-            >
-              <h3 className="font-semibold mb-1">Screen to Screen</h3>
-              <p className="text-black/40 text-xs">Text is shown on screen — type it as you read it.</p>
-            </motion.button>
-          </div>
-        </motion.div>
-      )}
+          <h2 className="text-2xl font-bold">Set up your test</h2>
 
-      {phase === "duration" && (
-        <motion.div
-          key="duration"
-          variants={pageVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="flex flex-col items-center gap-8 mt-16"
-        >
-          <BackButton label="Back" onClick={() => setPhase("mode")} />
-          <h2 className="text-2xl font-bold">Pick a time</h2>
-          <div className="flex flex-wrap justify-center gap-4">
-            {DURATIONS.map((d, i) => (
-              <motion.button
-                key={d.value}
-                initial={{ opacity: 0, scale: 0.5, y: 16 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ delay: 0.06 * i, type: "spring", stiffness: 260, damping: 16 }}
-                whileHover={{ scale: 1.1, y: -4, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}
-                whileTap={{ scale: 0.92 }}
-                onClick={() => chooseDuration(d.value)}
-                className="rounded-full px-7 py-4 font-semibold border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/[0.06] hover:border-black/30 dark:hover:border-white/30 transition-colors"
+          <div className="card p-6 w-full flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs uppercase tracking-wide text-black/40">Mode</span>
+              <div className="flex gap-3">
+                {(
+                  [
+                    { key: "paper" as Mode, title: "Paper to Screen", desc: "Type from a printed sheet." },
+                    { key: "screen" as Mode, title: "Screen to Screen", desc: "Text shown on screen." },
+                  ]
+                ).map((m) => (
+                  <motion.button
+                    key={m.key}
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setMode(m.key)}
+                    className={`flex-1 rounded-xl p-4 text-left border transition-colors ${
+                      mode === m.key
+                        ? "border-black dark:border-white bg-black/[0.03] dark:bg-white/[0.06]"
+                        : "border-[var(--card-border)]"
+                    }`}
+                  >
+                    <div className="font-semibold text-sm">{m.title}</div>
+                    <div className="text-black/40 text-xs mt-0.5">{m.desc}</div>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="duration-select" className="text-xs uppercase tracking-wide text-black/40">
+                Time
+              </label>
+              <select
+                id="duration-select"
+                value={selectedDuration}
+                onChange={(e) => setSelectedDuration(Number(e.target.value))}
+                className="w-full rounded-xl px-4 py-3 border border-[var(--card-border)] bg-transparent font-semibold"
               >
-                {d.label}
-              </motion.button>
-            ))}
-          </div>
-        </motion.div>
-      )}
+                {DURATIONS.map((d) => (
+                  <option key={d.value} value={d.value}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      {phase === "backspace" && (
-        <motion.div
-          key="backspace"
-          variants={pageVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="flex flex-col items-center gap-6 mt-16"
-        >
-          <BackButton label="Back" onClick={() => setPhase("duration")} />
-          <motion.h2
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", stiffness: 260, damping: 18 }}
-            className="text-2xl font-bold text-center"
-          >
-            Do you want to allow backspace?
-          </motion.h2>
-          <div className="flex gap-4">
-            <motion.button
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-              onClick={() => confirmBackspace(true)}
-              className="card px-8 py-3 font-semibold hover:border-black/30 transition-colors"
-            >
-              Yes
-            </motion.button>
-            <motion.button
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-              onClick={() => confirmBackspace(false)}
-              className="card px-8 py-3 font-semibold hover:border-black/30 transition-colors"
-            >
-              No
-            </motion.button>
+            <div className="flex flex-col gap-2">
+              <span className="text-xs uppercase tracking-wide text-black/40">Backspace</span>
+              <div className="flex gap-3">
+                {[
+                  { label: "Allowed", value: true },
+                  { label: "Not Allowed", value: false },
+                ].map((b) => (
+                  <motion.button
+                    key={b.label}
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setAllowBackspace(b.value)}
+                    className={`flex-1 rounded-xl py-3 text-sm font-semibold border transition-colors ${
+                      allowBackspace === b.value
+                        ? "border-black dark:border-white bg-black/[0.03] dark:bg-white/[0.06]"
+                        : "border-[var(--card-border)]"
+                    }`}
+                  >
+                    {b.label}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
           </div>
+
+          <motion.button
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={startTest}
+            className="px-8 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold"
+          >
+            Start Test
+          </motion.button>
         </motion.div>
       )}
 
