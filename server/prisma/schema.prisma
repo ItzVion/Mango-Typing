@@ -108,6 +108,8 @@ model OtpToken {
   expiresAt    DateTime
   username     String
   passwordHash String
+  attempts     Int      @default(0)
+  lastSentAt   DateTime @default(now())
 }
 
 model VerificationCode {
@@ -118,6 +120,7 @@ model VerificationCode {
   targetEmail String?
   expiresAt   DateTime
   createdAt   DateTime @default(now())
+  attempts    Int      @default(0)
 
   @@index([userId, purpose])
 }

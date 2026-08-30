@@ -38,24 +38,58 @@ const TABS: { key: Tab; label: string }[] = [
 
 export const AdminPanel = () => {
   const user = useAuthStore((s) => s.user);
-  // The server (via ownerSettings, which is gated by requireOwner) is the
-  // single source of truth for who's allowed in here — we don't also
-  // hardcode/compare OWNER_EMAIL on the client, since that duplicated the
-  // server's check and could drift out of sync with it.
-  const [status, setStatus] = useState<"checking" | "allowed" | "denied">("checking");
+  const authInitialized = useAuthStore((s) => s.authInitialized);
+  const authError = useAuthStore((s) => s.authError);
+  // The server (via ownerSettings, gated by requireOwner) is the single
+  // source of truth for who's allowed in here. A 403 means "not the owner"
+  // (-> send home); anything else (network blip, 500, etc.) is a transient
+  // failure and gets a retry instead of being treated as a denial.
+  const [status, setStatus] = useState<"checking" | "allowed" | "denied" | "error">("checking");
+
   const [tab, setTab] = useState<Tab>("payments");
 
-  useEffect(() => {
+  const check = () => {
     if (!user) return;
     setStatus("checking");
     api
       .ownerSettings()
       .then(() => setStatus("allowed"))
-      .catch(() => setStatus("denied"));
-  }, [user]);
+      .catch((e: any) => setStatus(e?.status === 403 ? "denied" : "error"));
+  };
 
+  useEffect(() => {
+    if (authInitialized) check();
+  }, [authInitialized, user]);
+
+  if (!authInitialized) return <p className="text-black/40 text-center mt-16">Checking session…</p>;
+  // A session-restore failure (network/server, not a real 401) must not be
+  // read as "not logged in" — that would bounce an owner with a perfectly
+  // valid token to /auth just because /auth/me hiccuped once.
+  if (!user && authError) {
+    return (
+      <div className="max-w-md mx-auto mt-16 text-center flex flex-col gap-4">
+        <p className="text-black/50">Couldn't reach the server to restore your session.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="self-center px-5 py-2.5 rounded-xl card font-semibold text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/auth" state={{ from: "/admin" }} replace />;
   if (status === "denied") return <Navigate to="/" replace />;
+  if (status === "error") {
+    return (
+      <div className="max-w-md mx-auto mt-16 text-center flex flex-col gap-4">
+        <p className="text-black/50">Couldn't reach the server to check admin access.</p>
+        <button onClick={check} className="self-center px-5 py-2.5 rounded-xl card font-semibold text-sm">
+          Retry
+        </button>
+      </div>
+    );
+  }
   if (status === "checking") return <p className="text-black/40 text-center mt-16">Loading…</p>;
 
   return (
@@ -142,7 +176,7 @@ const PaymentsTab = () => {
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        Razorpay Key Secret
+        Razorpay Key Secret <span className="text-black/40 text-xs">(leave as-is to keep the saved one)</span>
         <input
           type="password"
           value={form.razorpayKeySecret}
@@ -205,6 +239,9 @@ const EmailTab = () => {
     smtpHost: "", smtpPort: "", smtpSecure: false, smtpUser: "", smtpPass: "", smtpFrom: "", smtpFromName: "",
   });
   const [status, setStatus] = useState("");
+  const [testStatus, setTestStatus] = useState("");
+  const [testTo, setTestTo] = useState("");
+  const [testing, setTesting] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -229,6 +266,19 @@ const EmailTab = () => {
       setStatus("Saved.");
     } catch (e: any) {
       setStatus(e.message || "Failed to save");
+    }
+  };
+
+  const runTest = async () => {
+    setTesting(true);
+    setTestStatus("");
+    try {
+      const res = await api.testSmtp(testTo || undefined);
+      setTestStatus(res.sentTo ? `Test email sent to ${res.sentTo}.` : "SMTP connection verified (no test email sent).");
+    } catch (e: any) {
+      setTestStatus(e.message || "SMTP test failed");
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -281,7 +331,7 @@ const EmailTab = () => {
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        SMTP_PASS
+        SMTP_PASS <span className="text-black/40 text-xs">(leave as-is to keep the saved one)</span>
         <input
           type="password"
           value={form.smtpPass}
@@ -320,6 +370,28 @@ const EmailTab = () => {
         Save
       </motion.button>
       {status && <p className="text-black/40 text-sm">{status}</p>}
+
+      <div className="border-t border-[var(--card-border)] pt-5 flex flex-col gap-3">
+        <label className="flex flex-col gap-1 text-sm">
+          Test SMTP <span className="text-black/40 text-xs">(optional — send a real test email, or leave blank to just verify the connection)</span>
+          <input
+            value={testTo}
+            onChange={(e) => setTestTo(e.target.value)}
+            className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2"
+            placeholder="you@example.com"
+          />
+        </label>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={runTest}
+          disabled={testing}
+          className="self-start px-5 py-2.5 rounded-xl card font-semibold text-sm disabled:opacity-40"
+        >
+          {testing ? "Testing…" : "Test SMTP"}
+        </motion.button>
+        {testStatus && <p className="text-black/40 text-sm">{testStatus}</p>}
+      </div>
     </div>
   );
 };
@@ -534,7 +606,7 @@ const UsersTab = () => {
             >
               <h2 className="text-xl font-extrabold">ADD USER MANUALLY</h2>
               <p className="text-black/40 text-sm mt-1 mb-5">
-                Creates an account directly — no OTP required. Useful for giving staff access.
+                Creates a normal account directly — no OTP required. New accounts always get the regular USER role; owner access can't be granted from here.
               </p>
 
               <label className="text-xs font-semibold text-black/50 tracking-wide">EMAIL</label>

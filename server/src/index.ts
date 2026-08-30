@@ -2,6 +2,7 @@ import "dotenv/config";
 import "express-async-errors";
 import express from "express";
 import cors from "cors";
+import { validateConfig } from "./lib/validateConfig";
 import authRoutes from "./routes/auth";
 import sheetsRoutes from "./routes/sheets";
 import testsRoutes from "./routes/tests";
@@ -12,12 +13,23 @@ import legalRoutes from "./routes/legal";
 import accountRoutes from "./routes/account";
 import bugReportRoutes from "./routes/bugreport";
 
+// Fails fast (loudly, in the function logs) if a required secret is missing
+// in production/Vercel, instead of quietly running with an insecure default.
+validateConfig();
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 const ALLOWED_ORIGINS = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
+  // Extra explicit origins, comma-separated, e.g. a custom domain in
+  // addition to CLIENT_URL — set this in Vercel's project env vars.
+  ...(process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? []),
+  // Fallback covers Vercel's own preview-deployment URLs
+  // (https://<project>-<hash>-<team>.vercel.app) so preview builds can call
+  // the API without needing a new env var per preview. Safe to keep: it
+  // only widens CORS, which never bypasses auth/owner checks server-side.
   /\.vercel\.app$/,
 ].filter(Boolean) as (string | RegExp)[];
 

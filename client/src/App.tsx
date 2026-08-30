@@ -37,15 +37,37 @@ const pageTransition = {
 
 export default function App() {
   const setUser = useAuthStore((s) => s.setUser);
+  const setAuthInitialized = useAuthStore((s) => s.setAuthInitialized);
+  const setAuthError = useAuthStore((s) => s.setAuthError);
   const user = useAuthStore((s) => s.user);
   const location = useLocation();
   const [maintenance, setMaintenance] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem("vc_token")) {
-      api.me().then(setUser).catch(() => localStorage.removeItem("vc_token"));
+    const token = localStorage.getItem("vc_token");
+    if (!token) {
+      setAuthInitialized(true);
+      return;
     }
-  }, [setUser]);
+
+    api.me()
+      .then((u) => {
+        setUser(u);
+        setAuthError(false);
+      })
+      .catch((e: any) => {
+        // Only a real 401 (invalid/expired token) means "logged out" — the
+        // api client already clears the token in that case. A network/server
+        // error must NOT be treated as a logout, or a transient outage would
+        // wrongly kick an owner out of their own session (and out of /admin).
+        if (e?.status === 401) {
+          setUser(null);
+        } else {
+          setAuthError(true);
+        }
+      })
+      .finally(() => setAuthInitialized(true));
+  }, [setUser, setAuthInitialized, setAuthError]);
 
   useEffect(() => {
     api.publicSettings().then((s) => setMaintenance(!!s.maintenanceMode)).catch(() => {});

@@ -6,9 +6,10 @@ import { OAuth2Client } from "google-auth-library";
 import { requireAuth, AuthRequest } from "../middleware/auth";
 import { sendOtpEmail } from "../lib/mailer";
 import { prisma } from "../lib/db";
+import { hashCode, codesMatch, MAX_CODE_ATTEMPTS, RESEND_COOLDOWN_MS } from "../lib/otp";
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "vc-typing-secret-key";
+const JWT_SECRET = process.env.JWT_SECRET!;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -40,8 +41,8 @@ router.post("/register", async (req: Request, res: Response): Promise<any> => {
 
   await prisma.otpToken.upsert({
     where: { email: normalEmail },
-    update: { token: otp, expiresAt, username: username.trim(), passwordHash },
-    create: { email: normalEmail, token: otp, expiresAt, username: username.trim(), passwordHash },
+    update: { token: hashCode(otp), expiresAt, username: username.trim(), passwordHash, attempts: 0, lastSentAt: new Date() },
+    create: { email: normalEmail, token: hashCode(otp), expiresAt, username: username.trim(), passwordHash },
   });
 
   try {
@@ -60,8 +61,18 @@ router.post("/verify-otp", async (req: Request, res: Response): Promise<any> => 
   const normalEmail = String(email || "").trim().toLowerCase();
   const row = await prisma.otpToken.findUnique({ where: { email: normalEmail } });
   if (!row) return res.status(400).json({ error: "No pending registration for this email." });
-  if (row.token !== String(token)) return res.status(400).json({ error: "Invalid code." });
-  if (row.expiresAt < new Date()) return res.status(400).json({ error: "Code expired. Request a new one." });
+  if (row.expiresAt < new Date()) {
+    await prisma.otpToken.delete({ where: { email: normalEmail } });
+    return res.status(400).json({ error: "Code expired. Request a new one." });
+  }
+  if (row.attempts >= MAX_CODE_ATTEMPTS) {
+    await prisma.otpToken.delete({ where: { email: normalEmail } });
+    return res.status(429).json({ error: "Too many incorrect attempts. Request a new code." });
+  }
+  if (!codesMatch(String(token), row.token)) {
+    await prisma.otpToken.update({ where: { email: normalEmail }, data: { attempts: { increment: 1 } } });
+    return res.status(400).json({ error: "Invalid code." });
+  }
 
   const user = await prisma.user.create({
     data: { email: row.email, username: row.username, passwordHash: row.passwordHash },
@@ -77,9 +88,19 @@ router.post("/resend-otp", async (req: Request, res: Response): Promise<any> => 
   const row = await prisma.otpToken.findUnique({ where: { email: normalEmail } });
   if (!row) return res.status(400).json({ error: "No pending registration found." });
 
+  // Server-side cooldown — the client's 30s countdown is just UX; this is
+  // the actual enforcement, since a direct API call can ignore the client.
+  const msSinceLastSend = Date.now() - row.lastSentAt.getTime();
+  if (msSinceLastSend < RESEND_COOLDOWN_MS) {
+    return res.status(429).json({ error: "Please wait before requesting another code." });
+  }
+
   const otp = crypto.randomInt(100000, 999999).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-  await prisma.otpToken.update({ where: { email: normalEmail }, data: { token: otp, expiresAt } });
+  await prisma.otpToken.update({
+    where: { email: normalEmail },
+    data: { token: hashCode(otp), expiresAt, attempts: 0, lastSentAt: new Date() },
+  });
 
   try {
     await sendOtpEmail(normalEmail, otp);
@@ -133,15 +154,20 @@ router.post("/google", async (req: Request, res: Response): Promise<any> => {
     return res.status(400).json({ error: "Invalid Google token" });
   }
   if (!payload?.email) return res.status(400).json({ error: "Invalid Google token" });
+  // Registration/login both normalize emails to lowercase (see /login,
+  // /register). Google's payload email is normally already lowercase, but
+  // relying on that isn't safe — an unnormalized email here could create a
+  // second account that never matches the user's existing password account.
+  const googleEmail = payload.email.toLowerCase();
 
-  let user = await prisma.user.findFirst({ where: { OR: [{ googleId: payload.sub }, { email: payload.email }] } });
+  let user = await prisma.user.findFirst({ where: { OR: [{ googleId: payload.sub }, { email: googleEmail }] } });
 
   if (!user) {
-    const base = payload.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "") || "user";
+    const base = googleEmail.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "") || "user";
     let suggestedUsername = base;
     let n = 1;
     while (await prisma.user.findUnique({ where: { username: suggestedUsername } })) suggestedUsername = `${base}${n++}`;
-    return res.json({ needsSetup: true, email: payload.email, suggestedUsername });
+    return res.json({ needsSetup: true, email: googleEmail, suggestedUsername });
   }
 
   if (!user.googleId) {
@@ -168,8 +194,9 @@ router.post("/google/complete", async (req: Request, res: Response): Promise<any
     return res.status(400).json({ error: "Invalid Google token" });
   }
   if (!payload?.email) return res.status(400).json({ error: "Invalid Google token" });
+  const googleEmail = payload.email.toLowerCase();
 
-  const existing = await prisma.user.findFirst({ where: { OR: [{ googleId: payload.sub }, { email: payload.email }] } });
+  const existing = await prisma.user.findFirst({ where: { OR: [{ googleId: payload.sub }, { email: googleEmail }] } });
   if (existing) return res.status(400).json({ error: "An account with this Google email already exists." });
 
   const existingUsername = await prisma.user.findUnique({ where: { username: username.trim() } });
@@ -178,7 +205,7 @@ router.post("/google/complete", async (req: Request, res: Response): Promise<any
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
     data: {
-      email: payload.email,
+      email: googleEmail,
       username: username.trim(),
       passwordHash,
       googleId: payload.sub,

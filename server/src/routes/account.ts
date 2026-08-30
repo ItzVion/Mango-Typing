@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { requireAuth, AuthRequest } from "../middleware/auth";
 import { sendOtpEmail } from "../lib/mailer";
 import { prisma } from "../lib/db";
+import { hashCode, codesMatch, MAX_CODE_ATTEMPTS } from "../lib/otp";
 
 const router = Router();
 const CODE_TTL_MS = 10 * 60 * 1000;
@@ -18,7 +19,7 @@ async function issueCode(userId: string, purpose: string, targetEmail: string | 
   // Only one pending code per (user, purpose) at a time.
   await prisma.verificationCode.deleteMany({ where: { userId, purpose } });
   await prisma.verificationCode.create({
-    data: { userId, purpose, token, targetEmail, expiresAt },
+    data: { userId, purpose, token: hashCode(token), targetEmail, expiresAt },
   });
   await sendOtpEmail(sendTo, token);
 }
@@ -30,7 +31,14 @@ async function consumeCode(userId: string, purpose: string, token: string) {
     await prisma.verificationCode.delete({ where: { id: row.id } });
     return { ok: false as const, error: "Code expired. Request a new one." };
   }
-  if (row.token !== String(token)) return { ok: false as const, error: "Invalid code." };
+  if (row.attempts >= MAX_CODE_ATTEMPTS) {
+    await prisma.verificationCode.delete({ where: { id: row.id } });
+    return { ok: false as const, error: "Too many incorrect attempts. Request a new code." };
+  }
+  if (!codesMatch(String(token), row.token)) {
+    await prisma.verificationCode.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } });
+    return { ok: false as const, error: "Invalid code." };
+  }
   await prisma.verificationCode.delete({ where: { id: row.id } });
   return { ok: true as const, targetEmail: row.targetEmail };
 }

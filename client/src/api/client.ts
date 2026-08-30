@@ -1,5 +1,7 @@
-// Relative path — works on localhost, IP, or domain without editing this file again.
-// Nginx proxies /api -> localhost:5000
+// Relative path — works in dev, preview, and production without editing
+// this file again. On Vercel, vercel.json rewrites /api/(.*) to the
+// api/index.ts serverless function; locally, Vite's dev server proxy (or a
+// same-origin dev server) handles it the same way.
 const BASE = `${window.location.origin}/api`;
 
 function getToken() {
@@ -20,9 +22,21 @@ async function request(path: string, opts: RequestInit = {}) {
   try {
     data = await res.json();
   } catch {
-    throw new Error(res.ok ? "Unexpected response from server." : `Server error (${res.status}). Please try again.`);
+    if (res.ok) throw new Error("Unexpected response from server.");
+    const err: any = new Error(`Server error (${res.status}). Please try again.`);
+    err.status = res.status;
+    throw err;
   }
-  if (!res.ok) throw new Error(data.error || "Request failed");
+  if (!res.ok) {
+    // A 401 on an authenticated request means the token is invalid/expired —
+    // clear it so the app doesn't keep sending a dead token on every
+    // subsequent request. Callers can inspect `err.status` to tell this
+    // apart from a network/server error (see App.tsx's session restore).
+    if (res.status === 401 && token) localStorage.removeItem("vc_token");
+    const err: any = new Error(data.error || "Request failed");
+    err.status = res.status;
+    throw err;
+  }
   return data;
 }
 
@@ -75,5 +89,3 @@ export const api = {
   confirmAccountDeletion: (code: string) =>
     request("/account/delete/confirm", { method: "POST", body: JSON.stringify({ code }) }),
 };
-
-export const OWNER_EMAIL = "vion4712@gmail.com";

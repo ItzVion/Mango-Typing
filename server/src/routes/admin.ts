@@ -23,15 +23,26 @@ router.get("/users", requireOwner, async (_req: AuthRequest, res: Response) => {
   res.json(users);
 });
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 router.post("/users", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => {
   const { email, username, password } = req.body;
   if (!email || !username || !password) return res.status(400).json({ error: "Missing fields" });
 
-  const existing = await prisma.user.findFirst({ where: { OR: [{ email }, { username }] } });
+  const normalEmail = String(email).trim().toLowerCase();
+  const trimmedUsername = String(username).trim();
+  if (!EMAIL_RE.test(normalEmail)) return res.status(400).json({ error: "Enter a valid email address." });
+  if (trimmedUsername.length < 3) return res.status(400).json({ error: "Username must be at least 3 characters." });
+  if (String(password).length < 6) return res.status(400).json({ error: "Password must be at least 6 characters." });
+
+  // Same normalized-email / trimmed-username matching as public registration,
+  // so an admin-created account can't collide with (or duplicate) one made
+  // through /auth/register in a different case.
+  const existing = await prisma.user.findFirst({ where: { OR: [{ email: normalEmail }, { username: trimmedUsername }] } });
   if (existing) return res.status(400).json({ error: "Username or email already taken" });
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const user = await prisma.user.create({ data: { email, username, passwordHash } });
+  const user = await prisma.user.create({ data: { email: normalEmail, username: trimmedUsername, passwordHash } });
   res.json({ id: user.id, username: user.username, email: user.email, role: user.role, hasDonated: user.hasDonated, createdAt: user.createdAt });
 });
 
