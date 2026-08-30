@@ -20,6 +20,13 @@ export async function getTransporter() {
     port,
     secure,
     auth: { user, pass },
+    // Vercel functions have their own execution time limit — without these,
+    // a stalled SMTP handshake (common with implicit-TLS port 465 from
+    // serverless/cloud IPs) hangs until Vercel kills the function instead of
+    // failing with a clear, catchable error.
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 8000,
   });
 
   return { transporter, from: fromName ? `"${fromName}" <${from}>` : from };
