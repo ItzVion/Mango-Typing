@@ -112,6 +112,17 @@ model OtpToken {
   lastSentAt   DateTime @default(now())
 }
 
+// DB-backed rate-limit counters. A fixed window per key (e.g.
+// "login:ip:1.2.3.4" or "login:acct:someuser"). Needed because Vercel
+// serverless functions share no in-process memory between invocations,
+// so an in-memory Map would reset every cold start and not be shared
+// across concurrent instances.
+model RateLimit {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+}
+
 model VerificationCode {
   id          String   @id @default(uuid())
   userId      String

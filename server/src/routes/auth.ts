@@ -7,15 +7,25 @@ import { requireAuth, AuthRequest } from "../middleware/auth";
 import { sendOtpEmail } from "../lib/mailer";
 import { prisma } from "../lib/db";
 import { hashCode, codesMatch, MAX_CODE_ATTEMPTS, RESEND_COOLDOWN_MS } from "../lib/otp";
+import { checkRateLimit, clientIp } from "../lib/rateLimit";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET!;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
+// Algorithm pinned explicitly on both sign and verify (see middleware/auth.ts
+// too) — jsonwebtoken will otherwise accept whatever algorithm the token
+// header claims, which is the classic "alg confusion" footgun.
 function sign(user: { id: string; username: string }) {
-  return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: "7d", algorithm: "HS256" });
 }
+
+// A fixed, valid bcrypt hash with no matching password. Used to run a real
+// bcrypt.compare on the "no such account" path so that path takes the same
+// time as a real wrong-password check — otherwise timing alone reveals
+// whether an identifier exists.
+const DUMMY_HASH = "$2b$10$zzaZn9j5xAPe7VGHfXCyeebzL/bNxHhZB.tU6kC27f74hQ2wLzM2O";
 
 function publicUser(user: { id: string; username: string; email: string; avatarUrl: string | null; hasDonated: boolean; role: string }) {
   return { id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl, hasDonated: user.hasDonated, isOwner: user.role === "OWNER" };
@@ -117,15 +127,29 @@ router.post("/login", async (req: Request, res: Response): Promise<any> => {
   const id = String(identifier ?? email ?? "").trim();
   if (!id || !password) return res.status(400).json({ error: "All fields required." });
 
+  // Two limiters: per-IP catches a single attacker spraying many accounts;
+  // per-identifier catches many attackers (or a botnet) hammering one account.
+  const ip = clientIp(req);
+  const ipLimit = await checkRateLimit(`login:ip:${ip}`, 20, 5 * 60 * 1000);
+  if (!ipLimit.ok) return res.status(429).json({ error: "Too many login attempts. Please try again later." });
+  const acctLimit = await checkRateLimit(`login:acct:${id.toLowerCase()}`, 8, 15 * 60 * 1000);
+  if (!acctLimit.ok) return res.status(429).json({ error: "Too many login attempts. Please try again later." });
+
   const user = id.includes("@")
     ? await prisma.user.findUnique({ where: { email: id.toLowerCase() } })
     : await prisma.user.findUnique({ where: { username: id } });
 
-  if (!user) return res.status(400).json({ error: "No account found." });
-  if (!user.passwordHash) return res.status(400).json({ error: "This account uses Google sign-in. Please continue with Google." });
+  // Same error message and a real (dummy) bcrypt compare on every failure
+  // path, so neither the response text nor the response time reveals
+  // whether the account exists, whether it's Google-only, or the password
+  // was simply wrong.
+  if (!user || !user.passwordHash) {
+    await bcrypt.compare(password, DUMMY_HASH);
+    return res.status(400).json({ error: "Invalid username/email or password." });
+  }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) return res.status(400).json({ error: "Incorrect password." });
+  if (!valid) return res.status(400).json({ error: "Invalid username/email or password." });
 
   res.json({ token: sign(user), user: publicUser(user) });
 });

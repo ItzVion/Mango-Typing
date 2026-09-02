@@ -20,23 +20,20 @@ validateConfig();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// No blanket *.vercel.app trust: that pattern matches ANY Vercel project on
+// the internet, not just your own preview deployments — any other Vercel
+// app could send credentialed requests here. List explicit origins only;
+// add a preview URL via ALLOWED_ORIGINS in Vercel's env vars when needed.
 const ALLOWED_ORIGINS = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
-  // Extra explicit origins, comma-separated, e.g. a custom domain in
-  // addition to CLIENT_URL — set this in Vercel's project env vars.
   ...(process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? []),
-  // Fallback covers Vercel's own preview-deployment URLs
-  // (https://<project>-<hash>-<team>.vercel.app) so preview builds can call
-  // the API without needing a new env var per preview. Safe to keep: it
-  // only widens CORS, which never bypasses auth/owner checks server-side.
-  /\.vercel\.app$/,
-].filter(Boolean) as (string | RegExp)[];
+].filter(Boolean) as string[];
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    const ok = ALLOWED_ORIGINS.some((o) => (o instanceof RegExp ? o.test(origin) : o === origin));
+    const ok = ALLOWED_ORIGINS.includes(origin);
     callback(null, ok);
   },
   credentials: true,

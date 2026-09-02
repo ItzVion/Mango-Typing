@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
@@ -370,11 +370,119 @@ function DeleteSection() {
   );
 }
 
+// ---- Avatar section ---------------------------------------------------------
+function resizeToSquareJpeg(file: File, size = 256): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Canvas not supported."));
+      // Center-crop to a square, then scale down — avoids stretching non-square photos.
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Failed to process image."))), "image/jpeg", 0.85);
+    };
+    img.onerror = () => reject(new Error("Couldn't read that image."));
+    img.src = url;
+  });
+}
+
+function AvatarSection() {
+  const { user, setUser } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; kind: "error" | "success" } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const onFile = async (file: File | undefined) => {
+    if (!file) return;
+    setMsg(null);
+    setLoading(true);
+    try {
+      const resized = await resizeToSquareJpeg(file);
+      const { avatarUrl } = await api.uploadAvatar(resized);
+      setUser(user ? { ...user, avatarUrl } : user);
+      setMsg({ text: "Avatar updated.", kind: "success" });
+    } catch (e: any) {
+      setMsg({ text: e.message, kind: "error" });
+    } finally {
+      setLoading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  const remove = async () => {
+    setLoading(true);
+    setMsg(null);
+    try {
+      await api.removeAvatar();
+      setUser(user ? { ...user, avatarUrl: null } : user);
+      setMsg({ text: "Avatar removed.", kind: "success" });
+    } catch (e: any) {
+      setMsg({ text: e.message, kind: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6 flex flex-col gap-3">
+      <h2 className="font-semibold">Profile picture</h2>
+      <div className="flex items-center gap-4">
+        <div className="w-16 h-16 rounded-full overflow-hidden border border-[var(--card-border)] flex items-center justify-center bg-black/5 dark:bg-white/5 shrink-0">
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-xl font-bold text-black/30 dark:text-white/30">
+              {user?.username?.[0]?.toUpperCase() ?? "?"}
+            </span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            disabled={loading}
+            onClick={() => inputRef.current?.click()}
+            className="rounded-xl px-4 py-2 text-sm font-semibold border border-[var(--card-border)] disabled:opacity-50"
+          >
+            {loading ? "Uploading…" : "Upload"}
+          </motion.button>
+          {user?.avatarUrl && (
+            <button
+              disabled={loading}
+              onClick={remove}
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-black/40 dark:text-white/40 disabled:opacity-50"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          className="hidden"
+          onChange={(e) => onFile(e.target.files?.[0])}
+        />
+      </div>
+      <AnimatePresence mode="wait">{msg && <Message key={msg.text} text={msg.text} kind={msg.kind} />}</AnimatePresence>
+    </motion.div>
+  );
+}
+
 export const Settings = () => {
   return (
     <div className="flex flex-col gap-6 max-w-lg mx-auto">
       <BackButton to="/home" label="Back" />
       <h1 className="text-2xl font-bold">Settings</h1>
+      <AvatarSection />
       <UsernameSection />
       <PasswordSection />
       <EmailSection />

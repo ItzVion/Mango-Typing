@@ -52,6 +52,8 @@ export const api = {
     request("/auth/google", { method: "POST", body: JSON.stringify({ credential }) }),
   googleComplete: (credential: string, username: string, password: string) =>
     request("/auth/google/complete", { method: "POST", body: JSON.stringify({ credential, username, password }) }),
+
+
   me: () => request("/auth/me"),
   sheets: () => request("/sheets"),
   sheet: (id: number) => request(`/sheets/${id}`),
@@ -76,6 +78,20 @@ export const api = {
     request(`/admin/legal/${slug}`, { method: "PUT", body: JSON.stringify({ content }) }),
   changeUsername: (newUsername: string, password: string) =>
     request("/account/username", { method: "PATCH", body: JSON.stringify({ newUsername, password }) }),
+  uploadAvatar: async (file: Blob) => {
+    const token = localStorage.getItem("vc_token");
+    const form = new FormData();
+    form.append("avatar", file, "avatar.jpg");
+    const res = await fetch(`${window.location.origin}/api/account/avatar`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.error || "Upload failed.");
+    return data as { avatarUrl: string };
+  },
+  removeAvatar: () => request("/account/avatar", { method: "DELETE" }),
   changePassword: (oldPassword: string, newPassword: string, confirmNewPassword: string) =>
     request("/account/password", { method: "PATCH", body: JSON.stringify({ oldPassword, newPassword, confirmNewPassword }) }),
   requestEmailChange: (password: string) =>

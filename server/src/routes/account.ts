@@ -1,13 +1,23 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import multer from "multer";
 import { requireAuth, AuthRequest } from "../middleware/auth";
 import { sendOtpEmail } from "../lib/mailer";
 import { prisma } from "../lib/db";
 import { hashCode, codesMatch, MAX_CODE_ATTEMPTS } from "../lib/otp";
+import { checkRateLimit } from "../lib/rateLimit";
+import { sniffImageMime } from "../lib/imageSniff";
 
 const router = Router();
 const CODE_TTL_MS = 10 * 60 * 1000;
+
+// Client resizes to a small square before upload, but this is the real
+// enforcement point — never trust the browser to have actually done that.
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 500 * 1024 }, // 500KB — plenty for a resized square avatar
+});
 
 function makeCode() {
   return crypto.randomInt(100000, 999999).toString();
@@ -184,3 +194,26 @@ router.post("/delete/confirm", requireAuth, async (req: AuthRequest, res: Respon
 });
 
 export default router;
+
+// ---- Avatar upload ----------------------------------------------------------
+// Stored as a data: URL directly on the User row — there's no object storage
+// in this stack (Vercel functions have no persistent filesystem), and at a
+// 500KB cap a base64'd small square avatar is a trivial amount of DB text.
+router.post("/avatar", requireAuth, avatarUpload.single("avatar"), async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded." });
+
+  const limit = await checkRateLimit(`avatar:acct:${req.userId}`, 10, 15 * 60 * 1000);
+  if (!limit.ok) return res.status(429).json({ error: "Too many uploads. Please try again later." });
+
+  const mime = sniffImageMime(req.file.buffer);
+  if (!mime) return res.status(400).json({ error: "That doesn't look like a valid image file." });
+
+  const dataUrl = `data:${mime};base64,${req.file.buffer.toString("base64")}`;
+  const user = await prisma.user.update({ where: { id: req.userId }, data: { avatarUrl: dataUrl } });
+  res.json({ avatarUrl: user.avatarUrl });
+});
+
+router.delete("/avatar", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  await prisma.user.update({ where: { id: req.userId }, data: { avatarUrl: null } });
+  res.json({ success: true });
+});

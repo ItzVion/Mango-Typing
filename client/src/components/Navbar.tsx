@@ -200,6 +200,13 @@ export const Navbar = () => {
                 onClick={() => setMenuOpen((o) => !o)}
                 className="px-3 sm:px-4 py-2 text-xs font-semibold rounded-xl accent-bg whitespace-nowrap flex items-center gap-1.5"
               >
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
+                ) : (
+                  <span className="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center text-[10px]">
+                    {user.username[0]?.toUpperCase()}
+                  </span>
+                )}
                 {user.username}{user.hasDonated ? " ⭐" : ""}
                 <motion.span
                   animate={{ rotate: menuOpen ? 180 : 0 }}

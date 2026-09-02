@@ -17,7 +17,7 @@ export function optionalAuth(req: AuthRequest, _res: Response, next: NextFunctio
   const header = req.headers.authorization;
   if (header?.startsWith("Bearer ")) {
     try {
-      const payload = jwt.verify(header.slice(7), JWT_SECRET) as { id: string };
+      const payload = jwt.verify(header.slice(7), JWT_SECRET, { algorithms: ["HS256"] }) as { id: string };
       req.userId = payload.id;
     } catch {
       // invalid/expired token -> treat as guest
@@ -31,7 +31,7 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) return res.status(401).json({ error: "Not authenticated" });
   try {
-    const payload = jwt.verify(header.slice(7), JWT_SECRET) as { id: string };
+    const payload = jwt.verify(header.slice(7), JWT_SECRET, { algorithms: ["HS256"] }) as { id: string };
     req.userId = payload.id;
     next();
   } catch {
@@ -54,7 +54,7 @@ export async function requireOwner(req: AuthRequest, res: Response, next: NextFu
   // just because the database (Turso) hiccuped.
   let payload: { id: string };
   try {
-    payload = jwt.verify(header.slice(7), JWT_SECRET) as { id: string };
+    payload = jwt.verify(header.slice(7), JWT_SECRET, { algorithms: ["HS256"] }) as { id: string };
   } catch {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
