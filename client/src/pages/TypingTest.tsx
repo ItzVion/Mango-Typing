@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { api } from "../api/client";
 import { BackButton } from "../components/BackButton";
 import { diffWords } from "../utils/typingDiff";
+import { useTestGuardStore } from "../stores/testGuardStore";
 
 function formatTime(sec: number) {
   if (sec < 60) return `${sec}s`;
@@ -34,6 +35,7 @@ export const TypingTest = () => {
   const [allowBackspace, setAllowBackspace] = useState(true);
   const [typed, setTyped] = useState("");
   const [startedAt, setStartedAt] = useState<number | null>(null);
+  const setTestInProgress = useTestGuardStore((s) => s.setTestInProgress);
   const [timeLeft, setTimeLeft] = useState(0);
   const [secondStats, setSecondStats] = useState<{ sec: number; wpm: number; errors: number }[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -89,7 +91,10 @@ export const TypingTest = () => {
 
   const handleChange = (val: string) => {
     if (finishedRef.current || timeLeft <= 0) return;
-    if (!startedAt) setStartedAt(Date.now());
+    if (!startedAt) {
+      setStartedAt(Date.now());
+      setTestInProgress(true);
+    }
     if (!allowBackspace && val.length < typed.length) return;
     setTyped(val);
   };
@@ -108,6 +113,7 @@ export const TypingTest = () => {
   const finish = () => {
     if (finishedRef.current) return;
     finishedRef.current = true;
+    setTestInProgress(false);
     inputRef.current?.blur();
     setTyped((finalTyped) => {
       submit(finalTyped);
@@ -117,8 +123,15 @@ export const TypingTest = () => {
 
   const cancelTest = () => {
     finishedRef.current = true; // stop the timer's own finish() from also firing/submitting
+    setTestInProgress(false);
     navigate("/home/tests");
   };
+
+  // Safety net for any other way this component unmounts mid-test (browser
+  // back/forward, a future nav path that doesn't go through cancelTest).
+  useEffect(() => {
+    return () => setTestInProgress(false);
+  }, [setTestInProgress]);
 
   const submit = async (finalTyped: string) => {
     setLastTyped(finalTyped);

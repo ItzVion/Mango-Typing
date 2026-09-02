@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { useThemeStore } from "../stores/themeStore";
+import { useTestGuardStore } from "../stores/testGuardStore";
+import { ConfirmModal } from "./ConfirmModal";
 
 // Motion-primitives-style "Magnetic" effect: the element nudges slightly
 // toward the cursor within its own bounds, then springs back on leave.
@@ -27,9 +29,13 @@ export const Navbar = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { theme, toggle } = useThemeStore();
+  const testInProgress = useTestGuardStore((s) => s.testInProgress);
+  const setTestInProgress = useTestGuardStore((s) => s.setTestInProgress);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [hoveredPath, setHoveredPath] = useState<string | null>(null);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const mobileNavRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +75,24 @@ export const Navbar = () => {
     navigate("/");
   };
 
+  // Any nav link goes through this instead of navigating directly. Mid-test,
+  // it intercepts and asks first — this is the actual fix for "Dashboard
+  // doesn't work while I'm in a test": previously it just silently discarded
+  // the test guard state without ever asking anything.
+  const handleNavClick = (e: React.MouseEvent, path: string) => {
+    if (testInProgress && path !== location.pathname) {
+      e.preventDefault();
+      setPendingPath(path);
+    }
+  };
+
+  const confirmLeaveTest = () => {
+    setTestInProgress(false);
+    const dest = pendingPath;
+    setPendingPath(null);
+    if (dest) navigate(dest);
+  };
+
   const magnetic = useMagnetic();
 
   return (
@@ -77,11 +101,12 @@ export const Navbar = () => {
         initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="glass-nav grid grid-cols-[auto_1fr_auto] items-center w-full max-w-5xl px-4 sm:px-6 py-3 rounded-2xl gap-2 transition-shadow"
+        className="glass-nav grid grid-cols-[1fr_auto_1fr] items-center w-full max-w-5xl px-4 sm:px-6 py-3 rounded-2xl gap-2 transition-shadow"
         style={scrolled ? { boxShadow: "0 8px 30px -12px rgba(0,0,0,0.25)" } : {}}
       >
         <Link
           to="/"
+          onClick={(e) => handleNavClick(e, "/")}
           className="font-bold text-base sm:text-lg tracking-wider shrink-0 flex items-center justify-self-start"
           ref={magnetic.ref as React.RefObject<HTMLAnchorElement>}
           onMouseMove={magnetic.onMouseMove}
@@ -98,18 +123,30 @@ export const Navbar = () => {
         </Link>
 
         {/* Desktop nav links */}
-        <div className="hidden sm:flex items-center justify-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar min-w-0 justify-self-center">
+        <div
+          className="hidden sm:flex items-center justify-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar min-w-0 justify-self-center relative"
+          onMouseLeave={() => setHoveredPath(null)}
+        >
           {links.map((l) => (
             <Link
               key={l.path}
               to={l.path}
-              className="relative shrink-0 px-2.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap hover:text-black dark:hover:text-white"
+              onClick={(e) => handleNavClick(e, l.path)}
+              onMouseEnter={() => setHoveredPath(l.path)}
+              className="relative shrink-0 px-2.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-colors"
               style={
                 location.pathname === l.path
                   ? { color: "var(--text-primary)" }
                   : { color: "var(--text-muted)" }
               }
             >
+              {hoveredPath === l.path && (
+                <motion.span
+                  layoutId="nav-hover-pill"
+                  className="absolute inset-0 rounded-xl bg-black/5 dark:bg-white/10 -z-10"
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                />
+              )}
               {l.name}
               {location.pathname === l.path && (
                 <motion.span
@@ -161,6 +198,10 @@ export const Navbar = () => {
                   <Link
                     key={l.path}
                     to={l.path}
+                    onClick={(e) => {
+                      handleNavClick(e, l.path);
+                      if (!(testInProgress && l.path !== location.pathname)) setMobileNavOpen(false);
+                    }}
                     className="px-4 py-2.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                     style={location.pathname === l.path ? { color: "var(--text-primary)" } : { color: "var(--text-muted)" }}
                   >
@@ -272,6 +313,16 @@ export const Navbar = () => {
       >
         Practice typing. Track progress. Get faster.
       </motion.p>
+
+      <ConfirmModal
+        open={pendingPath !== null}
+        title="Cancel this test?"
+        message="You have a typing test in progress. Leaving now will discard it — this can't be undone."
+        confirmLabel="Yes, leave"
+        cancelLabel="Stay"
+        onConfirm={confirmLeaveTest}
+        onCancel={() => setPendingPath(null)}
+      />
     </div>
   );
 };
