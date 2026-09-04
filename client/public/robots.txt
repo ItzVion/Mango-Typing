@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /admin
+Disallow: /settings
+Disallow: /results
+Disallow: /donations
+Disallow: /home/test-result
+
+Sitemap: https://vctyping.dpdns.org/sitemap.xml

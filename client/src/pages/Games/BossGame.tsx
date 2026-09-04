@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BackButton } from "../../components/BackButton";
+import { Seo } from "../../components/Seo";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -146,6 +147,11 @@ export const BossGame = () => {
   if (status === "ready") {
     return (
       <div className="flex flex-col items-center gap-6 mt-16">
+        <Seo
+          title="Boss Fight Typing Game — Type to Deal Damage"
+          description="Defeat the boss by typing words accurately and quickly. A challenge mode for practicing typing speed and accuracy under pressure."
+          path="/home/games/boss"
+        />
         <BackButton to="/home/typing-games" label="Back to Games" />
         <h2 className="text-2xl font-bold">Boss Fight</h2>
         <p className="text-black/40 text-sm max-w-md text-center">

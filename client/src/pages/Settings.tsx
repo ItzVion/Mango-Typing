@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { BackButton } from "../components/BackButton";
+import { Seo } from "../components/Seo";
 
 const inputClass =
   "bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2 w-full outline-none focus:border-black/40 dark:focus:border-white/40 transition-colors text-sm";
@@ -480,6 +481,7 @@ function AvatarSection() {
 export const Settings = () => {
   return (
     <div className="flex flex-col gap-6 max-w-lg mx-auto">
+      <Seo title="Settings" description="Manage your VC Typing account settings." path="/settings" noindex />
       <BackButton to="/home" label="Back" />
       <h1 className="text-2xl font-bold">Settings</h1>
       <AvatarSection />

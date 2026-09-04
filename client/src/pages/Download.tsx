@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { api } from "../api/client";
 import { downloadSheetPdf, downloadAllSheetsPdf } from "../utils/pdf";
 import { BackButton } from "../components/BackButton";
+import { Seo } from "../components/Seo";
 
 type Sheet = { id: number; title: string; topic: string; wordCount: number; difficulty: "easy" | "medium" | "hard" };
 
@@ -44,6 +45,11 @@ export const Download = () => {
 
   return (
     <div className="flex flex-col gap-8">
+      <Seo
+        title="Download Printable Typing Test Sheets (PDF)"
+        description="Download free printable typing test sheets as PDF, organized by Easy, Medium, and Hard difficulty, for offline typing practice."
+        path="/download"
+      />
       <BackButton to="/home" label="Back" />
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold">Download Sheets</h1>

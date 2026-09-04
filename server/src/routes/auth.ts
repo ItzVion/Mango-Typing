@@ -34,6 +34,10 @@ function publicUser(user: { id: string; username: string; email: string; avatarU
 // Step 1 of registration: validate + stash the pending account, email a 6-digit
 // code, and wait for /verify-otp. Mirrors deathsmp-web's register -> OTP flow.
 router.post("/register", async (req: Request, res: Response): Promise<any> => {
+  const ip = clientIp(req);
+  const ipLimit = await checkRateLimit(`register:ip:${ip}`, 5, 15 * 60 * 1000);
+  if (!ipLimit.ok) return res.status(429).json({ error: "Too many registration attempts. Please try again later." });
+
   const { username, email, password } = req.body;
   if (!username || !email || !password) return res.status(400).json({ error: "All fields required" });
   if (username.trim().length < 3) return res.status(400).json({ error: "Username must be at least 3 characters." });
@@ -67,6 +71,10 @@ router.post("/register", async (req: Request, res: Response): Promise<any> => {
 
 // Step 2 of registration: confirm the code, actually create the account, and log in.
 router.post("/verify-otp", async (req: Request, res: Response): Promise<any> => {
+  const ip = clientIp(req);
+  const ipLimit = await checkRateLimit(`verify-otp:ip:${ip}`, 10, 15 * 60 * 1000);
+  if (!ipLimit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
+
   const { email, token } = req.body;
   const normalEmail = String(email || "").trim().toLowerCase();
   const row = await prisma.otpToken.findUnique({ where: { email: normalEmail } });
@@ -93,6 +101,10 @@ router.post("/verify-otp", async (req: Request, res: Response): Promise<any> => 
 });
 
 router.post("/resend-otp", async (req: Request, res: Response): Promise<any> => {
+  const ip = clientIp(req);
+  const ipLimit = await checkRateLimit(`resend-otp:ip:${ip}`, 5, 15 * 60 * 1000);
+  if (!ipLimit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
+
   const { email } = req.body;
   const normalEmail = String(email || "").trim().toLowerCase();
   const row = await prisma.otpToken.findUnique({ where: { email: normalEmail } });

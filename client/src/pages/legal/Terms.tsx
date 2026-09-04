@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { BackButton } from "../../components/BackButton";
+import { Seo } from "../../components/Seo";
 import { api } from "../../api/client";
 
 export const Terms = () => {
@@ -12,6 +13,7 @@ export const Terms = () => {
 
   return (
     <div className="flex flex-col gap-5 max-w-2xl mx-auto text-sm text-black/70 dark:text-white/70">
+      <Seo title="Terms of Service" description="Read the VC Typing terms of service that apply when you use the site." path="/terms" />
       <BackButton to="/" label="Back" />
       <h1 className="text-2xl font-bold text-black dark:text-white">Terms of Service</h1>
       {content === null ? (

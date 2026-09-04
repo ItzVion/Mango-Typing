@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { api } from "../api/client";
 import { BackButton } from "../components/BackButton";
+import { Seo } from "../components/Seo";
 
 type Donation = { id: string; amountRupees: number; status: string; createdAt: string };
 
@@ -14,6 +15,7 @@ export const DonationHistory = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto">
+      <Seo title="Donation History" description="Your VC Typing donation history." path="/donations" noindex />
       <BackButton to="/home" label="Back" />
       <h1 className="text-2xl font-bold">Donation History</h1>
 

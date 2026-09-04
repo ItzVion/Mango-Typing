@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { BackButton } from "../components/BackButton";
 import { AnimatedNumber } from "../components/AnimatedNumber";
+import { Seo } from "../components/Seo";
 
 type Test = {
   id: string;
@@ -52,6 +53,7 @@ export const History = () => {
 
   return (
     <div className="flex flex-col gap-6">
+      <Seo title="Test History" description="Your VC Typing test history and progress." path="/results" noindex />
       <BackButton to="/home" label="Back" />
       <motion.h1
         initial={{ opacity: 0, y: -8 }}

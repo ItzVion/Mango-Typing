@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import { BackButton } from "../components/BackButton";
 import { diffWords } from "../utils/typingDiff";
 import { useTestGuardStore } from "../stores/testGuardStore";
+import { Seo } from "../components/Seo";
 
 function formatTime(sec: number) {
   if (sec < 60) return `${sec}s`;
@@ -177,7 +178,13 @@ export const TypingTest = () => {
   };
 
   return (
-    <AnimatePresence mode="wait">
+    <>
+      <Seo
+        title="Typing Test"
+        description="Take a timed typing test, track your WPM and accuracy, and save your result to your history."
+        path={`/home/tests/${sheetId}`}
+      />
+      <AnimatePresence mode="wait">
       {phase === "setup" && (
         <motion.div
           key="setup"
@@ -292,7 +299,8 @@ export const TypingTest = () => {
           onRetrySubmit={retrySubmit}
         />
       )}
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   );
 };
 

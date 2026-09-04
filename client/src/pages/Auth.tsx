@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { KeyboardArt } from "../components/KeyboardArt";
 import { OtpInput } from "../components/OtpInput";
+import { Seo } from "../components/Seo";
 
 // Per-character blur/slide-in text — same effect family as motion-primitives'
 // TextEffect, built directly on framer-motion so no extra CLI/package/path-alias
@@ -227,6 +228,7 @@ export const Auth = () => {
 
   return (
     <div className="max-w-4xl mx-auto grid md:grid-cols-2 rounded-2xl overflow-hidden border border-[var(--card-border)]">
+      <Seo title="Sign In" description="Sign in or create your VC Typing account." path="/auth" noindex />
       {/* Left: branded panel with the tilted keyboard illustration */}
       <div className="hidden md:flex relative flex-col justify-between bg-black text-white p-8 overflow-hidden">
         <div className="absolute -right-24 -bottom-24 w-[420px] h-[420px] opacity-90" style={{ transform: "rotate(45deg)" }}>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BackButton } from "../../components/BackButton";
+import { Seo } from "../../components/Seo";
 
 type GameKey = "balloon" | "car" | "boss";
 type Difficulty = "easy" | "medium" | "hard";
@@ -22,6 +23,11 @@ export const GamesHub = () => {
 
   return (
     <div className="flex flex-col items-center gap-6 mt-8">
+      <Seo
+        title="Typing Games — Balloon Pop, Car Race, Boss Fight"
+        description="Practice typing speed and accuracy with fun typing games: Balloon Pop, Car Race, and Boss Fight, each with three difficulty levels."
+        path="/home/typing-games"
+      />
       <BackButton to="/home" label="Back" />
       <h1 className="text-3xl font-bold">Typing Games</h1>
 

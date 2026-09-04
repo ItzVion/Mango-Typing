@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { BackButton } from "../../components/BackButton";
+import { Seo } from "../../components/Seo";
 import { api } from "../../api/client";
 
 export const Refund = () => {
@@ -12,6 +13,7 @@ export const Refund = () => {
 
   return (
     <div className="flex flex-col gap-5 max-w-2xl mx-auto text-sm text-black/70 dark:text-white/70">
+      <Seo title="Refund Policy" description="Read the VC Typing refund policy for donations and payments made on the site." path="/refund" />
       <BackButton to="/" label="Back" />
       <h1 className="text-2xl font-bold text-black dark:text-white">Refund Policy</h1>
       {content === null ? (

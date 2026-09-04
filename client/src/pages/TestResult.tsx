@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { BackButton } from "../components/BackButton";
 import { AnimatedNumber } from "../components/AnimatedNumber";
+import { Seo } from "../components/Seo";
 
 export const TestResult = () => {
   const { state } = useLocation() as { state: any };
@@ -20,6 +21,7 @@ export const TestResult = () => {
 
   return (
     <div className="flex flex-col items-center gap-8">
+      <Seo title="Test Result" description="Your VC Typing test result." path="/home/test-result" noindex />
       <BackButton to="/home/tests" label="Back" />
 
       <motion.div

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BackButton } from "../../components/BackButton";
+import { Seo } from "../../components/Seo";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -167,6 +168,11 @@ export const CarGame = () => {
   if (status === "ready") {
     return (
       <div className="flex flex-col items-center gap-6 mt-16">
+        <Seo
+          title="Car Typing Game — Race by Typing Words"
+          description="Type words correctly to keep your car accelerating. A fast-paced way to practice typing speed under pressure."
+          path="/home/games/car"
+        />
         <BackButton to="/home/typing-games" label="Back to Games" />
         <h2 className="text-2xl font-bold">Speed Typer</h2>
         <p className="text-black/40 text-sm max-w-md text-center">

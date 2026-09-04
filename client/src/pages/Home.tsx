@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { BackButton } from "../components/BackButton";
+import { Seo } from "../components/Seo";
 
 // vctyping.dpdns.org/home — the actual app entry, reached by clicking
 // "Start" on the public landing page. This used to be the "choose" phase
@@ -16,6 +17,11 @@ export const Home = () => {
 
   return (
     <div className="flex flex-col items-center gap-6 min-h-[calc(100vh-10rem)] justify-center px-6">
+      <Seo
+        title="Choose Typing Test, Games, or Tutor"
+        description="Start a typing test, play typing games, or follow the typing tutor — pick how you want to practice on VC Typing."
+        path="/home"
+      />
       <BackButton to="/" label="Back" />
       <h1 className="text-2xl font-bold">What do you want to do?</h1>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl">

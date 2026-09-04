@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { api } from "../api/client";
 import { downloadSheetPdf } from "../utils/pdf";
 import { BackButton } from "../components/BackButton";
+import { Seo } from "../components/Seo";
 
 type Sheet = { id: number; title: string; topic: string; wordCount: number; difficulty: "easy" | "medium" | "hard" };
 
@@ -72,6 +73,11 @@ export const Sheets = () => {
 
   return (
     <div className="flex flex-col gap-8">
+      <Seo
+        title="Typing Test Sheets — Easy, Medium, Hard"
+        description="Pick a typing test sheet by topic and difficulty, then test your WPM and accuracy on paper or straight from the screen."
+        path="/home/tests"
+      />
       <BackButton to="/home" label="Back" />
       {loading ? (
         <div className="flex flex-col gap-4">

@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BackButton } from "../../components/BackButton";
 import { LESSONS } from "../../data/tutorLessons";
+import { Seo } from "../../components/Seo";
 
 const CATEGORY_ORDER = ["Home Row", "Upper Row", "Combination", "All Row", "Words", "Pangram"];
 
@@ -14,6 +15,11 @@ export const TutorHub = () => {
 
   return (
     <div className="flex flex-col gap-8">
+      <Seo
+        title="Typing Tutor — Learn to Type, Lesson by Lesson"
+        description="Free typing tutor with step-by-step lessons from home row to full sentences, with an on-screen keyboard to guide you."
+        path="/home/tutor"
+      />
       <BackButton to="/home" label="Back" />
       <div>
         <h1 className="text-3xl font-bold">Typing Tutor</h1>

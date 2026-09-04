@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { BackButton } from "../../components/BackButton";
 import { Keyboard } from "../../components/Keyboard";
 import { LESSONS, generateLessonText } from "../../data/tutorLessons";
+import { Seo } from "../../components/Seo";
 
 export const LessonRunner = () => {
   const { lessonId } = useParams();
@@ -70,6 +71,11 @@ export const LessonRunner = () => {
 
   return (
     <div className="flex flex-col items-center gap-6 mt-4" onClick={() => inputRef.current?.focus()}>
+      <Seo
+        title={`${lesson.title} — Typing Tutor`}
+        description={`Practice the "${lesson.title}" typing tutor lesson and build muscle memory for touch typing.`}
+        path={`/home/tutor/${lessonId}`}
+      />
       <div className="w-full flex items-center justify-between flex-wrap gap-2">
         <BackButton to="/home/tutor" label="Back" />
         <h2 className="font-semibold">{lesson.title}</h2>

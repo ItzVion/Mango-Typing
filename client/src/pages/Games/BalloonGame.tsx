@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BackButton } from "../../components/BackButton";
 import { playPop, playError } from "../../utils/sound";
+import { Seo } from "../../components/Seo";
 
 type Difficulty = "easy" | "medium" | "hard";
 type Balloon = { id: number; letter: string; x: number; y: number; speed: number; color: string };
@@ -149,6 +150,11 @@ export const BalloonGame = () => {
 
   return (
     <div className="flex flex-col items-center gap-4 mt-6">
+      <Seo
+        title="Balloon Typing Game — Practice Typing Speed"
+        description="Pop balloons by typing the letters shown before they float away. A fast, casual way to build typing speed and accuracy."
+        path="/home/games/balloon"
+      />
       <BackButton to="/home/typing-games" label="Back to Games" />
       <div className="flex gap-8 text-center">
         {[

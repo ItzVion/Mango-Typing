@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { BackButton } from "../components/BackButton";
+import { Seo } from "../components/Seo";
 
 type Tab = "payments" | "editor" | "users" | "donations" | "email";
 type LegalSlug = "privacy" | "refund" | "terms";
@@ -61,7 +62,13 @@ export const AdminPanel = () => {
     if (authInitialized) check();
   }, [authInitialized, user]);
 
-  if (!authInitialized) return <p className="text-black/40 text-center mt-16">Checking session…</p>;
+  if (!authInitialized)
+    return (
+      <>
+        <Seo title="Admin" description="VC Typing admin panel." path="/admin" noindex />
+        <p className="text-black/40 text-center mt-16">Checking session…</p>
+      </>
+    );
   // A session-restore failure (network/server, not a real 401) must not be
   // read as "not logged in" — that would bounce an owner with a perfectly
   // valid token to /auth just because /auth/me hiccuped once.
@@ -94,6 +101,7 @@ export const AdminPanel = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl mx-auto">
+      <Seo title="Admin" description="VC Typing admin panel." path="/admin" noindex />
       <BackButton to="/home" label="Back" />
       <h1 className="text-2xl font-bold">Admin Panel</h1>
 
