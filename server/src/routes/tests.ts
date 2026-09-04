@@ -21,6 +21,36 @@ function boundsError(wpm: number, rawWpm: number, accuracy: number, errors: numb
   return null;
 }
 
+// secondStats was previously `JSON.stringify(secondStats ?? [])` with zero
+// validation — an arbitrary client payload (any shape, any size) went
+// straight into the DB and back out into the dashboard chart renderer.
+// This bounds both the shape (per docstring: [{sec, wpm, raw, errors}]) and
+// the size (one entry per second is the only legitimate use, so cap at
+// MAX_DURATION_SEC + slack for clock drift).
+const MAX_SECOND_STATS_ENTRIES = MAX_DURATION_SEC + 10;
+
+function sanitizeSecondStats(input: unknown): { sec: number; wpm: number; raw: number; errors: number }[] | null {
+  if (input == null) return [];
+  if (!Array.isArray(input)) return null;
+  if (input.length > MAX_SECOND_STATS_ENTRIES) return null;
+
+  const out: { sec: number; wpm: number; raw: number; errors: number }[] = [];
+  for (const entry of input) {
+    if (typeof entry !== "object" || entry === null) return null;
+    const { sec, wpm, raw, errors } = entry as Record<string, unknown>;
+    const nSec = Number(sec);
+    const nWpm = Number(wpm);
+    const nRaw = Number(raw);
+    const nErrors = Number(errors);
+    if (!Number.isFinite(nSec) || nSec < 0 || nSec > MAX_DURATION_SEC) return null;
+    if (!Number.isFinite(nWpm) || nWpm < 0 || nWpm > MAX_WPM) return null;
+    if (!Number.isFinite(nRaw) || nRaw < 0 || nRaw > MAX_WPM) return null;
+    if (!Number.isFinite(nErrors) || nErrors < 0) return null;
+    out.push({ sec: nSec, wpm: nWpm, raw: nRaw, errors: nErrors });
+  }
+  return out;
+}
+
 // Submit a completed test.
 // If a valid token is sent, the test is linked to that user (userId) and
 // will show up in their dashboard/profile history.
@@ -50,6 +80,9 @@ router.post("/", optionalAuth, async (req: AuthRequest, res: Response): Promise<
   const err = boundsError(numWpm, numRawWpm, numAccuracy, numErrors, numDuration);
   if (err) return res.status(400).json({ error: err });
 
+  const cleanSecondStats = sanitizeSecondStats(secondStats);
+  if (cleanSecondStats === null) return res.status(400).json({ error: "Invalid secondStats." });
+
   const test = await prisma.typingTest.create({
     data: {
       userId: req.userId ?? null,
@@ -60,7 +93,7 @@ router.post("/", optionalAuth, async (req: AuthRequest, res: Response): Promise<
       accuracy: numAccuracy,
       errors: numErrors,
       durationSec: numDuration,
-      secondStats: JSON.stringify(secondStats ?? []),
+      secondStats: JSON.stringify(cleanSecondStats),
     },
   });
 

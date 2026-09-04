@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import crypto from "crypto";
 import { optionalAuth, requireAuth, AuthRequest } from "../middleware/auth";
 import { prisma } from "../lib/db";
+import { checkRateLimit, clientIp } from "../lib/rateLimit";
 const router = Router();
 async function getRazorpayKeys() {
   const s = await prisma.settings.findUnique({ where: { id: 1 } });
@@ -10,6 +11,11 @@ async function getRazorpayKeys() {
 // Create a Razorpay order for the given rupee amount.
 // Amount must be a whole number of rupees, minimum ₹1.
 router.post("/create-order", optionalAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  // Each call hits Razorpay's API and writes a DB row — worth guarding
+  // against spam the same way test submissions are (nothing did before).
+  const ipLimit = await checkRateLimit(`donate-order:ip:${clientIp(req)}`, 10, 60 * 1000);
+  if (!ipLimit.ok) return res.status(429).json({ error: "Too many requests. Slow down." });
+
   const { amountRupees } = req.body;
   const raw = Number(amountRupees);
   if (!Number.isFinite(raw) || !Number.isInteger(raw) || raw < 1 || raw > 100000) {
@@ -36,6 +42,10 @@ router.post("/create-order", optionalAuth, async (req: AuthRequest, res: Respons
 // Verify the payment signature Razorpay's checkout returns, mark donation paid,
 // and flag the user's account with hasDonated so the UI can show their star.
 router.post("/verify", optionalAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  // Guards against brute-forcing a valid signature for a known order id.
+  const ipLimit = await checkRateLimit(`donate-verify:ip:${clientIp(req)}`, 20, 60 * 1000);
+  if (!ipLimit.ok) return res.status(429).json({ error: "Too many requests. Slow down." });
+
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
     return res.status(400).json({ error: "Missing payment fields" });

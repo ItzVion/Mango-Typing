@@ -69,6 +69,7 @@ function UsernameSection() {
 
 // ---- Password section --------------------------------------------------------
 function PasswordSection() {
+  const { user, login } = useAuthStore();
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -79,7 +80,11 @@ function PasswordSection() {
     setMsg(null);
     setLoading(true);
     try {
-      await api.changePassword(oldPassword, newPassword, confirm);
+      const res = await api.changePassword(oldPassword, newPassword, confirm);
+      // Changing the password invalidates every previously issued token
+      // (server-side sessionVersion bump) — this device gets a fresh one
+      // back in the response so it doesn't get logged out too.
+      if (res?.token) login(res.token, user);
       setMsg({ text: "Password updated.", kind: "success" });
       setOldPassword("");
       setNewPassword("");

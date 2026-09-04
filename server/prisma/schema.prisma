@@ -17,6 +17,7 @@ model User {
   avatarUrl    String?
   role         String       @default("USER")
   hasDonated   Boolean      @default(false)
+  sessionVersion Int        @default(0)
   createdAt    DateTime     @default(now())
 
   tests        TypingTest[]

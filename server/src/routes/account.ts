@@ -8,6 +8,7 @@ import { prisma } from "../lib/db";
 import { hashCode, codesMatch, MAX_CODE_ATTEMPTS } from "../lib/otp";
 import { checkRateLimit } from "../lib/rateLimit";
 import { sniffImageMime } from "../lib/imageSniff";
+import { sign } from "./auth";
 
 const router = Router();
 const CODE_TTL_MS = 10 * 60 * 1000;
@@ -89,8 +90,14 @@ router.patch("/password", requireAuth, async (req: AuthRequest, res: Response): 
   if (!valid) return res.status(400).json({ error: "Current password is incorrect." });
 
   const passwordHash = await bcrypt.hash(newPassword, 10);
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
-  res.json({ success: true });
+  // Bumping sessionVersion invalidates every other token issued for this
+  // account (e.g. a stolen/leaked session) — reissue a fresh one below so
+  // the device making this change doesn't get logged out too.
+  const updated = await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash, sessionVersion: { increment: 1 } },
+  });
+  res.json({ success: true, token: sign(updated) });
 });
 
 // ---- Email change: verify OLD email, then verify NEW email -----------------

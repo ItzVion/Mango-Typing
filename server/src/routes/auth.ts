@@ -17,8 +17,8 @@ const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 // Algorithm pinned explicitly on both sign and verify (see middleware/auth.ts
 // too) — jsonwebtoken will otherwise accept whatever algorithm the token
 // header claims, which is the classic "alg confusion" footgun.
-function sign(user: { id: string; username: string }) {
-  return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: "7d", algorithm: "HS256" });
+export function sign(user: { id: string; username: string; sessionVersion: number }) {
+  return jwt.sign({ id: user.id, username: user.username, sv: user.sessionVersion }, JWT_SECRET, { expiresIn: "7d", algorithm: "HS256" });
 }
 
 // A fixed, valid bcrypt hash with no matching password. Used to run a real
