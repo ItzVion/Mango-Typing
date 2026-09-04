@@ -40,7 +40,7 @@ export const Navbar = () => {
   const mobileNavRef = useRef<HTMLDivElement>(null);
 
   const links = [
-    { name: "Dashboard", path: "/home" },
+    { name: "Dashboard", path: "/" },
     { name: "Download", path: "/download" },
     { name: "Results", path: "/results" },
     { name: "Games", path: "/home/typing-games" },
