@@ -1,79 +1,36 @@
 import { motion } from "framer-motion";
 import { Seo } from "../components/Seo";
 
-// Redone against the reference image: glossy chrome-white 3D "DOWN"
-// wordmark (extrusion layers + a shine sweep clipped to the letterforms),
-// a rounder-helmeted stick-figure worker resting a hand on the N, floating
-// ambient particles, a gear divider, and a glowing "thanks for your
+// Matches the reference image: flat bold white "DOWN" with a single flat
+// dark-grey shadow duplicate offset behind it (no chrome gradient, no
+// shine sweep — that read as too glossy/AI-polished), a simple stick
+// figure with a left hand resting on the N and a right hand holding an
+// actual wrench shape, a gear divider, and an outlined "thanks for your
 // patience" pill. Original SVG/CSS — no image asset, no stock art.
 
 const LETTERS = "DOWN".split("");
 
-function Extruded3DText({ children }: { children: string }) {
-  const depth = 16;
-  const layers = Array.from({ length: depth });
+function ShadowText({ children }: { children: string }) {
   return (
     <span className="relative inline-flex">
-      {/* Ground glow pooling under the letters, like light bouncing off a floor */}
-      <motion.span
+      {/* Single flat shadow duplicate offset down-right — a plain drop
+          shadow, not a multi-layer 3D extrusion. */}
+      <span
         aria-hidden
-        className="absolute left-1/2 -translate-x-1/2 -bottom-3 h-6 w-[85%] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(ellipse, rgba(245,166,35,0.5), transparent 70%)", filter: "blur(6px)" }}
-        animate={{ opacity: [0.5, 0.9, 0.5], scaleX: [0.9, 1.05, 0.9] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-      />
+        className="absolute inset-0 select-none"
+        style={{ transform: "translate(8px, 10px)", color: "#2a2a2a" }}
+      >
+        {children}
+      </span>
       {children.split("").map((ch, li) => (
         <motion.span
           key={li}
-          className="relative inline-block"
-          initial={{ opacity: 0, y: -60, rotate: -8 }}
+          className="relative inline-block text-white"
+          initial={{ opacity: 0, y: -40, rotate: -6 }}
           animate={{ opacity: 1, y: 0, rotate: 0 }}
-          transition={{ delay: 0.12 * li, type: "spring", stiffness: 260, damping: 14 }}
+          transition={{ delay: 0.1 * li, type: "spring", stiffness: 260, damping: 16 }}
         >
-          {/* Extrusion: stacked offset copies, warm-dark near the base */}
-          {layers.map((_, i) => (
-            <span
-              key={i}
-              aria-hidden
-              className="absolute inset-0 select-none"
-              style={{
-                transform: `translate(${(depth - i) * 0.55}px, ${(depth - i) * 0.55}px)`,
-                color: `hsl(28 20% ${Math.max(6, 26 - i * 1.5)}%)`,
-                zIndex: -i,
-              }}
-            >
-              {ch}
-            </span>
-          ))}
-          {/* Glossy chrome face: gradient fill for the highlight-to-shadow look */}
-          <span
-            className="relative"
-            style={{
-              backgroundImage: "linear-gradient(180deg, #ffffff 0%, #f2f2f2 35%, #d9d9d9 60%, #f5f5f5 100%)",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            {ch}
-          </span>
-          {/* Shine sweep, clipped to the glyph shape via the same gradient-text trick */}
-          <motion.span
-            aria-hidden
-            className="absolute inset-0 select-none pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.9) 48%, rgba(255,255,255,0.9) 52%, transparent 70%)",
-              backgroundSize: "300% 100%",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              color: "transparent",
-            }}
-            animate={{ backgroundPosition: ["160% 0%", "-60% 0%"] }}
-            transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 1.6, ease: "easeInOut", delay: 1.2 + li * 0.05 }}
-          >
-            {ch}
-          </motion.span>
+          {ch}
         </motion.span>
       ))}
     </span>
@@ -115,21 +72,21 @@ const Clock = ({ size = 16 }: { size?: number }) => (
 );
 
 // Small spark burst that repeats near the wrench head — reads as it
-// "clinking" against the bolt it's supposedly tightening.
+// "clinking" against a bolt.
 const WrenchSparks = () => (
   <g>
     {[0, 1, 2].map((i) => (
       <motion.circle
         key={i}
-        cx="0"
-        cy="-22"
-        r="1.6"
+        cx="12"
+        cy="10"
+        r="1.4"
         fill="#FFE9B8"
         initial={{ opacity: 0 }}
         animate={{
           opacity: [0, 1, 0],
-          cx: [0, (i - 1) * 10],
-          cy: [-22, -22 - 10 - i * 2],
+          cx: [12, 12 + (i - 1) * 9],
+          cy: [10, 10 - 9 - i * 2],
         }}
         transition={{ duration: 0.9, repeat: Infinity, repeatDelay: 1.6, delay: 1.8 + i * 0.12, ease: "easeOut" }}
       />
@@ -137,9 +94,23 @@ const WrenchSparks = () => (
   </g>
 );
 
-// Stick-figure worker — rounder dome helmet to match the reference image,
-// right hand resting on the top of the N, left hand holding a wrench with
-// a small idle swing and periodic "clink" sparks. Gentle idle bob + sway.
+// A real open-end wrench silhouette (not a ring-and-bar shape that reads
+// as a hook) — a shaft with a jawed head at the working end.
+const Wrench = () => (
+  <path
+    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+    fill="none"
+    stroke="#F5A623"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  />
+);
+
+// Stick-figure worker: LEFT hand rests flat on the N (no tool), RIGHT
+// hand holds the wrench out to the side where it reads clearly instead
+// of merging into the letter. Rounded dome helmet, thin off-white lines
+// with rounded caps for a slightly hand-drawn feel. Gentle idle bob.
 const ConstructionWorker = () => (
   <motion.svg
     viewBox="0 0 160 220"
@@ -166,46 +137,55 @@ const ConstructionWorker = () => (
       <circle cx="80" cy="42" r="4" fill="#FFE9B8" />
     </motion.g>
     {/* Head */}
-    <circle cx="80" cy="78" r="17" fill="none" stroke="#f5f5f5" strokeWidth="3" />
+    <circle cx="80" cy="78" r="17" fill="none" stroke="#f5f5f5" strokeWidth="3" strokeLinecap="round" />
     {/* Body */}
-    <line x1="80" y1="95" x2="80" y2="150" stroke="#f5f5f5" strokeWidth="3" />
-    {/* Right arm — reaches up to rest on the N */}
-    <line x1="80" y1="108" x2="120" y2="88" stroke="#f5f5f5" strokeWidth="3" />
-    {/* Left arm holding wrench, swinging gently, with clink sparks */}
+    <line x1="80" y1="95" x2="80" y2="150" stroke="#f5f5f5" strokeWidth="3" strokeLinecap="round" />
+
+    {/* LEFT arm — reaches toward the N and rests flat on it (a short
+        resting hand, no tool). This is the arm nearest the word, on the
+        low-x side that overlaps the letter. */}
+    <line x1="80" y1="108" x2="42" y2="92" stroke="#f5f5f5" strokeWidth="3" strokeLinecap="round" />
+    <line x1="42" y1="92" x2="30" y2="97" stroke="#f5f5f5" strokeWidth="3" strokeLinecap="round" />
+
+    {/* RIGHT arm — holds the wrench out to the side, swinging gently,
+        with periodic "clink" sparks. */}
     <motion.g
-      animate={{ rotate: [0, 10, 0] }}
+      animate={{ rotate: [0, 12, 0] }}
       transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
       style={{ transformOrigin: "80px 108px" }}
     >
-      <line x1="80" y1="108" x2="48" y2="140" stroke="#f5f5f5" strokeWidth="3" />
-      <g transform="translate(40,150) rotate(-30)">
-        <rect x="-4" y="-20" width="8" height="34" rx="2" fill="#F5A623" />
-        <circle cx="0" cy="-22" r="8" fill="none" stroke="#F5A623" strokeWidth="4" />
-        <WrenchSparks />
+      <line x1="80" y1="108" x2="118" y2="140" stroke="#f5f5f5" strokeWidth="3" strokeLinecap="round" />
+      <g transform="translate(112,148) rotate(35) scale(1.3)">
+        <g transform="translate(-12,-12)">
+          <Wrench />
+          <WrenchSparks />
+        </g>
       </g>
     </motion.g>
+
     {/* Legs */}
-    <line x1="80" y1="150" x2="60" y2="212" stroke="#f5f5f5" strokeWidth="3" />
-    <line x1="80" y1="150" x2="100" y2="212" stroke="#f5f5f5" strokeWidth="3" />
+    <line x1="80" y1="150" x2="60" y2="212" stroke="#f5f5f5" strokeWidth="3" strokeLinecap="round" />
+    <line x1="80" y1="150" x2="100" y2="212" stroke="#f5f5f5" strokeWidth="3" strokeLinecap="round" />
   </motion.svg>
 );
 
-// Slow-drifting ambient particles for atmosphere behind everything.
+// Sparse, slow-drifting flecks for a little atmosphere — kept subtle to
+// match the plain black background in the reference (no glow orb).
 const Particles = () => {
-  const seeds = Array.from({ length: 14 }, (_, i) => i);
+  const seeds = Array.from({ length: 10 }, (_, i) => i);
   return (
     <div aria-hidden className="absolute inset-0 overflow-hidden pointer-events-none">
       {seeds.map((i) => {
         const left = (i * 137) % 100;
         const size = 2 + (i % 3);
-        const duration = 6 + (i % 5);
+        const duration = 7 + (i % 5);
         const delay = (i % 7) * 0.6;
         return (
           <motion.span
             key={i}
             className="absolute rounded-full"
-            style={{ left: `${left}%`, bottom: -10, width: size, height: size, background: "rgba(245,166,35,0.5)" }}
-            animate={{ y: ["0vh", "-110vh"], opacity: [0, 0.8, 0] }}
+            style={{ left: `${left}%`, bottom: -10, width: size, height: size, background: "rgba(245,166,35,0.35)" }}
+            animate={{ y: ["0vh", "-110vh"], opacity: [0, 0.6, 0] }}
             transition={{ duration, repeat: Infinity, delay, ease: "linear" }}
           />
         );
@@ -219,15 +199,6 @@ export const MaintenancePage = () => (
     <Seo title="Down for Maintenance" description="VC Typing is temporarily down for maintenance." path="/" noindex />
     <Particles />
 
-    {/* Ambient glow behind everything */}
-    <motion.div
-      aria-hidden
-      className="absolute w-[600px] h-[600px] rounded-full pointer-events-none"
-      style={{ background: "radial-gradient(circle, rgba(245,166,35,0.2), transparent 70%)" }}
-      animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
-      transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-    />
-
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -239,7 +210,7 @@ export const MaintenancePage = () => (
 
     <div className="flex items-center justify-center relative">
       <h1 className="text-7xl sm:text-9xl font-black tracking-tight font-mono leading-none">
-        <Extruded3DText>{LETTERS.join("")}</Extruded3DText>
+        <ShadowText>{LETTERS.join("")}</ShadowText>
       </h1>
       <motion.div
         initial={{ opacity: 0, x: 20, scale: 0.8 }}
