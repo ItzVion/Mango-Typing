@@ -24,7 +24,7 @@ router.post("/create-order", optionalAuth, async (req: AuthRequest, res: Respons
   const amount = raw;
   const { keyId, keySecret } = await getRazorpayKeys();
   if (!keyId || !keySecret) {
-    return res.status(503).json({ error: "Donations aren't set up yet — the owner needs to add Razorpay keys via /payedit" });
+    return res.status(503).json({ error: "Donations aren't set up yet — the owner needs to add Razorpay keys via /admin" });
   }
   const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
   const orderRes = await fetch("https://api.razorpay.com/v1/orders", {
