@@ -289,10 +289,17 @@ export const CarGame = () => {
         />
         <motion.div
           animate={{ opacity: speed > 0 ? 1 : 0.35, filter: speed > 0 ? "grayscale(0)" : "grayscale(1)" }}
-          className="text-5xl z-10"
+          className="z-10"
           style={{ transform: "scaleX(-1)" }}
         >
-          🏎️
+          <svg viewBox="0 0 64 64" width="64" height="64" fill="none">
+            <path d="M8 40l4-14a6 6 0 0 1 6-4h28a6 6 0 0 1 6 4l4 14v8a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2H16v2a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-8z" fill="#F5A623" stroke="#1a1a1a" strokeWidth="2" strokeLinejoin="round" />
+            <path d="M16 26l4-8h24l4 8z" fill="#fef3d9" stroke="#1a1a1a" strokeWidth="1.5" strokeLinejoin="round" />
+            <circle cx="18" cy="42" r="5" fill="#1a1a1a" />
+            <circle cx="46" cy="42" r="5" fill="#1a1a1a" />
+            <circle cx="18" cy="42" r="2" fill="#888" />
+            <circle cx="46" cy="42" r="2" fill="#888" />
+          </svg>
         </motion.div>
       </div>
 
