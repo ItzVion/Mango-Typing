@@ -71,17 +71,6 @@ function renderSheet(doc: jsPDF, sheet: Sheet, testNumber: number) {
   }
 }
 
-function renderCategoryDivider(doc: jsPDF, label: string) {
-  const margin = 50;
-  const pageHeight = doc.internal.pageSize.getHeight();
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("VC TYPING", margin, margin);
-  doc.setFontSize(28);
-  doc.text(label, margin, pageHeight / 2);
-}
-
 export function downloadSheetPdf(sheet: Sheet & { testNumber?: number }) {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   renderSheet(doc, sheet, sheet.testNumber ?? 1);
@@ -99,12 +88,9 @@ export function downloadAllSheetsPdf(sheets: Sheet[]) {
     const group = sheets.filter((s) => (s.difficulty || "easy") === difficulty);
     if (group.length === 0) continue;
 
-    if (!firstPage) doc.addPage();
-    firstPage = false;
-    renderCategoryDivider(doc, capitalize(difficulty));
-
     group.forEach((s, i) => {
-      doc.addPage();
+      if (!firstPage) doc.addPage();
+      firstPage = false;
       renderSheet(doc, s, i + 1);
     });
   }
