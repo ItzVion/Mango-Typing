@@ -10,6 +10,33 @@ declare global {
   }
 }
 
+// Small filled star icon — replaces the emoji used previously so it
+// renders consistently everywhere instead of relying on the OS/browser's
+// own emoji glyph.
+const StarIcon = ({ size = 24, color = "#F5A623" }: { size?: number; color?: string }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill={color}>
+    <path d="M12 2.5l2.9 6.1 6.6.7-4.9 4.5 1.3 6.6L12 17l-5.9 3.4 1.3-6.6-4.9-4.5 6.6-.7L12 2.5z" />
+  </svg>
+);
+
+// Animated rotating conic-gradient ring around the card — a subtle glowing
+// "aura" border, using the site's own accent color instead of a generic
+// rainbow gradient. The card content sits in an inset div with the normal
+// card background, so only a thin ring of the gradient shows.
+const GlowBorder = ({ children }: { children: React.ReactNode }) => (
+  <div className="relative rounded-3xl p-[2px] overflow-hidden">
+    <motion.div
+      className="absolute inset-[-50%]"
+      style={{
+        background: "conic-gradient(from 0deg, transparent 0%, #F5A623 15%, transparent 35%, transparent 65%, #F5A623 85%, transparent 100%)",
+      }}
+      animate={{ rotate: 360 }}
+      transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+    />
+    <div className="relative rounded-[calc(1.5rem-2px)] bg-[var(--card-bg)] overflow-hidden">{children}</div>
+  </div>
+);
+
 export const SupportSection = () => {
   const [message, setMessage] = useState(
     "Every rupee helps keep the servers running, the domains renewed, and new features shipping. Thank you for supporting VC Typing!"
@@ -52,7 +79,7 @@ export const SupportSection = () => {
         order_id: order.orderId,
         name: "VC Typing",
         description: "Support VC Typing",
-        theme: { color: "#000000" },
+        theme: { color: "#F5A623" },
         handler: async (response: any) => {
           try {
             await api.verifyDonation({
@@ -85,118 +112,122 @@ export const SupportSection = () => {
     <div id="support" className="flex flex-col items-center gap-6 mt-4 scroll-mt-28">
       <h2 className="text-2xl font-bold text-center">Support Us</h2>
 
-      <div className="relative w-full max-w-md rounded-3xl bg-white text-black p-7 overflow-hidden shadow-xl">
-        <div className="absolute -top-8 -left-8 w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 opacity-70" />
-        <div className="absolute -bottom-10 -right-10 w-28 h-28 rounded-full bg-gradient-to-tr from-blue-400 to-purple-400 opacity-70" />
-        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-yellow-300 to-transparent opacity-60 rounded-bl-full" />
+      <GlowBorder>
+        <div className="relative w-full max-w-md p-7 overflow-hidden" style={{ minWidth: "min(24rem, 90vw)" }}>
+          <div className="absolute -top-8 -left-8 w-24 h-24 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #F5A623, transparent 70%)" }} />
+          <div className="absolute -bottom-10 -right-10 w-28 h-28 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #8b6bd8, transparent 70%)" }} />
 
-        <motion.div
-          className="relative flex items-start justify-between"
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <motion.span
-            className="text-3xl"
-            animate={{ rotate: [0, -8, 8, -8, 0] }}
-            transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1.5 }}
+          <motion.div
+            className="relative flex items-center justify-between"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
           >
-            ⭐
-          </motion.span>
-          <h3 className="text-xl font-extrabold tracking-tight">SUPPORT US</h3>
-        </motion.div>
-
-        <p className="relative text-sm mt-4" style={{ color: "rgba(0,0,0,0.6)" }}>{message}</p>
-
-        <AnimatePresence mode="wait">
-          {!showAmountPicker ? (
-            <motion.div
-              key="choice"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25 }}
-              className="relative mt-6 flex flex-col gap-3"
+            <motion.span
+              animate={{ rotate: [0, -8, 8, -8, 0] }}
+              transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1.5 }}
             >
-              <p className="text-xs" style={{ color: "rgba(0,0,0,0.5)" }}>
-                Sign in first so your donation adds a star next to your name — or skip that and tip anonymously right now.
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => navigate("/auth")}
-                className="w-full py-3 rounded-xl bg-black text-white dark:bg-white dark:text-black font-bold tracking-wide text-sm"
+              <StarIcon size={26} />
+            </motion.span>
+            <h3 className="text-xl font-extrabold tracking-tight text-[var(--text-primary)]">SUPPORT US</h3>
+          </motion.div>
+
+          <p className="relative text-sm mt-4 text-[var(--text-muted)]">{message}</p>
+
+          <AnimatePresence mode="wait">
+            {!showAmountPicker ? (
+              <motion.div
+                key="choice"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="relative mt-6 flex flex-col gap-3"
               >
-                Sign In to Support
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => setShowAmountPicker(true)}
-                className="w-full py-3 rounded-xl border border-black/15 font-bold tracking-wide text-sm hover:bg-black/5"
-              >
-                Tip Anonymously
-              </motion.button>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="picker"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25 }}
-              className="relative mt-6 flex flex-col gap-3"
-            >
-              <div className="flex items-center border border-black/10 rounded-xl overflow-hidden">
-                <span className="px-3 py-3 bg-black/5 font-semibold text-sm">₹</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="flex-1 px-3 py-3 outline-none text-sm"
-                  placeholder="Amount"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                {[49, 99, 199, 499].map((v) => (
-                  <motion.button
-                    key={v}
-                    whileHover={{ scale: 1.06 }}
-                    whileTap={{ scale: 0.94 }}
-                    onClick={() => setAmount(String(v))}
-                    className="flex-1 py-2 rounded-lg text-xs font-semibold border border-black/10 hover:bg-black/5"
-                  >
-                    ₹{v}
-                  </motion.button>
-                ))}
-              </div>
-
-              {error && <p className="text-red-600 text-xs">{error}</p>}
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={donate}
-                disabled={loading}
-                className="mt-1 w-full py-3 rounded-xl bg-black text-white dark:bg-white dark:text-black font-bold tracking-wide"
-              >
-                {loading ? "Opening…" : user ? "DONATE" : "TIP ANONYMOUSLY"}
-              </motion.button>
-
-              {!user && (
+                <p className="text-xs text-[var(--text-muted)]">
+                  Sign in first so your donation adds a star next to your name — or skip that and tip anonymously right now.
+                </p>
                 <motion.button
-                  whileHover={{ x: -2 }}
-                  onClick={() => setShowAmountPicker(false)}
-                  className="text-xs" style={{ color: "rgba(0,0,0,0.4)" }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => navigate("/auth")}
+                  className="w-full py-3 rounded-xl font-bold tracking-wide text-sm text-black"
+                  style={{ backgroundColor: "#F5A623" }}
                 >
-                  ← Back
+                  Sign In to Support
                 </motion.button>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setShowAmountPicker(true)}
+                  className="w-full py-3 rounded-xl border font-bold tracking-wide text-sm text-[var(--text-primary)]"
+                  style={{ borderColor: "var(--card-border)" }}
+                >
+                  Tip Anonymously
+                </motion.button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="picker"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="relative mt-6 flex flex-col gap-3"
+              >
+                <div className="flex items-center border rounded-xl overflow-hidden" style={{ borderColor: "var(--card-border)" }}>
+                  <span className="px-3 py-3 font-semibold text-sm text-[var(--text-primary)]" style={{ backgroundColor: "var(--card-border)" }}>₹</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="flex-1 px-3 py-3 outline-none text-sm bg-transparent text-[var(--text-primary)]"
+                    placeholder="Amount"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  {[49, 99, 199, 499].map((v) => (
+                    <motion.button
+                      key={v}
+                      whileHover={{ scale: 1.06 }}
+                      whileTap={{ scale: 0.94 }}
+                      onClick={() => setAmount(String(v))}
+                      className="flex-1 py-2 rounded-lg text-xs font-semibold border text-[var(--text-primary)]"
+                      style={{ borderColor: amount === String(v) ? "#F5A623" : "var(--card-border)" }}
+                    >
+                      ₹{v}
+                    </motion.button>
+                  ))}
+                </div>
+
+                {error && <p className="text-xs" style={{ color: "var(--error)" }}>{error}</p>}
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={donate}
+                  disabled={loading}
+                  className="mt-1 w-full py-3 rounded-xl font-bold tracking-wide text-black disabled:opacity-60"
+                  style={{ backgroundColor: "#F5A623" }}
+                >
+                  {loading ? "Opening…" : user ? "DONATE" : "TIP ANONYMOUSLY"}
+                </motion.button>
+
+                {!user && (
+                  <motion.button
+                    whileHover={{ x: -2 }}
+                    onClick={() => setShowAmountPicker(false)}
+                    className="text-xs text-[var(--text-muted)]"
+                  >
+                    ← Back
+                  </motion.button>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </GlowBorder>
 
       {/* Post-payment celebration: big animated star, click to open a thank-you letter */}
       <AnimatePresence>
@@ -216,13 +247,13 @@ export const SupportSection = () => {
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 200, damping: 12 }}
               >
-                <motion.span
-                  className="text-[9rem] leading-none drop-shadow-[0_0_40px_rgba(255,215,0,0.8)]"
+                <motion.div
+                  style={{ filter: "drop-shadow(0 0 40px rgba(245,166,35,0.8))" }}
                   animate={{ rotate: [0, 12, -12, 12, 0], scale: [1, 1.15, 1] }}
                   transition={{ duration: 1.6, repeat: Infinity }}
                 >
-                  ⭐
-                </motion.span>
+                  <StarIcon size={140} />
+                </motion.div>
                 <motion.p
                   className="text-white font-bold text-lg tracking-wide"
                   animate={{ opacity: [0.5, 1, 0.5] }}
@@ -240,7 +271,9 @@ export const SupportSection = () => {
                 className="relative bg-[#fdfaf3] text-black rounded-2xl shadow-2xl p-8 sm:p-10 max-w-md w-[90%] mx-4"
                 style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
               >
-                <div className="text-5xl text-center mb-2">⭐</div>
+                <div className="flex justify-center mb-2">
+                  <StarIcon size={40} />
+                </div>
                 <p className="text-xl font-bold text-center mb-4">
                   Thank you{user ? `, ${user.username}` : ""}!
                 </p>
