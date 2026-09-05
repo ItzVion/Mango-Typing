@@ -16,7 +16,7 @@ function renderSheetHeader(doc: jsPDF, margin: number, testNumber: number, diffi
   y += 22;
 
   doc.setFontSize(20);
-  doc.text(`Typing Test ${testNumber} ${capitalize(difficulty)}`, margin, y);
+  doc.text(`Typing Test ${capitalize(difficulty)} ${testNumber}`, margin, y);
   y += 28;
 
   return y;
