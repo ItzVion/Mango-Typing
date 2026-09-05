@@ -5,6 +5,7 @@ import { useAuthStore } from "../stores/authStore";
 import { useThemeStore } from "../stores/themeStore";
 import { useTestGuardStore } from "../stores/testGuardStore";
 import { ConfirmModal } from "./ConfirmModal";
+import { SwitchMode } from "./SwitchMode";
 
 // Motion-primitives-style "Magnetic" effect: the element nudges slightly
 // toward the cursor within its own bounds, then springs back on leave.
@@ -28,7 +29,7 @@ export const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { theme, toggle } = useThemeStore();
+  const { theme } = useThemeStore();
   const testInProgress = useTestGuardStore((s) => s.testInProgress);
   const setTestInProgress = useTestGuardStore((s) => s.setTestInProgress);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -214,24 +215,7 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 justify-self-end">
-          <motion.button
-            onClick={toggle}
-            aria-label="Toggle theme"
-            whileTap={{ scale: 0.85, y: 1 }}
-            className="w-9 h-9 rounded-xl flex items-center justify-center border border-[var(--card-border)] text-sm overflow-hidden"
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={theme}
-                initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
-                animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
-                transition={{ duration: 0.25 }}
-              >
-                {theme === "light" ? "🌙" : "☀️"}
-              </motion.span>
-            </AnimatePresence>
-          </motion.button>
+          <SwitchMode />
 
           {user ? (
             <div className="relative" ref={menuRef}>
