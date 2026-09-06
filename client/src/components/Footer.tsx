@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client";
 
 export const Footer = () => {
-  const [supportEmail, setSupportEmail] = useState("vctyping.11@gmail.com");
+  const [supportEmail, setSupportEmail] = useState("support@mangotyping.fun");
 
   useEffect(() => {
     api.publicSettings().then((s) => {
@@ -21,7 +21,7 @@ export const Footer = () => {
         <Link to="/refund" className="hover:text-black/70">Refund Policy</Link>
         <Link to="/terms" className="hover:text-black/70">Terms of Service</Link>
       </div>
-      <span>© {new Date().getFullYear()} VC Typing</span>
+      <span>© {new Date().getFullYear()} MangoTyping</span>
     </footer>
   );
 };

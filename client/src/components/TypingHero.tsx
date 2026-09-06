@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 
-const FULL_TEXT = "VC TYPING";
+const FULL_TEXT = "MANGOTYPING";
 const KEY_CHARS = "QWERTYUIOPASDFGHJKLZXCVBNM".split("");
 
 type Keycap = {

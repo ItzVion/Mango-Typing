@@ -1,0 +1,8 @@
+<svg width="640" height="160" viewBox="0 0 640 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- For dark backgrounds: white wordmark, amber/green icon. Transparent bg. -->
+  <g transform="translate(20,20)">
+    <path d="M60 4 C 96 4 120 34 120 78 C 120 118 90 134 58 134 C 22 134 -2 114 0 76 C 2 36 26 4 60 4 Z" fill="#F5A623"/>
+    <path d="M66 8 C 62 -2 70 -12 84 -16 C 80 -4 76 4 66 8 Z" fill="#6FA84A"/>
+  </g>
+  <text x="150" y="100" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="64" letter-spacing="-1" fill="#FFFFFF">Mango<tspan fill="#F5A623">Typing</tspan></text>
+</svg>

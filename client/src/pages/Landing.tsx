@@ -4,14 +4,14 @@ import { SupportSection } from "../components/SupportSection";
 import { TypingHero } from "../components/TypingHero";
 import { Seo, SITE_ORIGIN, SITE_NAME } from "../components/Seo";
 
-// vctyping.dpdns.org — the public marketing splash. "Start" takes people
+// mangotyping.fun — the public marketing splash. "Start" takes people
 // into the actual app at /home; scrolling down leads to the support/donate
 // section. This page itself has no app functionality.
 export const Landing = () => (
   <div className="flex flex-col items-center">
     <Seo
       title={`${SITE_NAME} – Free Online Typing Test & Practice`}
-      description="VC Typing is a free online typing test and practice platform. Measure your WPM and accuracy, play typing games, and follow a typing tutor — with your history saved to your account."
+      description="MangoTyping is a free online typing test and practice platform. Measure your WPM and accuracy, play typing games, and follow a typing tutor — with your history saved to your account."
       path="/"
       jsonLd={[
         {
@@ -59,7 +59,7 @@ export const Landing = () => (
         </Link>
       </motion.div>
       <motion.nav
-        aria-label="Explore VC Typing"
+        aria-label="Explore MangoTyping"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}

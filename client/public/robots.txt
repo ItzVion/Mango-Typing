@@ -7,4 +7,4 @@ Disallow: /results
 Disallow: /donations
 Disallow: /home/test-result
 
-Sitemap: https://vctyping.dpdns.org/sitemap.xml
+Sitemap: https://mangotyping.fun/sitemap.xml

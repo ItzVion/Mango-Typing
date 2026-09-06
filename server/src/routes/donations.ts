@@ -3,10 +3,11 @@ import crypto from "crypto";
 import { optionalAuth, requireAuth, AuthRequest } from "../middleware/auth";
 import { prisma } from "../lib/db";
 import { checkRateLimit, clientIp } from "../lib/rateLimit";
+import { decryptSecret } from "../lib/secretCrypto";
 const router = Router();
 async function getRazorpayKeys() {
   const s = await prisma.settings.findUnique({ where: { id: 1 } });
-  return { keyId: s?.razorpayKeyId ?? null, keySecret: s?.razorpayKeySecret ?? null };
+  return { keyId: s?.razorpayKeyId ?? null, keySecret: decryptSecret(s?.razorpayKeySecret) };
 }
 // Create a Razorpay order for the given rupee amount.
 // Amount must be a whole number of rupees, minimum ₹1.

@@ -39,7 +39,7 @@ const GlowBorder = ({ children }: { children: React.ReactNode }) => (
 
 export const SupportSection = () => {
   const [message, setMessage] = useState(
-    "Every rupee helps keep the servers running, the domains renewed, and new features shipping. Thank you for supporting VC Typing!"
+    "Every rupee helps keep the servers running, the domains renewed, and new features shipping. Thank you for supporting MangoTyping!"
   );
   const [amount, setAmount] = useState("49");
   const [loading, setLoading] = useState(false);
@@ -77,8 +77,8 @@ export const SupportSection = () => {
         amount: order.amount,
         currency: order.currency,
         order_id: order.orderId,
-        name: "VC Typing",
-        description: "Support VC Typing",
+        name: "MangoTyping",
+        description: "Support MangoTyping",
         theme: { color: "#F5A623" },
         handler: async (response: any) => {
           try {
@@ -278,14 +278,14 @@ export const SupportSection = () => {
                   Thank you{user ? `, ${user.username}` : ""}!
                 </p>
                 <p className="text-sm leading-relaxed" style={{ color: "rgba(0,0,0,0.75)" }}>
-                  Your support means the world to us. VC Typing is built and kept alive by people like
+                  Your support means the world to us. MangoTyping is built and kept alive by people like
                   you — every contribution goes straight toward better servers, new features, and
                   keeping this place free for everyone who wants to improve their typing.
                   {user
                     ? " A star now shines next to your name across the site — wear it well."
                     : " Thanks for tipping anonymously — it counts just as much."}
                 </p>
-                <p className="text-sm mt-4 italic" style={{ color: "rgba(0,0,0,0.6)" }}>— The VC Typing Team</p>
+                <p className="text-sm mt-4 italic" style={{ color: "rgba(0,0,0,0.6)" }}>— The MangoTyping Team</p>
                 <button
                   onClick={closeCelebration}
                   className="mt-6 w-full py-2.5 rounded-xl bg-black text-white font-semibold text-sm"

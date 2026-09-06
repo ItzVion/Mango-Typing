@@ -21,7 +21,7 @@ export const TestResult = () => {
 
   return (
     <div className="flex flex-col items-center gap-8">
-      <Seo title="Test Result" description="Your VC Typing test result." path="/home/test-result" noindex />
+      <Seo title="Test Result" description="Your MangoTyping test result." path="/home/test-result" noindex />
       <BackButton to="/home/tests" label="Back" />
 
       <motion.div

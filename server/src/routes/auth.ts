@@ -4,7 +4,8 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import { requireAuth, AuthRequest } from "../middleware/auth";
-import { sendOtpEmail } from "../lib/mailer";
+import { sendOtpEmail, sendAccountExistsEmail } from "../lib/mailer";
+import { setAuthCookie, clearAuthCookie } from "../lib/authCookie";
 import { prisma } from "../lib/db";
 import { hashCode, codesMatch, MAX_CODE_ATTEMPTS, RESEND_COOLDOWN_MS } from "../lib/otp";
 import { checkRateLimit, clientIp } from "../lib/rateLimit";
@@ -44,10 +45,24 @@ router.post("/register", async (req: Request, res: Response): Promise<any> => {
   if (password.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters." });
 
   const normalEmail = String(email).trim().toLowerCase();
-  const existingEmail = await prisma.user.findUnique({ where: { email: normalEmail } });
-  if (existingEmail) return res.status(400).json({ error: "An account with this email already exists." });
+  // Username availability isn't sensitive (it's a public identifier, same as
+  // a leaderboard name) so it's fine to report directly. Email existence is
+  // the sensitive one (VC-07) — handled below by always returning the same
+  // generic response regardless of whether the email is already registered.
   const existingUsername = await prisma.user.findUnique({ where: { username: username.trim() } });
   if (existingUsername) return res.status(400).json({ error: "That username is already taken." });
+
+  const existingEmail = await prisma.user.findUnique({ where: { email: normalEmail } });
+  if (existingEmail) {
+    try {
+      await sendAccountExistsEmail(normalEmail);
+    } catch (err) {
+      console.error("Failed to send account-exists notice:", err);
+      // Still return success below — don't let a delivery failure leak
+      // existence via a different response shape than the real OTP path.
+    }
+    return res.json({ success: true, email: normalEmail });
+  }
 
   const passwordHash = await bcrypt.hash(password, 10);
   const otp = crypto.randomInt(100000, 999999).toString();
@@ -97,7 +112,9 @@ router.post("/verify-otp", async (req: Request, res: Response): Promise<any> => 
   });
   await prisma.otpToken.delete({ where: { email: normalEmail } });
 
-  res.json({ token: sign(user), user: publicUser(user) });
+  const authToken = sign(user);
+  setAuthCookie(res, authToken);
+  res.json({ token: authToken, user: publicUser(user) });
 });
 
 router.post("/resend-otp", async (req: Request, res: Response): Promise<any> => {
@@ -163,7 +180,9 @@ router.post("/login", async (req: Request, res: Response): Promise<any> => {
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) return res.status(400).json({ error: "Invalid username/email or password." });
 
-  res.json({ token: sign(user), user: publicUser(user) });
+  const authToken = sign(user);
+  setAuthCookie(res, authToken);
+  res.json({ token: authToken, user: publicUser(user) });
 });
 
 router.get("/me", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
@@ -210,7 +229,9 @@ router.post("/google", async (req: Request, res: Response): Promise<any> => {
     user = await prisma.user.update({ where: { id: user.id }, data: { googleId: payload.sub, avatarUrl: user.avatarUrl ?? payload.picture ?? null } });
   }
 
-  res.json({ token: sign(user), user: publicUser(user) });
+  const authToken = sign(user);
+  setAuthCookie(res, authToken);
+  res.json({ token: authToken, user: publicUser(user) });
 });
 
 // Step 2 for a brand-new Google account: re-verify the same credential, then
@@ -249,7 +270,19 @@ router.post("/google/complete", async (req: Request, res: Response): Promise<any
     },
   });
 
-  res.json({ token: sign(user), user: publicUser(user) });
+  const authToken = sign(user);
+  setAuthCookie(res, authToken);
+  res.json({ token: authToken, user: publicUser(user) });
+});
+
+// The client can't clear an httpOnly cookie itself (that's the point of
+// httpOnly) — this endpoint exists so "log out" actually removes the auth
+// cookie server-side instead of leaving it valid until it expires on its
+// own in 7 days. Doesn't require a valid token: an already-expired/invalid
+// cookie should still be clearable.
+router.post("/logout", (_req: Request, res: Response) => {
+  clearAuthCookie(res);
+  res.json({ success: true });
 });
 
 export default router;

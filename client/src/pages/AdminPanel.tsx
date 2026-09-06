@@ -65,7 +65,7 @@ export const AdminPanel = () => {
   if (!authInitialized)
     return (
       <>
-        <Seo title="Admin" description="VC Typing admin panel." path="/admin" noindex />
+        <Seo title="Admin" description="MangoTyping admin panel." path="/admin" noindex />
         <p className="text-black/40 text-center mt-16">Checking session…</p>
       </>
     );
@@ -101,7 +101,7 @@ export const AdminPanel = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl mx-auto">
-      <Seo title="Admin" description="VC Typing admin panel." path="/admin" noindex />
+      <Seo title="Admin" description="MangoTyping admin panel." path="/admin" noindex />
       <BackButton to="/home" label="Back" />
       <h1 className="text-2xl font-bold">Admin Panel</h1>
 
@@ -334,7 +334,7 @@ const EmailTab = () => {
           value={form.smtpUser}
           onChange={(e) => setForm({ ...form, smtpUser: e.target.value })}
           className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2"
-          placeholder="vctyping@zohomail.in"
+          placeholder="support@mangotyping.fun"
         />
       </label>
 
@@ -355,7 +355,7 @@ const EmailTab = () => {
           value={form.smtpFrom}
           onChange={(e) => setForm({ ...form, smtpFrom: e.target.value })}
           className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2"
-          placeholder="vctyping@zohomail.in"
+          placeholder="support@mangotyping.fun"
         />
       </label>
 
@@ -365,7 +365,7 @@ const EmailTab = () => {
           value={form.smtpFromName}
           onChange={(e) => setForm({ ...form, smtpFromName: e.target.value })}
           className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2"
-          placeholder="VC TYPING"
+          placeholder="MangoTyping"
         />
       </label>
 

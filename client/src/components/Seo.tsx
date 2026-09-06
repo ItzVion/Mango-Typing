@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
-const SITE_NAME = "VC Typing";
-const SITE_ORIGIN = "https://vctyping.dpdns.org";
+const SITE_NAME = "MangoTyping";
+const SITE_ORIGIN = "https://mangotyping.fun";
 const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/favicon-512.png`;
 
 interface SeoProps {

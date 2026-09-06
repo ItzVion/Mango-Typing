@@ -486,7 +486,7 @@ function AvatarSection() {
 export const Settings = () => {
   return (
     <div className="flex flex-col gap-6 max-w-lg mx-auto">
-      <Seo title="Settings" description="Manage your VC Typing account settings." path="/settings" noindex />
+      <Seo title="Settings" description="Manage your MangoTyping account settings." path="/settings" noindex />
       <BackButton to="/home" label="Back" />
       <h1 className="text-2xl font-bold">Settings</h1>
       <AvatarSection />

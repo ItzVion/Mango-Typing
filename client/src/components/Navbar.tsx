@@ -118,7 +118,7 @@ export const Navbar = () => {
             transition={{ type: "spring", stiffness: 150, damping: 12 }}
             whileHover={{ rotate: -6, scale: 1.06 }}
             src={theme === "light" ? "/logo-dark-bg.svg" : "/logo-light-bg.svg"}
-            alt="VC Typing"
+            alt="MangoTyping"
             className="w-9 h-9 rounded-md"
           />
         </Link>

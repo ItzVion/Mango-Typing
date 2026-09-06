@@ -44,10 +44,11 @@ export async function checkRateLimit(
   return { ok: true, retryAfterMs: 0 };
 }
 
-// req.ip requires `app.set("trust proxy", ...)` to be accurate behind
-// Vercel's proxy; x-forwarded-for is set reliably by Vercel's edge network.
+// Relies on `app.set("trust proxy", 1)` in index.ts. With that set, Express's
+// own req.ip is derived from x-forwarded-for but only trusts exactly the
+// number of proxy hops configured — a client can't just add its own
+// x-forwarded-for header and have it taken as the real IP, unlike manually
+// reading req.headers["x-forwarded-for"] outright (the previous approach).
 export function clientIp(req: Request): string {
-  const fwd = req.headers["x-forwarded-for"];
-  if (typeof fwd === "string" && fwd.length) return fwd.split(",")[0].trim();
-  return req.socket?.remoteAddress || "unknown";
+  return req.ip || req.socket?.remoteAddress || "unknown";
 }

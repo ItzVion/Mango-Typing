@@ -2,6 +2,7 @@ import "dotenv/config";
 import "express-async-errors";
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { validateConfig } from "./lib/validateConfig";
 import authRoutes from "./routes/auth";
 import sheetsRoutes from "./routes/sheets";
@@ -45,6 +46,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/sheets", sheetsRoutes);
@@ -82,7 +84,7 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 
 if (!process.env.VERCEL) {
-  app.listen(PORT, () => console.log(`VC TYPING server running on http://localhost:${PORT}`));
+  app.listen(PORT, () => console.log(`MANGOTYPING server running on http://localhost:${PORT}`));
 }
 
 export default app;

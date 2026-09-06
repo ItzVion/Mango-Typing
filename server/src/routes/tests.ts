@@ -62,10 +62,13 @@ router.post("/", optionalAuth, async (req: AuthRequest, res: Response): Promise<
     return res.status(400).json({ error: "Missing required fields" });
   }
 
-  // Rate limit per-IP (covers guest spam) and per-account (covers a logged
-  // in account being used to flood the leaderboard/history).
+  // Rate limit per-IP and per-account. Guest submissions (no account) get a
+  // tighter cap (VC-03) — they carry zero accountability (never shown on any
+  // profile, can't be traced to a user) so unlike a logged-in account, an
+  // abusive guest can't be identified or banned afterward; the only lever
+  // against guest DB-spam is a stricter limit up front.
   const ip = clientIp(req);
-  const ipLimit = await checkRateLimit(`test-submit:ip:${ip}`, 30, 60 * 1000);
+  const ipLimit = await checkRateLimit(`test-submit:ip:${ip}`, req.userId ? 30 : 10, 60 * 1000);
   if (!ipLimit.ok) return res.status(429).json({ error: "Too many submissions. Slow down." });
   if (req.userId) {
     const acctLimit = await checkRateLimit(`test-submit:acct:${req.userId}`, 30, 60 * 1000);
@@ -79,6 +82,27 @@ router.post("/", optionalAuth, async (req: AuthRequest, res: Response): Promise<
   const numDuration = Number(durationSec ?? 0);
   const err = boundsError(numWpm, numRawWpm, numAccuracy, numErrors, numDuration);
   if (err) return res.status(400).json({ error: err });
+
+  // VC-09: per-field bounds alone let someone submit e.g. 390 wpm with 100%
+  // accuracy and 0 errors on a 5-word sheet in 1 second — every field passes
+  // its own individual range check but the combination is physically
+  // impossible. Cross-check the fields against each other and against the
+  // actual sheet's length before accepting the result.
+  if (numRawWpm < numWpm) return res.status(400).json({ error: "rawWpm can't be lower than wpm." });
+  if (numErrors > 0 && numAccuracy === 100) return res.status(400).json({ error: "Inconsistent accuracy for the reported errors." });
+
+  const sheet = await prisma.sheet.findUnique({ where: { id: Number(sheetId) } });
+  if (!sheet) return res.status(400).json({ error: "Sheet not found." });
+
+  // Net wpm implies roughly (wpm * 5 * durationSec/60) characters typed
+  // (standard 5-chars-per-word convention). That can't meaningfully exceed
+  // the sheet's own length — allow generous slack (2x) for word-count vs.
+  // char-count convention differences and any client-side rounding, but a
+  // wildly larger figure means the numbers were fabricated, not typed.
+  const impliedChars = (numRawWpm * 5 * numDuration) / 60;
+  if (impliedChars > sheet.charCount * 2 + 50) {
+    return res.status(400).json({ error: "Result inconsistent with the selected sheet." });
+  }
 
   const cleanSecondStats = sanitizeSecondStats(secondStats);
   if (cleanSecondStats === null) return res.status(400).json({ error: "Invalid secondStats." });

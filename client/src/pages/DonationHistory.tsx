@@ -15,7 +15,7 @@ export const DonationHistory = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto">
-      <Seo title="Donation History" description="Your VC Typing donation history." path="/donations" noindex />
+      <Seo title="Donation History" description="Your MangoTyping donation history." path="/donations" noindex />
       <BackButton to="/home" label="Back" />
       <h1 className="text-2xl font-bold">Donation History</h1>
 

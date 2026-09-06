@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { BackButton } from "../components/BackButton";
 import { Seo } from "../components/Seo";
 
-// vctyping.dpdns.org/home — the actual app entry, reached by clicking
+// mangotyping.fun/home — the actual app entry, reached by clicking
 // "Start" on the public landing page. This used to be the "choose" phase
 // of the old combined Dashboard component.
 const OPTIONS = [
@@ -19,7 +19,7 @@ export const Home = () => {
     <div className="flex flex-col items-center gap-6 min-h-[calc(100vh-10rem)] justify-center px-6">
       <Seo
         title="Choose Typing Test, Games, or Tutor"
-        description="Start a typing test, play typing games, or follow the typing tutor — pick how you want to practice on VC Typing."
+        description="Start a typing test, play typing games, or follow the typing tutor — pick how you want to practice on MangoTyping."
         path="/home"
       />
       <BackButton to="/" label="Back" />

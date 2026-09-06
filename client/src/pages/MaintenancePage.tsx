@@ -80,7 +80,7 @@ const ConstructionWorker = () => (
 
 export const MaintenancePage = () => (
   <div className="min-h-screen flex flex-col items-center justify-center gap-8 text-center px-6 bg-black text-white relative">
-    <Seo title="Down for Maintenance" description="VC Typing is temporarily down for maintenance." path="/" noindex />
+    <Seo title="Down for Maintenance" description="MangoTyping is temporarily down for maintenance." path="/" noindex />
 
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -133,7 +133,7 @@ export const MaintenancePage = () => (
       transition={{ delay: 0.85, duration: 0.4 }}
       className="text-white/60 max-w-md"
     >
-      VC Typing is temporarily down for <span style={{ color: "#F5A623" }}>maintenance</span>.
+      MangoTyping is temporarily down for <span style={{ color: "#F5A623" }}>maintenance</span>.
       <br />
       We're tightening a few bolts — check back shortly.
     </motion.p>

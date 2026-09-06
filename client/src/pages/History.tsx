@@ -53,7 +53,7 @@ export const History = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      <Seo title="Test History" description="Your VC Typing test history and progress." path="/results" noindex />
+      <Seo title="Test History" description="Your MangoTyping test history and progress." path="/results" noindex />
       <BackButton to="/home" label="Back" />
       <motion.h1
         initial={{ opacity: 0, y: -8 }}

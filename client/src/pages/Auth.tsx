@@ -228,7 +228,7 @@ export const Auth = () => {
 
   return (
     <div className="max-w-4xl mx-auto grid md:grid-cols-2 rounded-2xl overflow-hidden border border-[var(--card-border)]">
-      <Seo title="Sign In" description="Sign in or create your VC Typing account." path="/auth" noindex />
+      <Seo title="Sign In" description="Sign in or create your MangoTyping account." path="/auth" noindex />
       {/* Left: branded panel with the tilted keyboard illustration */}
       <div className="hidden md:flex relative flex-col justify-between bg-black text-white p-8 overflow-hidden">
         <div className="absolute -right-24 -bottom-24 w-[420px] h-[420px] opacity-90" style={{ transform: "rotate(45deg)" }}>
@@ -239,7 +239,7 @@ export const Auth = () => {
           style={{ background: "#F5A623" }}
         />
         <div className="relative z-10">
-          <BlurText text="VC TYPING" className="text-2xl font-bold font-mono" />
+          <BlurText text="MANGOTYPING" className="text-2xl font-bold font-mono" />
         </div>
         <div className="relative z-10 max-w-xs">
           <BlurText
@@ -382,7 +382,7 @@ export const Auth = () => {
                   className="mt-0.5 h-4 w-4 shrink-0 accent-[#F5A623]"
                 />
                 <span>
-                  By {step === "login" ? "signing in to" : "signing up on"} VC Typing, you agree to our{" "}
+                  By {step === "login" ? "signing in to" : "signing up on"} MangoTyping, you agree to our{" "}
                   <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#D98C1F] dark:text-[#F5A623] underline">
                     Terms &amp; Conditions
                   </a>

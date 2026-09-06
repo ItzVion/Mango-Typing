@@ -9,6 +9,7 @@ import { hashCode, codesMatch, MAX_CODE_ATTEMPTS } from "../lib/otp";
 import { checkRateLimit } from "../lib/rateLimit";
 import { sniffImageMime } from "../lib/imageSniff";
 import { sign } from "./auth";
+import { setAuthCookie, clearAuthCookie } from "../lib/authCookie";
 
 const router = Router();
 const CODE_TTL_MS = 10 * 60 * 1000;
@@ -56,6 +57,9 @@ async function consumeCode(userId: string, purpose: string, token: string) {
 
 // ---- Username change (requires current password) --------------------------
 router.patch("/username", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  const limit = await checkRateLimit(`username-change:acct:${req.userId}`, 5, 15 * 60 * 1000);
+  if (!limit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
+
   const { newUsername, password } = req.body;
   if (!newUsername || !password) return res.status(400).json({ error: "All fields required." });
   const trimmed = String(newUsername).trim();
@@ -77,6 +81,12 @@ router.patch("/username", requireAuth, async (req: AuthRequest, res: Response): 
 
 // ---- Password change (requires current password) ---------------------------
 router.patch("/password", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  // Per-account limit on password-change attempts — this route is a brute-
+  // force surface for guessing the current password of an already-logged-in
+  // (e.g. stolen-token) session.
+  const limit = await checkRateLimit(`password-change:acct:${req.userId}`, 5, 15 * 60 * 1000);
+  if (!limit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
+
   const { oldPassword, newPassword, confirmNewPassword } = req.body;
   if (!oldPassword || !newPassword || !confirmNewPassword) return res.status(400).json({ error: "All fields required." });
   if (newPassword !== confirmNewPassword) return res.status(400).json({ error: "New passwords don't match." });
@@ -97,12 +107,17 @@ router.patch("/password", requireAuth, async (req: AuthRequest, res: Response): 
     where: { id: user.id },
     data: { passwordHash, sessionVersion: { increment: 1 } },
   });
-  res.json({ success: true, token: sign(updated) });
+  const freshToken = sign(updated);
+  setAuthCookie(res, freshToken);
+  res.json({ success: true, token: freshToken });
 });
 
 // ---- Email change: verify OLD email, then verify NEW email -----------------
 // Step 1: confirm password, send code to the CURRENT (old) email address.
 router.post("/email/request", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  const limit = await checkRateLimit(`email-change:acct:${req.userId}`, 5, 15 * 60 * 1000);
+  if (!limit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
+
   const { password } = req.body;
   if (!password) return res.status(400).json({ error: "Password required." });
 
@@ -124,6 +139,9 @@ router.post("/email/request", requireAuth, async (req: AuthRequest, res: Respons
 
 // Step 2: confirm the code sent to the OLD email, then send a code to the NEW email.
 router.post("/email/verify-old", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  const limit = await checkRateLimit(`email-verify-old:acct:${req.userId}`, 10, 15 * 60 * 1000);
+  if (!limit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
+
   const { code, newEmail } = req.body;
   if (!code || !newEmail) return res.status(400).json({ error: "All fields required." });
   const normalNewEmail = String(newEmail).trim().toLowerCase();
@@ -145,6 +163,9 @@ router.post("/email/verify-old", requireAuth, async (req: AuthRequest, res: Resp
 
 // Step 3: confirm the code sent to the NEW email, apply the change.
 router.post("/email/verify-new", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  const limit = await checkRateLimit(`email-verify-new:acct:${req.userId}`, 10, 15 * 60 * 1000);
+  if (!limit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
+
   const { code } = req.body;
   if (!code) return res.status(400).json({ error: "Code required." });
 
@@ -159,6 +180,9 @@ router.post("/email/verify-new", requireAuth, async (req: AuthRequest, res: Resp
 // ---- Account deletion: password + email OTP, then hard-delete everything ---
 // Step 1: confirm password, send code to the account's current email.
 router.post("/delete/request", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  const limit = await checkRateLimit(`delete-request:acct:${req.userId}`, 5, 15 * 60 * 1000);
+  if (!limit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
+
   const { password } = req.body;
   if (!password) return res.status(400).json({ error: "Password required." });
 
@@ -184,6 +208,9 @@ router.post("/delete/request", requireAuth, async (req: AuthRequest, res: Respon
 // deletes donation/payment records outright rather than anonymizing them,
 // which differs from deathsmp-web's anonymize-and-keep approach.
 router.post("/delete/confirm", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  const limit = await checkRateLimit(`delete-confirm:acct:${req.userId}`, 10, 15 * 60 * 1000);
+  if (!limit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
+
   const { code } = req.body;
   if (!code) return res.status(400).json({ error: "Code required." });
 
@@ -196,6 +223,7 @@ router.post("/delete/confirm", requireAuth, async (req: AuthRequest, res: Respon
     prisma.verificationCode.deleteMany({ where: { userId: req.userId } }),
     prisma.user.delete({ where: { id: req.userId } }),
   ]);
+  clearAuthCookie(res);
 
   res.json({ success: true });
 });

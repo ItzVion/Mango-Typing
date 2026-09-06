@@ -12,7 +12,7 @@ function renderSheetHeader(doc: jsPDF, margin: number, testNumber: number, diffi
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text("VC TYPING", margin, y);
+  doc.text("MANGOTYPING", margin, y);
   y += 22;
 
   doc.setFontSize(20);
@@ -74,7 +74,7 @@ function renderSheet(doc: jsPDF, sheet: Sheet, testNumber: number) {
 export function downloadSheetPdf(sheet: Sheet & { testNumber?: number }) {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   renderSheet(doc, sheet, sheet.testNumber ?? 1);
-  doc.save(`VC-Typing-${capitalize(sheet.difficulty || "easy")}-${sheet.testNumber ?? 1}.pdf`);
+  doc.save(`MangoTyping-${capitalize(sheet.difficulty || "easy")}-${sheet.testNumber ?? 1}.pdf`);
 }
 
 // Combined PDF, grouped by difficulty: a divider page labeled Easy/Medium/Hard,
@@ -95,5 +95,5 @@ export function downloadAllSheetsPdf(sheets: Sheet[]) {
     });
   }
 
-  doc.save("VC-Typing-All-Sheets.pdf");
+  doc.save("MangoTyping-All-Sheets.pdf");
 }
