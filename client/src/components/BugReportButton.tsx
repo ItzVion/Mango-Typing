@@ -5,10 +5,6 @@ import { useLocation } from "react-router-dom";
 const MAX_FILES = 5;
 const MAX_SIZE = 1 * 1024 * 1024; // 1MB
 
-function getToken() {
-  return localStorage.getItem("vc_token");
-}
-
 type Status = "idle" | "submitting" | "success" | "error";
 
 export const BugReportButton = () => {
@@ -76,10 +72,9 @@ export const BugReportButton = () => {
       form.append("page", location.pathname);
       files.forEach((f) => form.append("screenshots", f));
 
-      const token = getToken();
       const res = await fetch(`${window.location.origin}/api/bugreport`, {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
         body: form,
       });
       const data = await res.json();

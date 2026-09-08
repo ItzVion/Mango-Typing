@@ -109,7 +109,9 @@ router.patch("/password", requireAuth, async (req: AuthRequest, res: Response): 
   });
   const freshToken = sign(updated);
   setAuthCookie(res, freshToken);
-  res.json({ success: true, token: freshToken });
+  // VC-cookie-migration: token no longer returned in body — the reissued
+  // cookie alone carries the new session for this device.
+  res.json({ success: true });
 });
 
 // ---- Email change: verify OLD email, then verify NEW email -----------------

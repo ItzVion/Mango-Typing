@@ -80,11 +80,12 @@ function PasswordSection() {
     setMsg(null);
     setLoading(true);
     try {
-      const res = await api.changePassword(oldPassword, newPassword, confirm);
-      // Changing the password invalidates every previously issued token
-      // (server-side sessionVersion bump) — this device gets a fresh one
-      // back in the response so it doesn't get logged out too.
-      if (res?.token) login(res.token, user);
+      await api.changePassword(oldPassword, newPassword, confirm);
+      // Changing the password invalidates every previously issued session
+      // (server-side sessionVersion bump); the server reissues a fresh
+      // httpOnly cookie in the same response so this device stays logged
+      // in — nothing for the client to store, just keep local state as-is.
+      login(user);
       setMsg({ text: "Password updated.", kind: "success" });
       setOldPassword("");
       setNewPassword("");

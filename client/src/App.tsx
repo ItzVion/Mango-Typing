@@ -45,12 +45,10 @@ export default function App() {
   const [maintenance, setMaintenance] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("vc_token");
-    if (!token) {
-      setAuthInitialized(true);
-      return;
-    }
-
+    // VC-cookie-migration: there's no client-readable token to gate this
+    // on anymore — the httpOnly cookie is invisible to JS by design, so
+    // /auth/me is always called and a 401 response is what means "logged
+    // out" (handled below).
     api.me()
       .then((u) => {
         setUser(u);

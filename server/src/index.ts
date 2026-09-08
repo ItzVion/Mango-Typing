@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { validateConfig } from "./lib/validateConfig";
+import { AUTH_COOKIE_NAME } from "./lib/authCookie";
 import authRoutes from "./routes/auth";
 import sheetsRoutes from "./routes/sheets";
 import testsRoutes from "./routes/tests";
@@ -47,6 +48,33 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+// VC-cookie-migration / CSRF: SameSite=lax already blocks the cookie being
+// sent on cross-site subrequests (img/fetch/xhr, non-top-level nav), but a
+// plain cross-site <form method=POST> to a same-site target IS still sent
+// under "lax". Since auth now lives in a cookie a browser attaches
+// automatically, state-changing requests get an explicit Origin check as
+// defense-in-depth. Only applies when the request is actually
+// cookie-authenticated — a Bearer-token client can't be driven by a forged
+// cross-site form the way a cookie can, since the attacker page can't set
+// the Authorization header without already being able to run JS on our
+// origin (a different problem, not CSRF).
+function requireSafeOrigin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) return next();
+  const hasAuthCookie = !!(req as any).cookies?.[AUTH_COOKIE_NAME];
+  if (!hasAuthCookie) return next();
+  const originHeader = req.headers.origin || req.headers.referer;
+  if (!originHeader) return next(); // SameSite=lax remains the primary defense for these
+  let originValue: string;
+  try {
+    originValue = new URL(originHeader).origin;
+  } catch {
+    return res.status(403).json({ error: "Cross-site request blocked." });
+  }
+  if (ALLOWED_ORIGINS.includes(originValue)) return next();
+  return res.status(403).json({ error: "Cross-site request blocked." });
+}
+app.use(requireSafeOrigin);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/sheets", sheetsRoutes);

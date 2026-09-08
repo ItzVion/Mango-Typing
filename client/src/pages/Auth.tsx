@@ -130,7 +130,7 @@ export const Auth = () => {
     setLoading(true);
     try {
       const res = await api.login(form.identifier, form.password);
-      login(res.token, res.user);
+      login(res.user); // VC-cookie-migration: server sets the httpOnly cookie; no token in body
       navigate(redirectTo);
     } catch (e: any) {
       setError(e.message);
@@ -162,7 +162,7 @@ export const Auth = () => {
     setLoading(true);
     try {
       const res = await api.verifyOtp(form.email, otp);
-      login(res.token, res.user);
+      login(res.user); // VC-cookie-migration: server sets the httpOnly cookie; no token in body
       navigate(redirectTo);
     } catch (e: any) {
       setError(e.message);
@@ -198,7 +198,7 @@ export const Auth = () => {
           setStep("googleSetup");
           return;
         }
-        login(res.token, res.user);
+        login(res.user); // VC-cookie-migration: server sets the httpOnly cookie; no token in body
         navigate(redirectTo);
       } catch (e: any) {
         setError(e.message || "Google sign-in failed");
@@ -214,7 +214,7 @@ export const Auth = () => {
     setLoading(true);
     try {
       const res = await api.googleComplete(pendingGoogleCredential, googleSetupForm.username, googleSetupForm.password);
-      login(res.token, res.user);
+      login(res.user); // VC-cookie-migration: server sets the httpOnly cookie; no token in body
       navigate(redirectTo);
     } catch (e: any) {
       setError(e.message || "Couldn't finish setting up your account");

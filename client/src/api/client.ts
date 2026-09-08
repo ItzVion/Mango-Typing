@@ -4,17 +4,18 @@
 // same-origin dev server) handles it the same way.
 const BASE = `${window.location.origin}/api`;
 
-function getToken() {
-  return localStorage.getItem("vc_token");
-}
-
+// VC-cookie-migration: session auth is the httpOnly vc_auth cookie only —
+// no token is ever read from or written to localStorage/JS-visible storage.
+// `credentials: "include"` makes sure the cookie is sent even though the
+// default fetch credentials mode ("same-origin") would already cover this
+// same-origin deployment; being explicit avoids silently breaking auth if
+// the API is ever moved to a different subdomain.
 async function request(path: string, opts: RequestInit = {}) {
-  const token = getToken();
   const res = await fetch(`${BASE}${path}`, {
     ...opts,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(opts.headers || {}),
     },
   });
@@ -28,11 +29,10 @@ async function request(path: string, opts: RequestInit = {}) {
     throw err;
   }
   if (!res.ok) {
-    // A 401 on an authenticated request means the token is invalid/expired —
-    // clear it so the app doesn't keep sending a dead token on every
-    // subsequent request. Callers can inspect `err.status` to tell this
-    // apart from a network/server error (see App.tsx's session restore).
-    if (res.status === 401 && token) localStorage.removeItem("vc_token");
+    // A 401 means the cookie session is invalid/expired/missing. Nothing to
+    // clear client-side — the server already didn't set a valid cookie.
+    // Callers can inspect `err.status` to tell this apart from a
+    // network/server error (see App.tsx's session restore).
     const err: any = new Error(data.error || "Request failed");
     err.status = res.status;
     throw err;
@@ -79,12 +79,11 @@ export const api = {
   changeUsername: (newUsername: string, password: string) =>
     request("/account/username", { method: "PATCH", body: JSON.stringify({ newUsername, password }) }),
   uploadAvatar: async (file: Blob) => {
-    const token = localStorage.getItem("vc_token");
     const form = new FormData();
     form.append("avatar", file, "avatar.jpg");
     const res = await fetch(`${window.location.origin}/api/account/avatar`, {
       method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: "include",
       body: form,
     });
     const data = await res.json().catch(() => null);

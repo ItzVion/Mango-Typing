@@ -114,7 +114,7 @@ router.post("/verify-otp", async (req: Request, res: Response): Promise<any> => 
 
   const authToken = sign(user);
   setAuthCookie(res, authToken);
-  res.json({ token: authToken, user: publicUser(user) });
+  res.json({ user: publicUser(user) }); // VC-cookie-migration: token no longer returned in body — httpOnly cookie is the only session carrier now
 });
 
 router.post("/resend-otp", async (req: Request, res: Response): Promise<any> => {
@@ -182,7 +182,7 @@ router.post("/login", async (req: Request, res: Response): Promise<any> => {
 
   const authToken = sign(user);
   setAuthCookie(res, authToken);
-  res.json({ token: authToken, user: publicUser(user) });
+  res.json({ user: publicUser(user) }); // VC-cookie-migration: token no longer returned in body — httpOnly cookie is the only session carrier now
 });
 
 router.get("/me", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
@@ -231,7 +231,7 @@ router.post("/google", async (req: Request, res: Response): Promise<any> => {
 
   const authToken = sign(user);
   setAuthCookie(res, authToken);
-  res.json({ token: authToken, user: publicUser(user) });
+  res.json({ user: publicUser(user) }); // VC-cookie-migration: token no longer returned in body — httpOnly cookie is the only session carrier now
 });
 
 // Step 2 for a brand-new Google account: re-verify the same credential, then
@@ -272,7 +272,7 @@ router.post("/google/complete", async (req: Request, res: Response): Promise<any
 
   const authToken = sign(user);
   setAuthCookie(res, authToken);
-  res.json({ token: authToken, user: publicUser(user) });
+  res.json({ user: publicUser(user) }); // VC-cookie-migration: token no longer returned in body — httpOnly cookie is the only session carrier now
 });
 
 // The client can't clear an httpOnly cookie itself (that's the point of
