@@ -14,14 +14,11 @@ export interface AuthRequest extends Request {
 
 type TokenPayload = { id: string; sv?: number };
 
-// Reads the token from either the Authorization header (existing clients,
-// unchanged) or the httpOnly cookie (new — see lib/authCookie.ts). Checking
-// the header first keeps behavior identical for the current client, which
-// always sends one; the cookie is what a future/updated client (or a
-// same-origin server-rendered request) can rely on instead.
+// Authentication is intentionally cookie-only. The browser sends the
+// httpOnly cookie automatically, while JavaScript cannot read it. Accepting
+// Authorization: Bearer would create a second token-delivery path where a
+// leaked token could be replayed directly by an attacker.
 function extractToken(req: Request): string | null {
-  const header = req.headers.authorization;
-  if (header?.startsWith("Bearer ")) return header.slice(7);
   const cookieToken = (req as Request & { cookies?: Record<string, string> }).cookies?.[AUTH_COOKIE_NAME];
   return cookieToken || null;
 }
