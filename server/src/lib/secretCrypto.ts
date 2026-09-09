@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-// VC-04: Razorpay key secret and SMTP password were previously stored as
+// MT-04: Razorpay key secret and SMTP password were previously stored as
 // plaintext in the Settings table — anyone with DB read access (a Turso
 // console login, a leaked DATABASE_URL, a backup dump) could read them
 // directly. This wraps them in AES-256-GCM before they ever touch the DB.
