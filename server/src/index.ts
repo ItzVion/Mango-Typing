@@ -46,19 +46,19 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
+// Bound JSON request size to reduce memory/CPU abuse. This is intentionally
+// separate from file-upload limits, which are enforced by multer on the
+// avatar endpoint. Normal API payloads are far below this limit.
+app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
-// VC-cookie-migration / CSRF: SameSite=lax already blocks the cookie being
+// MangoTyping cookie auth / CSRF: SameSite=lax already blocks the cookie being
 // sent on cross-site subrequests (img/fetch/xhr, non-top-level nav), but a
 // plain cross-site <form method=POST> to a same-site target IS still sent
 // under "lax". Since auth now lives in a cookie a browser attaches
 // automatically, state-changing requests get an explicit Origin check as
 // defense-in-depth. Only applies when the request is actually
-// cookie-authenticated — a Bearer-token client can't be driven by a forged
-// cross-site form the way a cookie can, since the attacker page can't set
-// the Authorization header without already being able to run JS on our
-// origin (a different problem, not CSRF).
+// cookie-authenticated.
 function requireSafeOrigin(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) return next();
   const hasAuthCookie = !!(req as any).cookies?.[AUTH_COOKIE_NAME];
@@ -73,9 +73,7 @@ function requireSafeOrigin(req: express.Request, res: express.Response, next: ex
   }
   // A request whose Origin host matches the host it was actually sent to is
   // same-origin by definition — safe regardless of whether CLIENT_URL/
-  // ALLOWED_ORIGINS happens to be configured correctly. This is what makes
-  // the check robust to prod env-var mistakes instead of silently blocking
-  // real users the way relying on ALLOWED_ORIGINS alone just did.
+  // ALLOWED_ORIGINS happens to be configured correctly.
   const requestHost = req.headers.host;
   try {
     if (requestHost && new URL(originHeader).host === requestHost) return next();
