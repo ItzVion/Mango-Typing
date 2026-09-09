@@ -169,10 +169,62 @@ const PaymentsTab = () => {
     }
   };
 
+  // Parses a Razorpay dashboard API-key CSV export (columns: "Key Type",
+  // "Value"; rows "Test/Live Key ID" and "Test/Live Key Secret") and fills
+  // the two fields above. Nothing is uploaded — this reads the file in the
+  // browser only. You still review the filled fields and press Save
+  // yourself before anything is sent to the server.
+  const onCsvSelected = async (file: File) => {
+    setStatus("Reading file…");
+    try {
+      const text = await file.text();
+      const rows = text
+        .split(/\r?\n/)
+        .map((line) => line.split(",").map((cell) => cell.trim().replace(/^"|"$/g, "")))
+        .filter((cells) => cells.length >= 2 && cells[0]);
+
+      let keyId = "";
+      let keySecret = "";
+      for (const [type, value] of rows) {
+        const t = type.toLowerCase();
+        if (t.includes("key id")) keyId = value;
+        else if (t.includes("key secret")) keySecret = value;
+      }
+
+      if (!keyId && !keySecret) {
+        setStatus("Couldn't find a Key ID / Key Secret row in that file — check it's the unedited Razorpay export.");
+        return;
+      }
+
+      setForm((f) => ({
+        ...f,
+        ...(keyId ? { razorpayKeyId: keyId } : {}),
+        ...(keySecret ? { razorpayKeySecret: keySecret } : {}),
+      }));
+      setStatus("Filled from file — review below, then press Save.");
+    } catch {
+      setStatus("Couldn't read that file.");
+    }
+  };
+
   if (!ready) return <p className="text-black/40 text-sm">Loading…</p>;
 
   return (
     <div className="flex flex-col gap-5 card p-6">
+      <label className="flex flex-col gap-1 text-sm">
+        Import from Razorpay CSV <span className="text-black/40 text-xs">(fills the two fields below — review before saving)</span>
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onCsvSelected(file);
+            e.target.value = ""; // allow re-selecting the same file again later
+          }}
+          className="bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2 file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--card-border)] file:px-3 file:py-1"
+        />
+      </label>
+
       <label className="flex flex-col gap-1 text-sm">
         Razorpay Key ID
         <input

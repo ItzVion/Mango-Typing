@@ -71,6 +71,17 @@ function requireSafeOrigin(req: express.Request, res: express.Response, next: ex
   } catch {
     return res.status(403).json({ error: "Cross-site request blocked." });
   }
+  // A request whose Origin host matches the host it was actually sent to is
+  // same-origin by definition — safe regardless of whether CLIENT_URL/
+  // ALLOWED_ORIGINS happens to be configured correctly. This is what makes
+  // the check robust to prod env-var mistakes instead of silently blocking
+  // real users the way relying on ALLOWED_ORIGINS alone just did.
+  const requestHost = req.headers.host;
+  try {
+    if (requestHost && new URL(originHeader).host === requestHost) return next();
+  } catch {
+    // fall through to the allowlist check below
+  }
   if (ALLOWED_ORIGINS.includes(originValue)) return next();
   return res.status(403).json({ error: "Cross-site request blocked." });
 }
