@@ -12,7 +12,7 @@ router.post("/create-order", optionalAuth, async (req: AuthRequest, res: Respons
   if (!Number.isFinite(raw) || !Number.isInteger(raw) || raw < 1 || raw > 100000) return res.status(400).json({ error: "Enter a whole number of rupees between ₹1 and ₹100,000" });
   const { keyId, keySecret } = await getRazorpayKeys(); if (!keyId || !keySecret) return res.status(503).json({ error: "Donations aren't set up yet — the owner needs to add Razorpay keys via /admin" });
   const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
-  const orderRes = await fetch("https://api.razorpay.com/v1/orders", { method: "POST", headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" }, body: JSON.stringify({ amount: raw * 100, currency: "INR", receipt: `vct_${Date.now()}` }) });
+  const orderRes = await fetch("https://api.razorpay.com/v1/orders", { method: "POST", headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" }, body: JSON.stringify({ amount: raw * 100, currency: "INR", receipt: `vct_${Date.now()}_${crypto.randomBytes(4).toString("hex")}` }) });
   const order = await orderRes.json(); if (!orderRes.ok) return res.status(502).json({ error: order?.error?.description || "Razorpay order creation failed" });
   await prisma.donation.create({ data: { userId: req.userId ?? null, amountRupees: raw, razorpayOrderId: order.id, status: "created" } });
   res.json({ orderId: order.id, amount: order.amount, currency: order.currency, keyId });
@@ -27,11 +27,13 @@ router.post("/verify", optionalAuth, async (req: AuthRequest, res: Response): Pr
   const donation = await prisma.donation.update({ where: { razorpayOrderId: razorpay_order_id }, data: { razorpayPaymentId: razorpay_payment_id, status: "paid" } }); if (donation.userId) await prisma.user.update({ where: { id: donation.userId }, data: { hasDonated: true } }); res.json({ ok: true });
 });
 router.post("/webhook", async (req: Request, res: Response): Promise<any> => {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET; const signature = req.headers["x-razorpay-signature"];
-  if (!secret || typeof signature !== "string" || !Buffer.isBuffer(req.body)) return res.status(400).json({ error: "Invalid webhook configuration or payload" });
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET; const signature = req.headers["x-razorpay-signature"]; const eventId = req.headers["x-razorpay-event-id"];
+  if (!secret || typeof signature !== "string" || typeof eventId !== "string" || !eventId || !Buffer.isBuffer(req.body)) return res.status(400).json({ error: "Invalid webhook configuration or payload" });
   const expected = crypto.createHmac("sha256", secret).update(req.body).digest("hex"); const expectedBuf = Buffer.from(expected, "hex"); const givenBuf = Buffer.from(signature, "hex");
   if (expectedBuf.length !== givenBuf.length || !crypto.timingSafeEqual(expectedBuf, givenBuf)) return res.status(400).json({ error: "Invalid webhook signature" });
   let event: any; try { event = JSON.parse(req.body.toString("utf8")); } catch { return res.status(400).json({ error: "Invalid JSON" }); }
+  try { await prisma.razorpayWebhookEvent.create({ data: { eventId: String(eventId).slice(0, 200), eventType: String(event?.event || "unknown") } }); }
+  catch (err: any) { if (err?.code === "P2002") return res.json({ ok: true, duplicate: true }); throw err; }
   if (event?.event !== "payment.captured" && event?.event !== "order.paid") return res.json({ ok: true });
   const payment = event?.payload?.payment?.entity; const order = event?.payload?.order?.entity; const paymentId = payment?.id; const orderId = payment?.order_id ?? order?.id; const status = payment?.status; const amountPaise = Number(payment?.amount ?? order?.amount);
   if (!paymentId || !orderId || status !== "captured" || !Number.isSafeInteger(amountPaise) || amountPaise < 100) return res.status(400).json({ error: "Incomplete payment event" });
