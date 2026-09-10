@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { BackButton } from "../../components/BackButton";
 import { Seo } from "../../components/Seo";
 import { api } from "../../api/client";
+import { LoadingState } from "../../components/LoadingState";
 
 export const Refund = () => {
   const [content, setContent] = useState<string | null>(null);
@@ -17,7 +18,7 @@ export const Refund = () => {
       <BackButton to="/" label="Back" />
       <h1 className="text-2xl font-bold text-black dark:text-white">Refund Policy</h1>
       {content === null ? (
-        <p className="text-black/40">Loading…</p>
+        <LoadingState label="Loading refund policy…" />
       ) : (
         content
           .split(/\n\s*\n/)
