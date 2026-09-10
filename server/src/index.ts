@@ -15,6 +15,7 @@ import adminRoutes from "./routes/admin";
 import legalRoutes from "./routes/legal";
 import accountRoutes from "./routes/account";
 import bugReportRoutes from "./routes/bugreport";
+import privacyRoutes from "./routes/privacy";
 
 validateConfig();
 const app = express();
@@ -23,8 +24,9 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=*");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
   if (process.env.NODE_ENV === "production" || process.env.VERCEL) res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   next();
 });
@@ -67,6 +69,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/legal", legalRoutes);
 app.use("/api/account", accountRoutes);
 app.use("/api/bugreport", bugReportRoutes);
+app.use("/api/privacy", privacyRoutes);
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => { console.error("Unhandled request error:", err?.message || err); if (res.headersSent) return next(err); const status = Number.isInteger(err?.statusCode) ? err.statusCode : 500; res.status(status).json({ error: status >= 500 ? "Internal server error" : String(err?.message || "Request failed") }); });
 
