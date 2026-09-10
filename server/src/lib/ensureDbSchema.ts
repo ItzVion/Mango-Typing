@@ -25,8 +25,6 @@ async function addColumn(table: string, definition: string) {
   try {
     await exec(`ALTER TABLE "${table}" ADD COLUMN ${definition}`);
   } catch (error: any) {
-    // SQLite/libSQL reports a duplicate-column error when the column is
-    // already present. That is the expected result on an up-to-date DB.
     const message = String(error?.message || error || "").toLowerCase();
     if (!message.includes("duplicate column") && !message.includes("already exists")) throw error;
   }
@@ -108,6 +106,7 @@ async function bootstrap() {
   await exec(`CREATE TABLE IF NOT EXISTS "LegalPage" (
     "slug" TEXT NOT NULL PRIMARY KEY,
     "content" TEXT NOT NULL,
+    "version" TEXT NOT NULL DEFAULT '2026-09-10',
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
 
@@ -139,7 +138,6 @@ async function bootstrap() {
     FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
   )`);
 
-  // Additive compatibility for databases created by older versions.
   await addColumn("User", '"sessionVersion" INTEGER NOT NULL DEFAULT 0');
   await addColumn("User", '"termsAcceptedVersion" TEXT');
   await addColumn("User", '"privacyAcceptedVersion" TEXT');
@@ -155,6 +153,7 @@ async function bootstrap() {
   await addColumn("Settings", '"smtpPass" TEXT');
   await addColumn("Settings", '"smtpFrom" TEXT');
   await addColumn("Settings", '"smtpFromName" TEXT');
+  await addColumn("LegalPage", '"version" TEXT NOT NULL DEFAULT \'2026-09-10\'');
   await addColumn("OtpToken", '"attempts" INTEGER NOT NULL DEFAULT 0');
   await addColumn("OtpToken", '"lastSentAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
   await addColumn("VerificationCode", '"attempts" INTEGER NOT NULL DEFAULT 0');
