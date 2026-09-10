@@ -9,7 +9,7 @@ import { createClient } from "@libsql/client";
  *
  * This bootstrap is additive and idempotent. It only creates missing tables
  * and adds missing nullable/defaulted columns; it never drops or truncates
- * data. The cached promise means a warm function does this once per process.
+ * data. The cached promise means a warm process does this once per process.
  */
 const url = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL || "file:./dev.db";
 const authToken = process.env.TURSO_AUTH_TOKEN;
@@ -138,6 +138,34 @@ async function bootstrap() {
     FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
   )`);
 
+  await exec(`CREATE TABLE IF NOT EXISTS "RazorpayWebhookEvent" (
+    "eventId" TEXT NOT NULL PRIMARY KEY,
+    "eventType" TEXT NOT NULL,
+    "receivedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await exec(`CREATE TABLE IF NOT EXISTS "AuditLog" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "actorUserId" TEXT,
+    "action" TEXT NOT NULL,
+    "targetType" TEXT,
+    "targetId" TEXT,
+    "metadata" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("actorUserId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+  )`);
+
+  await exec(`CREATE TABLE IF NOT EXISTS "PrivacyRequest" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'OPEN',
+    "details" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  )`);
+
   await addColumn("User", '"sessionVersion" INTEGER NOT NULL DEFAULT 0');
   await addColumn("User", '"termsAcceptedVersion" TEXT');
   await addColumn("User", '"privacyAcceptedVersion" TEXT');
@@ -155,14 +183,15 @@ async function bootstrap() {
   await addColumn("Settings", '"smtpFromName" TEXT');
   await addColumn("LegalPage", '"version" TEXT NOT NULL DEFAULT \'2026-09-10\'');
   await addColumn("OtpToken", '"attempts" INTEGER NOT NULL DEFAULT 0');
-  // SQLite does not allow ALTER TABLE ADD COLUMN with a non-constant default.
-  // Use a constant fallback for legacy databases; new rows still receive the
-  // Prisma-side @default(now()) when created normally.
   await addColumn("OtpToken", '"lastSentAt" DATETIME NOT NULL DEFAULT \'1970-01-01 00:00:00\'');
   await addColumn("VerificationCode", '"attempts" INTEGER NOT NULL DEFAULT 0');
 
   await exec(`CREATE INDEX IF NOT EXISTS "TypingTest_userId_idx" ON "TypingTest" ("userId")`);
   await exec(`CREATE INDEX IF NOT EXISTS "VerificationCode_userId_purpose_idx" ON "VerificationCode" ("userId", "purpose")`);
+  await exec(`CREATE INDEX IF NOT EXISTS "AuditLog_actorUserId_createdAt_idx" ON "AuditLog" ("actorUserId", "createdAt")`);
+  await exec(`CREATE INDEX IF NOT EXISTS "AuditLog_action_createdAt_idx" ON "AuditLog" ("action", "createdAt")`);
+  await exec(`CREATE INDEX IF NOT EXISTS "PrivacyRequest_userId_createdAt_idx" ON "PrivacyRequest" ("userId", "createdAt")`);
+  await exec(`CREATE INDEX IF NOT EXISTS "PrivacyRequest_status_createdAt_idx" ON "PrivacyRequest" ("status", "createdAt")`);
 }
 
 export function ensureDbSchema(): Promise<void> {
