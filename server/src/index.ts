@@ -37,8 +37,26 @@ app.use(express.json({ limit: "32kb", strict: true }));
 app.use(cookieParser());
 app.use(ensureCsrfCookie);
 
+app.get("/api/health", async (_req, res) => {
+  const checks: Record<string, boolean> = { schema: false, rawQuery: false, settings: false, legal: false };
+  try {
+    await ensureDbSchema();
+    checks.schema = true;
+    await prisma.$queryRaw`SELECT 1`;
+    checks.rawQuery = true;
+    await prisma.settings.findUnique({ where: { id: 1 } });
+    checks.settings = true;
+    await prisma.legalPage.findUnique({ where: { slug: "terms" } });
+    checks.legal = true;
+  } catch (error) {
+    console.error("Database health check failed:", error);
+  }
+  const ok = Object.values(checks).every(Boolean);
+  res.status(ok ? 200 : 503).json({ ok, checks });
+});
+
 // Ensure a Turso database that was provisioned without the latest migrations
-// is usable before any Prisma-backed route executes. The operation is
+// is usable before any other Prisma-backed route executes. The operation is
 // idempotent and cached for the lifetime of a warm serverless instance.
 app.use(async (_req, _res, next) => {
   try {
@@ -70,24 +88,6 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/legal", legalRoutes);
 app.use("/api/account", accountRoutes);
 app.use("/api/bugreport", bugReportRoutes);
-
-app.get("/api/health", async (_req, res) => {
-  const checks: Record<string, boolean> = { schema: false, rawQuery: false, settings: false, legal: false };
-  try {
-    await ensureDbSchema();
-    checks.schema = true;
-    await prisma.$queryRaw`SELECT 1`;
-    checks.rawQuery = true;
-    await prisma.settings.findUnique({ where: { id: 1 } });
-    checks.settings = true;
-    await prisma.legalPage.findUnique({ where: { slug: "terms" } });
-    checks.legal = true;
-  } catch (error) {
-    console.error("Database health check failed:", error);
-  }
-  const ok = Object.values(checks).every(Boolean);
-  res.status(ok ? 200 : 503).json({ ok, checks });
-});
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => { console.error("Unhandled request error:", err?.message || err); if (res.headersSent) return next(err); const status = Number.isInteger(err?.statusCode) ? err.statusCode : 500; res.status(status).json({ error: status >= 500 ? "Internal server error" : String(err?.message || "Request failed") }); });
 
