@@ -5,7 +5,7 @@ import { requireOwner, AuthRequest } from "../middleware/auth";
 import { prisma } from "../lib/db";
 import { getTransporter } from "../lib/mailer";
 import { encryptSecret } from "../lib/secretCrypto";
-import { LEGAL_VERSION } from "../lib/legal";
+import { getCurrentLegalVersion } from "../lib/legal";
 
 function isBlockedIp(ip: string): boolean {
   if (net.isIPv4(ip)) {
@@ -29,7 +29,7 @@ const router = Router();
 const MASK = "••••••••";
 
 router.get("/public", async (_req: Request, res: Response) => {
-  const s = await prisma.settings.findUnique({ where: { id: 1 } });
+  const [s, legalVersion] = await Promise.all([prisma.settings.findUnique({ where: { id: 1 } }), getCurrentLegalVersion()]);
   res.setHeader("Cache-Control", "public, max-age=30, s-maxage=30, stale-while-revalidate=60");
   res.json({
     donationMessage: s?.donationMessage ?? "",
@@ -37,7 +37,7 @@ router.get("/public", async (_req: Request, res: Response) => {
     razorpayKeyId: s?.razorpayKeyId ?? null,
     maintenanceMode: s?.maintenanceMode ?? false,
     supportEmail: s?.supportEmail ?? "support@mangotyping.fun",
-    legalVersion: LEGAL_VERSION,
+    legalVersion,
   });
 });
 
