@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { hashPassword, verifyPassword } from "../lib/password";
+import { hashPassword, verifyPassword, MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from "../lib/password";
 import crypto from "crypto";
 import multer from "multer";
 import { requireAuth, AuthRequest } from "../middleware/auth";
@@ -43,7 +43,7 @@ router.patch("/password", requireAuth, async (req: AuthRequest, res: Response): 
   const limit = await checkRateLimit(`password-change:acct:${req.userId}`, 5, 15 * 60 * 1000); if (!limit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
   const { oldPassword, newPassword, confirmNewPassword } = req.body; if (!oldPassword || !newPassword || !confirmNewPassword) return res.status(400).json({ error: "All fields required." });
   if (newPassword !== confirmNewPassword) return res.status(400).json({ error: "New passwords don't match." });
-  if (newPassword.length < 8 || newPassword.length > 20) return res.status(400).json({ error: "New password must be between 8 and 20 characters." });
+  if (newPassword.length < MIN_PASSWORD_LENGTH || newPassword.length > MAX_PASSWORD_LENGTH) return res.status(400).json({ error: `New password must be between ${MIN_PASSWORD_LENGTH} and ${MAX_PASSWORD_LENGTH} characters.` });
   const user = await prisma.user.findUnique({ where: { id: req.userId } }); if (!user) return res.status(404).json({ error: "User not found." }); if (!user.passwordHash) return res.status(400).json({ error: "This account uses Google sign-in and has no password set." });
   const valid = await verifyPassword(oldPassword, user.passwordHash) || (user.passwordHash.startsWith("$2") && await bcrypt.compare(oldPassword, user.passwordHash)); if (!valid) return res.status(400).json({ error: "Current password is incorrect." });
   const passwordHash = await hashPassword(newPassword); const updated = await prisma.user.update({ where: { id: user.id }, data: { passwordHash, sessionVersion: { increment: 1 } } });
