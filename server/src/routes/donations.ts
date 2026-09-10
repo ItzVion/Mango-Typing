@@ -27,19 +27,25 @@ router.post("/verify", optionalAuth, async (req: AuthRequest, res: Response): Pr
   const donation = await prisma.donation.update({ where: { razorpayOrderId: razorpay_order_id }, data: { razorpayPaymentId: razorpay_payment_id, status: "paid" } }); if (donation.userId) await prisma.user.update({ where: { id: donation.userId }, data: { hasDonated: true } }); res.json({ ok: true });
 });
 router.post("/webhook", async (req: Request, res: Response): Promise<any> => {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET; const signature = req.headers["x-razorpay-signature"]; const eventId = req.headers["x-razorpay-event-id"];
-  if (!secret || typeof signature !== "string" || typeof eventId !== "string" || !eventId || !Buffer.isBuffer(req.body)) return res.status(400).json({ error: "Invalid webhook configuration or payload" });
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET; const signature = req.headers["x-razorpay-signature"]; const eventIdHeader = req.headers["x-razorpay-event-id"];
+  if (!secret || typeof signature !== "string" || typeof eventIdHeader !== "string" || !eventIdHeader || eventIdHeader.length > 200 || !Buffer.isBuffer(req.body)) return res.status(400).json({ error: "Invalid webhook configuration or payload" });
+  const eventId = String(eventIdHeader);
   const expected = crypto.createHmac("sha256", secret).update(req.body).digest("hex"); const expectedBuf = Buffer.from(expected, "hex"); const givenBuf = Buffer.from(signature, "hex");
   if (expectedBuf.length !== givenBuf.length || !crypto.timingSafeEqual(expectedBuf, givenBuf)) return res.status(400).json({ error: "Invalid webhook signature" });
+  const alreadyProcessed = await prisma.razorpayWebhookEvent.findUnique({ where: { eventId } }); if (alreadyProcessed) return res.json({ ok: true, duplicate: true });
   let event: any; try { event = JSON.parse(req.body.toString("utf8")); } catch { return res.status(400).json({ error: "Invalid JSON" }); }
-  try { await prisma.razorpayWebhookEvent.create({ data: { eventId: String(eventId).slice(0, 200), eventType: String(event?.event || "unknown") } }); }
-  catch (err: any) { if (err?.code === "P2002") return res.json({ ok: true, duplicate: true }); throw err; }
-  if (event?.event !== "payment.captured" && event?.event !== "order.paid") return res.json({ ok: true });
+  if (event?.event !== "payment.captured" && event?.event !== "order.paid") {
+    await prisma.razorpayWebhookEvent.create({ data: { eventId, eventType: String(event?.event || "unknown") } });
+    return res.json({ ok: true });
+  }
   const payment = event?.payload?.payment?.entity; const order = event?.payload?.order?.entity; const paymentId = payment?.id; const orderId = payment?.order_id ?? order?.id; const status = payment?.status; const amountPaise = Number(payment?.amount ?? order?.amount);
   if (!paymentId || !orderId || status !== "captured" || !Number.isSafeInteger(amountPaise) || amountPaise < 100) return res.status(400).json({ error: "Incomplete payment event" });
-  const existing = await prisma.donation.findUnique({ where: { razorpayOrderId: orderId } }); if (!existing) return res.status(404).json({ error: "Unknown order" }); if (existing.status === "paid") return res.json({ ok: true });
+  const existing = await prisma.donation.findUnique({ where: { razorpayOrderId: orderId } }); if (!existing) return res.status(404).json({ error: "Unknown order" }); if (existing.status === "paid") { try { await prisma.razorpayWebhookEvent.create({ data: { eventId, eventType: String(event.event) } }); } catch (err: any) { if (err?.code !== "P2002") throw err; } return res.json({ ok: true }); }
   if (existing.amountRupees * 100 !== amountPaise) return res.status(400).json({ error: "Payment amount mismatch" });
-  const donation = await prisma.donation.update({ where: { razorpayOrderId: orderId }, data: { razorpayPaymentId: paymentId, status: "paid" } }); if (donation.userId) await prisma.user.update({ where: { id: donation.userId }, data: { hasDonated: true } }); return res.json({ ok: true });
+  const donation = await prisma.donation.update({ where: { razorpayOrderId: orderId }, data: { razorpayPaymentId: paymentId, status: "paid" } });
+  if (donation.userId) await prisma.user.update({ where: { id: donation.userId }, data: { hasDonated: true } });
+  try { await prisma.razorpayWebhookEvent.create({ data: { eventId, eventType: String(event.event) } }); } catch (err: any) { if (err?.code !== "P2002") throw err; }
+  return res.json({ ok: true });
 });
 router.get("/me", requireAuth, async (req: AuthRequest, res: Response) => { const donations = await prisma.donation.findMany({ where: { userId: req.userId, status: "paid" }, orderBy: { createdAt: "desc" }, select: { id: true, amountRupees: true, status: true, createdAt: true } }); res.json(donations); });
 export default router;
