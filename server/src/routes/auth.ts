@@ -47,7 +47,7 @@ router.post("/register", async (req: Request, res: Response): Promise<any> => {
   const passwordHash = await hashPassword(password);
   const otp = crypto.randomInt(100000, 999999).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-  await prisma.otpToken.upsert({ where: { email: normalEmail }, update: { token: hashCode(otp), expiresAt, username: username.trim(), passwordHash, attempts: 0, lastSentAt: new Date() }, create: { email: normalEmail, token: hashCode(otp), expiresAt, username: username.trim(), passwordHash } });
+  await prisma.otpToken.upsert({ where: { email: normalEmail }, update: { token: hashCode(otp), expiresAt, username: username.trim(), passwordHash, legalVersion: currentLegalVersion, attempts: 0, lastSentAt: new Date() }, create: { email: normalEmail, token: hashCode(otp), expiresAt, username: username.trim(), passwordHash, legalVersion: currentLegalVersion } });
   try { await sendOtpEmail(normalEmail, otp); } catch (err) { console.error("Failed to send OTP email:", err); return res.status(500).json({ error: "Couldn't send verification email. Check SMTP settings." }); }
   res.json({ success: true, email: normalEmail });
 });
@@ -63,8 +63,9 @@ router.post("/verify-otp", async (req: Request, res: Response): Promise<any> => 
   if (!row) return res.status(400).json({ error: "No pending registration for this email." });
   if (row.expiresAt < new Date()) { await prisma.otpToken.delete({ where: { email: normalEmail } }); return res.status(400).json({ error: "Code expired. Request a new one." }); }
   if (row.attempts >= MAX_CODE_ATTEMPTS) { await prisma.otpToken.delete({ where: { email: normalEmail } }); return res.status(429).json({ error: "Too many incorrect attempts. Request a new code." }); }
+  if (!row.legalVersion || row.legalVersion !== currentLegalVersion) { await prisma.otpToken.delete({ where: { email: normalEmail } }); return res.status(409).json({ error: "The legal policies changed while you were verifying your email. Please start registration again." }); }
   if (!codesMatch(String(token), row.token)) { await prisma.otpToken.update({ where: { email: normalEmail }, data: { attempts: { increment: 1 } } }); return res.status(400).json({ error: "Invalid code." }); }
-  const user = await prisma.user.create({ data: { email: row.email, username: row.username, passwordHash: row.passwordHash, termsAcceptedVersion: currentLegalVersion, privacyAcceptedVersion: currentLegalVersion, refundAcceptedVersion: currentLegalVersion, legalAcceptedAt: new Date() } });
+  const user = await prisma.user.create({ data: { email: row.email, username: row.username, passwordHash: row.passwordHash, termsAcceptedVersion: row.legalVersion, privacyAcceptedVersion: row.legalVersion, refundAcceptedVersion: row.legalVersion, legalAcceptedAt: new Date() } });
   await prisma.otpToken.delete({ where: { email: normalEmail } });
   setAuthCookie(res, sign(user));
   res.json({ user: publicUser(user) });
@@ -74,8 +75,10 @@ router.post("/resend-otp", async (req: Request, res: Response): Promise<any> => 
   const ip = clientIp(req); const ipLimit = await checkRateLimit(`resend-otp:ip:${ip}`, 5, 15 * 60 * 1000);
   if (!ipLimit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
   const { email } = req.body; const normalEmail = String(email || "").trim().toLowerCase();
+  const currentLegalVersion = await getCurrentLegalVersion();
   const row = await prisma.otpToken.findUnique({ where: { email: normalEmail } });
   if (!row) return res.status(400).json({ error: "No pending registration found." });
+  if (!row.legalVersion || row.legalVersion !== currentLegalVersion) return res.status(409).json({ error: "The legal policies changed. Please start registration again so your acceptance is current." });
   if (Date.now() - row.lastSentAt.getTime() < RESEND_COOLDOWN_MS) return res.status(429).json({ error: "Please wait before requesting another code." });
   const otp = crypto.randomInt(100000, 999999).toString(); const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
   await prisma.otpToken.update({ where: { email: normalEmail }, data: { token: hashCode(otp), expiresAt, attempts: 0, lastSentAt: new Date() } });
