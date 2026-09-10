@@ -23,9 +23,6 @@ async function request(path: string, opts: RequestInit = {}) {
   if (opts.body && !(opts.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
   if (isMutation && !getCsrfToken()) {
-    // A user can click a mutation before the first background GET finishes.
-    // The health request is cheap and causes the server to mint the CSRF
-    // cookie, after which the real mutation can proceed normally.
     await fetch(`${BASE}/health`, { credentials: "include", cache: "no-store" });
   }
   if (isMutation) {
@@ -73,7 +70,7 @@ async function legalPayload(payload: Record<string, unknown>) {
 export const api = {
   register: async (username: string, email: string, password: string, legalVersion?: string) =>
     request("/auth/register", { method: "POST", body: JSON.stringify(await legalPayload({ username, email, password, ...(legalVersion ? { legalVersion } : {}) })) }),
-  verifyOtp: (email: string, token: string) => request("/auth/verify-otp", { method: "POST", body: JSON.stringify({ email, token }) }),
+  verifyOtp: async (email: string, token: string) => request("/auth/verify-otp", { method: "POST", body: JSON.stringify({ email, token }) }),
   resendOtp: (email: string) => request("/auth/resend-otp", { method: "POST", body: JSON.stringify({ email }) }),
   login: async (identifier: string, password: string, legalVersion?: string) =>
     request("/auth/login", { method: "POST", body: JSON.stringify(await legalPayload({ identifier, password, ...(legalVersion ? { legalVersion } : {}) })) }),
@@ -96,6 +93,11 @@ export const api = {
   verifyDonation: (payload: unknown) => request("/donations/verify", { method: "POST", body: JSON.stringify(payload) }),
   myDonations: () => request("/donations/me"),
   legalPage: (slug: string) => request(`/legal/${slug}`),
+  privacyExport: () => request("/privacy/export"),
+  privacyRequests: () => request("/privacy/requests"),
+  createPrivacyRequest: (type: string, details?: string) => request("/privacy/requests", { method: "POST", body: JSON.stringify({ type, details: details ?? "" }) }),
+  adminPrivacyRequests: () => request("/privacy/admin-requests"),
+  adminUpdatePrivacyRequest: (id: string, status: string) => request(`/privacy/admin-requests/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
   adminUsers: () => request("/admin/users"),
   adminCreateUser: (payload: { email: string; username: string; password: string }) => request("/admin/users", { method: "POST", body: JSON.stringify(payload) }),
   adminDeleteUser: (id: string) => request(`/admin/users/${id}`, { method: "DELETE" }),
