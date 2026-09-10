@@ -9,19 +9,23 @@ generator client {
 }
 
 model User {
-  id           String       @id @default(uuid())
-  email        String       @unique
-  username     String       @unique
-  passwordHash String?
-  googleId     String?      @unique
-  avatarUrl    String?
-  role         String       @default("USER")
-  hasDonated   Boolean      @default(false)
-  sessionVersion Int        @default(0)
-  createdAt    DateTime     @default(now())
+  id                     String       @id @default(uuid())
+  email                  String       @unique
+  username               String       @unique
+  passwordHash           String?
+  googleId               String?      @unique
+  avatarUrl              String?
+  role                   String       @default("USER")
+  hasDonated             Boolean      @default(false)
+  sessionVersion         Int          @default(0)
+  termsAcceptedVersion   String?
+  privacyAcceptedVersion String?
+  refundAcceptedVersion  String?
+  legalAcceptedAt        DateTime?
+  createdAt              DateTime     @default(now())
 
-  tests        TypingTest[]
-  donations    Donation[]
+  tests                  TypingTest[]
+  donations              Donation[]
 }
 
 model Sheet {
@@ -37,20 +41,17 @@ model Sheet {
   tests      TypingTest[]
 }
 
-// Every completed test by a logged-in user is linked via userId and
-// shown in their profile/dashboard history. Guest tests have userId = null
-// and are never shown on any account.
 model TypingTest {
   id          String   @id @default(uuid())
   userId      String?
   sheetId     Int
-  mode        String   @default("paper") // "paper" (paper to screen) | "screen" (screen to screen)
+  mode        String   @default("paper")
   wpm         Float
   rawWpm      Float
   accuracy    Float
   errors      Int
   durationSec Int
-  secondStats String   // JSON string: [{sec, wpm, raw, errors}]
+  secondStats String
   createdAt   DateTime @default(now())
 
   user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -59,8 +60,6 @@ model TypingTest {
   @@index([userId])
 }
 
-// Single-row table holding site-wide settings editable only by the owner
-// (vion4712@gmail.com) via /payedit. Razorpay keys, donation blurb text.
 model Settings {
   id                    Int      @id @default(1)
   razorpayKeyId         String?
@@ -84,25 +83,18 @@ model Donation {
   amountRupees      Int
   razorpayOrderId   String   @unique
   razorpayPaymentId String?
-  status            String   @default("created") // created | paid | failed
+  status            String   @default("created")
   createdAt         DateTime @default(now())
 
   user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
-// Editable legal page content (privacy / refund / terms), managed from
-// /admin -> Editor by the owner. slug is one of: "privacy", "refund", "terms".
-// content is plain text with blank-line-separated paragraphs, rendered
-// as one <p> per paragraph on the public page.
 model LegalPage {
   slug      String   @id
   content   String
   updatedAt DateTime @updatedAt
 }
 
-// Pending email/password registration awaiting OTP confirmation — mirrors
-// deathsmp-web's otp_tokens table. Row is deleted once verified, or
-// overwritten if the same email registers again before confirming.
 model OtpToken {
   email        String   @id
   token        String
@@ -113,11 +105,6 @@ model OtpToken {
   lastSentAt   DateTime @default(now())
 }
 
-// DB-backed rate-limit counters. A fixed window per key (e.g.
-// "login:ip:1.2.3.4" or "login:acct:someuser"). Needed because Vercel
-// serverless functions share no in-process memory between invocations,
-// so an in-memory Map would reset every cold start and not be shared
-// across concurrent instances.
 model RateLimit {
   key         String   @id
   count       Int      @default(0)
