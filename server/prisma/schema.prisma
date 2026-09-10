@@ -104,6 +104,7 @@ model OtpToken {
   expiresAt    DateTime
   username     String
   passwordHash String
+  legalVersion String?
   attempts     Int      @default(0)
   lastSentAt   DateTime @default(now())
 }
