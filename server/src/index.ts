@@ -14,6 +14,7 @@ import adminRoutes from "./routes/admin";
 import legalRoutes from "./routes/legal";
 import accountRoutes from "./routes/account";
 import bugReportRoutes from "./routes/bugreport";
+
 validateConfig();
 const app = express();
 app.disable("x-powered-by");
@@ -56,4 +57,10 @@ app.use("/api/account", accountRoutes);
 app.use("/api/bugreport", bugReportRoutes);
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => { console.error("Unhandled request error:", err?.message || err); if (res.headersSent) return next(err); const status = Number.isInteger(err?.statusCode) ? err.statusCode : 500; res.status(status).json({ error: status >= 500 ? "Internal server error" : String(err?.message || "Request failed") }); });
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+
+// Vercel imports this Express application as the serverless handler.
+// Keep the local Node entrypoint for normal development/production servers.
+export default app;
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+}
