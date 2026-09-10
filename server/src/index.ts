@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import { validateConfig } from "./lib/validateConfig";
 import { ensureDbSchema } from "./lib/ensureDbSchema";
 import { ensureCsrfCookie, requireCsrf } from "./lib/csrf";
+import { prisma } from "./lib/db";
 import authRoutes from "./routes/auth";
 import sheetsRoutes from "./routes/sheets";
 import testsRoutes from "./routes/tests";
@@ -69,7 +70,25 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/legal", legalRoutes);
 app.use("/api/account", accountRoutes);
 app.use("/api/bugreport", bugReportRoutes);
-app.get("/api/health", (req, res) => res.json({ ok: true }));
+
+app.get("/api/health", async (_req, res) => {
+  const checks: Record<string, boolean> = { schema: false, rawQuery: false, settings: false, legal: false };
+  try {
+    await ensureDbSchema();
+    checks.schema = true;
+    await prisma.$queryRaw`SELECT 1`;
+    checks.rawQuery = true;
+    await prisma.settings.findUnique({ where: { id: 1 } });
+    checks.settings = true;
+    await prisma.legalPage.findUnique({ where: { slug: "terms" } });
+    checks.legal = true;
+  } catch (error) {
+    console.error("Database health check failed:", error);
+  }
+  const ok = Object.values(checks).every(Boolean);
+  res.status(ok ? 200 : 503).json({ ok, checks });
+});
+
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => { console.error("Unhandled request error:", err?.message || err); if (res.headersSent) return next(err); const status = Number.isInteger(err?.statusCode) ? err.statusCode : 500; res.status(status).json({ error: status >= 500 ? "Internal server error" : String(err?.message || "Request failed") }); });
 
 // Vercel imports this Express application as the serverless handler.
