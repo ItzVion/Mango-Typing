@@ -9,7 +9,7 @@ import { setAuthCookie, clearAuthCookie } from "../lib/authCookie";
 import { prisma } from "../lib/db";
 import { hashCode, codesMatch, MAX_CODE_ATTEMPTS, RESEND_COOLDOWN_MS } from "../lib/otp";
 import { checkRateLimit, clientIp } from "../lib/rateLimit";
-import { LEGAL_VERSION } from "../lib/legal";
+import { getCurrentLegalVersion } from "../lib/legal";
 import { hashPassword, verifyPassword, isModernPasswordHash, MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from "../lib/password";
 
 const router = Router();
@@ -30,10 +30,11 @@ router.post("/register", async (req: Request, res: Response): Promise<any> => {
   const ipLimit = await checkRateLimit(`register:ip:${ip}`, 5, 15 * 60 * 1000);
   if (!ipLimit.ok) return res.status(429).json({ error: "Too many registration attempts. Please try again later." });
   const { username, email, password, legalVersion } = req.body;
+  const currentLegalVersion = await getCurrentLegalVersion();
   if (!username || !email || !password) return res.status(400).json({ error: "All fields required" });
   if (username.trim().length < 3 || username.trim().length > 32) return res.status(400).json({ error: "Username must be between 3 and 32 characters." });
   if (password.length < MIN_PASSWORD_LENGTH || password.length > MAX_PASSWORD_LENGTH) return res.status(400).json({ error: `Password must be between ${MIN_PASSWORD_LENGTH} and ${MAX_PASSWORD_LENGTH} characters.` });
-  if (legalVersion !== LEGAL_VERSION) return res.status(400).json({ error: "Please accept the current legal policies before creating an account." });
+  if (legalVersion !== currentLegalVersion) return res.status(400).json({ error: "Please accept the current legal policies before creating an account." });
   const normalEmail = String(email).trim().toLowerCase();
   if (normalEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalEmail)) return res.status(400).json({ error: "Enter a valid email address." });
   const existingUsername = await prisma.user.findUnique({ where: { username: username.trim() } });
@@ -56,13 +57,14 @@ router.post("/verify-otp", async (req: Request, res: Response): Promise<any> => 
   const ipLimit = await checkRateLimit(`verify-otp:ip:${ip}`, 10, 15 * 60 * 1000);
   if (!ipLimit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
   const { email, token } = req.body;
+  const currentLegalVersion = await getCurrentLegalVersion();
   const normalEmail = String(email || "").trim().toLowerCase();
   const row = await prisma.otpToken.findUnique({ where: { email: normalEmail } });
   if (!row) return res.status(400).json({ error: "No pending registration for this email." });
   if (row.expiresAt < new Date()) { await prisma.otpToken.delete({ where: { email: normalEmail } }); return res.status(400).json({ error: "Code expired. Request a new one." }); }
   if (row.attempts >= MAX_CODE_ATTEMPTS) { await prisma.otpToken.delete({ where: { email: normalEmail } }); return res.status(429).json({ error: "Too many incorrect attempts. Request a new code." }); }
   if (!codesMatch(String(token), row.token)) { await prisma.otpToken.update({ where: { email: normalEmail }, data: { attempts: { increment: 1 } } }); return res.status(400).json({ error: "Invalid code." }); }
-  const user = await prisma.user.create({ data: { email: row.email, username: row.username, passwordHash: row.passwordHash, termsAcceptedVersion: LEGAL_VERSION, privacyAcceptedVersion: LEGAL_VERSION, refundAcceptedVersion: LEGAL_VERSION, legalAcceptedAt: new Date() } });
+  const user = await prisma.user.create({ data: { email: row.email, username: row.username, passwordHash: row.passwordHash, termsAcceptedVersion: currentLegalVersion, privacyAcceptedVersion: currentLegalVersion, refundAcceptedVersion: currentLegalVersion, legalAcceptedAt: new Date() } });
   await prisma.otpToken.delete({ where: { email: normalEmail } });
   setAuthCookie(res, sign(user));
   res.json({ user: publicUser(user) });
@@ -83,10 +85,11 @@ router.post("/resend-otp", async (req: Request, res: Response): Promise<any> => 
 
 router.post("/login", async (req: Request, res: Response): Promise<any> => {
   const { identifier, email, password, legalVersion } = req.body;
+  const currentLegalVersion = await getCurrentLegalVersion();
   const id = String(identifier ?? email ?? "").trim();
   if (!id || !password) return res.status(400).json({ error: "All fields required." });
   if (id.length > 320 || String(password).length < MIN_PASSWORD_LENGTH || String(password).length > MAX_PASSWORD_LENGTH) return res.status(400).json({ error: "Invalid credentials." });
-  if (legalVersion !== LEGAL_VERSION) return res.status(400).json({ error: "Please accept the current legal policies before signing in." });
+  if (legalVersion !== currentLegalVersion) return res.status(400).json({ error: "Please accept the current legal policies before signing in." });
   const ip = clientIp(req); const ipLimit = await checkRateLimit(`login:ip:${ip}`, 20, 5 * 60 * 1000); if (!ipLimit.ok) return res.status(429).json({ error: "Too many login attempts. Please try again later." });
   const acctLimit = await checkRateLimit(`login:acct:${id.toLowerCase()}`, 8, 15 * 60 * 1000); if (!acctLimit.ok) return res.status(429).json({ error: "Too many login attempts. Please try again later." });
   const user = id.includes("@") ? await prisma.user.findUnique({ where: { email: id.toLowerCase() } }) : await prisma.user.findUnique({ where: { username: id } });
@@ -94,8 +97,8 @@ router.post("/login", async (req: Request, res: Response): Promise<any> => {
   let valid = await verifyPassword(password, user.passwordHash); if (!valid && user.passwordHash.startsWith("$2")) valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) return res.status(400).json({ error: "Invalid username/email or password." });
   if (!isModernPasswordHash(user.passwordHash)) { try { await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password) } }); } catch (err) { console.error("Failed to upgrade legacy password hash:", err); } }
-  await prisma.user.update({ where: { id: user.id }, data: { termsAcceptedVersion: LEGAL_VERSION, privacyAcceptedVersion: LEGAL_VERSION, refundAcceptedVersion: LEGAL_VERSION, legalAcceptedAt: new Date() } });
-  setAuthCookie(res, sign(user)); res.json({ user: publicUser(user) });
+  const refreshed = await prisma.user.update({ where: { id: user.id }, data: { termsAcceptedVersion: currentLegalVersion, privacyAcceptedVersion: currentLegalVersion, refundAcceptedVersion: currentLegalVersion, legalAcceptedAt: new Date() } });
+  setAuthCookie(res, sign(refreshed)); res.json({ user: publicUser(refreshed) });
 });
 
 router.get("/me", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => { const user = await prisma.user.findUnique({ where: { id: req.userId } }); if (!user) return res.status(404).json({ error: "User not found" }); res.json(publicUser(user)); });
@@ -104,16 +107,15 @@ router.post("/google", async (req: Request, res: Response): Promise<any> => {
   const ipLimit = await checkRateLimit(`google:ip:${clientIp(req)}`, 20, 15 * 60 * 1000); if (!ipLimit.ok) return res.status(429).json({ error: "Too many Google sign-in attempts. Please try again later." });
   if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: "Google Sign-In not configured on this server yet" });
   const { credential, legalVersion } = req.body; if (!credential) return res.status(400).json({ error: "Missing credential" });
-  if (legalVersion !== LEGAL_VERSION) return res.status(400).json({ error: "Please accept the current legal policies before signing in with Google." });
+  const currentLegalVersion = await getCurrentLegalVersion();
+  if (legalVersion !== currentLegalVersion) return res.status(400).json({ error: "Please accept the current legal policies before signing in with Google." });
   let payload; try { const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID }); payload = ticket.getPayload(); } catch { return res.status(400).json({ error: "Invalid Google token" }); }
   if (!payload?.email || payload.email_verified !== true) return res.status(400).json({ error: "Google account email is not verified." });
   const googleEmail = payload.email.toLowerCase();
   let user = await prisma.user.findFirst({ where: { OR: [{ googleId: payload.sub }, { email: googleEmail }] } });
   if (!user) { const base = googleEmail.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "") || "user"; let suggestedUsername = base; let n = 1; while (await prisma.user.findUnique({ where: { username: suggestedUsername } })) suggestedUsername = `${base}${n++}`; return res.json({ needsSetup: true, email: googleEmail, suggestedUsername }); }
   if (!user.googleId) user = await prisma.user.update({ where: { id: user.id }, data: { googleId: payload.sub, avatarUrl: user.avatarUrl ?? payload.picture ?? null } });
-  await prisma.user.update({ where: { id: user.id }, data: { termsAcceptedVersion: LEGAL_VERSION, privacyAcceptedVersion: LEGAL_VERSION, refundAcceptedVersion: LEGAL_VERSION, legalAcceptedAt: new Date() } });
-  const refreshed = await prisma.user.findUnique({ where: { id: user.id } });
-  if (!refreshed) return res.status(404).json({ error: "User not found" });
+  const refreshed = await prisma.user.update({ where: { id: user.id }, data: { termsAcceptedVersion: currentLegalVersion, privacyAcceptedVersion: currentLegalVersion, refundAcceptedVersion: currentLegalVersion, legalAcceptedAt: new Date() } });
   setAuthCookie(res, sign(refreshed)); res.json({ user: publicUser(refreshed) });
 });
 
@@ -121,17 +123,18 @@ router.post("/google/complete", async (req: Request, res: Response): Promise<any
   const ipLimit = await checkRateLimit(`google-complete:ip:${clientIp(req)}`, 10, 15 * 60 * 1000); if (!ipLimit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
   if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: "Google Sign-In not configured on this server yet" });
   const { credential, username, password, legalVersion } = req.body;
+  const currentLegalVersion = await getCurrentLegalVersion();
   if (!credential || !username || !password) return res.status(400).json({ error: "All fields required" });
   if (username.trim().length < 3 || username.trim().length > 32) return res.status(400).json({ error: "Username must be between 3 and 32 characters." });
   if (password.length < MIN_PASSWORD_LENGTH || password.length > MAX_PASSWORD_LENGTH) return res.status(400).json({ error: `Password must be between ${MIN_PASSWORD_LENGTH} and ${MAX_PASSWORD_LENGTH} characters.` });
-  if (legalVersion !== LEGAL_VERSION) return res.status(400).json({ error: "Please accept the current legal policies before creating an account." });
+  if (legalVersion !== currentLegalVersion) return res.status(400).json({ error: "Please accept the current legal policies before creating an account." });
   let payload; try { const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID }); payload = ticket.getPayload(); } catch { return res.status(400).json({ error: "Invalid Google token" }); }
   if (!payload?.email || payload.email_verified !== true) return res.status(400).json({ error: "Google account email is not verified." });
   const googleEmail = payload.email.toLowerCase();
   const existing = await prisma.user.findFirst({ where: { OR: [{ googleId: payload.sub }, { email: googleEmail }] } }); if (existing) return res.status(400).json({ error: "An account with this Google email already exists." });
   const existingUsername = await prisma.user.findUnique({ where: { username: username.trim() } }); if (existingUsername) return res.status(400).json({ error: "That username is already taken." });
   const passwordHash = await hashPassword(password);
-  const user = await prisma.user.create({ data: { email: googleEmail, username: username.trim(), passwordHash, googleId: payload.sub, avatarUrl: payload.picture ?? null, termsAcceptedVersion: LEGAL_VERSION, privacyAcceptedVersion: LEGAL_VERSION, refundAcceptedVersion: LEGAL_VERSION, legalAcceptedAt: new Date() } });
+  const user = await prisma.user.create({ data: { email: googleEmail, username: username.trim(), passwordHash, googleId: payload.sub, avatarUrl: payload.picture ?? null, termsAcceptedVersion: currentLegalVersion, privacyAcceptedVersion: currentLegalVersion, refundAcceptedVersion: currentLegalVersion, legalAcceptedAt: new Date() } });
   setAuthCookie(res, sign(user)); res.json({ user: publicUser(user) });
 });
 
