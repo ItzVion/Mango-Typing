@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { hashPassword, MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from "../lib/password";
 import { requireOwner, AuthRequest } from "../middleware/auth";
 import { prisma } from "../lib/db";
-import { DEFAULT_LEGAL, getCurrentLegalVersion, clearLegalVersionCache } from "../lib/legal";
+import { DEFAULT_LEGAL, LEGAL_VERSION, getCurrentLegalVersion, clearLegalVersionCache } from "../lib/legal";
 
 const router = Router();
 
