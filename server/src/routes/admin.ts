@@ -21,9 +21,8 @@ router.post("/users", requireOwner, async (req: AuthRequest, res: Response): Pro
   if (trimmedUsername.length < 3 || trimmedUsername.length > 32) return res.status(400).json({ error: "Username must be between 3 and 32 characters." });
   if (String(password).length < MIN_PASSWORD_LENGTH || String(password).length > MAX_PASSWORD_LENGTH) return res.status(400).json({ error: `Password must be between ${MIN_PASSWORD_LENGTH} and ${MAX_PASSWORD_LENGTH} characters.` });
   const existing = await prisma.user.findFirst({ where: { OR: [{ email: normalEmail }, { username: trimmedUsername }] } }); if (existing) return res.status(400).json({ error: "Username or email already taken" });
-  const legalVersion = await getCurrentLegalVersion();
-  const passwordHash = await hashPassword(password); const user = await prisma.user.create({ data: { email: normalEmail, username: trimmedUsername, passwordHash, termsAcceptedVersion: legalVersion, privacyAcceptedVersion: legalVersion, refundAcceptedVersion: legalVersion, legalAcceptedAt: new Date() } });
-  await audit(req.userId, "ADMIN_USER_CREATE", "User", user.id, { username: user.username, email: user.email });
+  const passwordHash = await hashPassword(password); const user = await prisma.user.create({ data: { email: normalEmail, username: trimmedUsername, passwordHash } });
+  await audit(req.userId, "ADMIN_USER_CREATE", "User", user.id, { username: user.username, email: user.email, legalAcceptance: "required-at-first-user-login" });
   res.json({ id: user.id, username: user.username, email: user.email, role: user.role, hasDonated: user.hasDonated, createdAt: user.createdAt });
 });
 router.delete("/users/:id", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => { const target = await prisma.user.findUnique({ where: { id: req.params.id } }); if (!target) return res.status(404).json({ error: "User not found" }); if (target.role === "OWNER") return res.status(400).json({ error: "Can't delete an owner account" }); await prisma.user.delete({ where: { id: req.params.id } }); await audit(req.userId, "ADMIN_USER_DELETE", "User", target.id, { username: target.username }); res.json({ ok: true }); });
