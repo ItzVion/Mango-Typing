@@ -4,7 +4,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { validateConfig } from "./lib/validateConfig";
-import { ensureDbSchema } from "./lib/ensureDbSchema";
+import { ensureDbSchema, ensureSecuritySchema } from "./lib/ensureDbSchema";
 import { ensureCsrfCookie, requireCsrf } from "./lib/csrf";
 import authRoutes from "./routes/auth";
 import sheetsRoutes from "./routes/sheets";
@@ -39,7 +39,11 @@ app.use(express.json({ limit: "32kb", strict: true }));
 app.use(cookieParser());
 app.use(ensureCsrfCookie);
 
-if (!process.env.VERCEL) {
+if (process.env.VERCEL) {
+  app.use(async (_req, _res, next) => {
+    try { await ensureSecuritySchema(); next(); } catch (error) { next(error); }
+  });
+} else {
   app.use(async (_req, _res, next) => {
     try { await ensureDbSchema(); next(); } catch (error) { next(error); }
   });
