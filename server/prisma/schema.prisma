@@ -26,6 +26,8 @@ model User {
 
   tests                  TypingTest[]
   donations              Donation[]
+  privacyRequests        PrivacyRequest[]
+  auditLogs              AuditLog[]
 }
 
 model Sheet {
@@ -123,4 +125,38 @@ model VerificationCode {
   attempts    Int      @default(0)
 
   @@index([userId, purpose])
+}
+
+model RazorpayWebhookEvent {
+  eventId    String   @id
+  eventType  String
+  receivedAt DateTime @default(now())
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorUserId String?
+  action      String
+  targetType  String?
+  targetId    String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
+}
+
+model PrivacyRequest {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String
+  status      String   @default("OPEN")
+  details     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
 }
