@@ -13,24 +13,15 @@ export const Landing = () => (
       title={`${SITE_NAME} (Mango Typing) – Free Online Typing Test & Practice`}
       description="MangoTyping (Mango Typing) is a free online typing test and practice platform. Take typing tests, improve WPM and accuracy, play typing games, and use a typing tutor."
       path="/"
-      jsonLd={[
-        {
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          name: SITE_NAME,
-          alternateName: ["Mango Typing", "mangotyping", "mango typing", "mangotyping.fun"],
-          url: SITE_ORIGIN,
-        },
-        {
-          "@context": "https://schema.org",
-          "@type": "SoftwareApplication",
-          name: SITE_NAME,
-          applicationCategory: "EducationalApplication",
-          operatingSystem: "Any (web browser)",
-          url: SITE_ORIGIN,
-          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-        },
-      ]}
+      jsonLd={{
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        name: SITE_NAME,
+        applicationCategory: "EducationalApplication",
+        operatingSystem: "Any (web browser)",
+        url: SITE_ORIGIN,
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      }}
     />
     <div className="w-full flex flex-col items-center text-center gap-6 px-6 min-h-[calc(100vh-6rem)] justify-center">
       <motion.div
