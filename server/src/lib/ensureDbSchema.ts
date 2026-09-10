@@ -155,7 +155,10 @@ async function bootstrap() {
   await addColumn("Settings", '"smtpFromName" TEXT');
   await addColumn("LegalPage", '"version" TEXT NOT NULL DEFAULT \'2026-09-10\'');
   await addColumn("OtpToken", '"attempts" INTEGER NOT NULL DEFAULT 0');
-  await addColumn("OtpToken", '"lastSentAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
+  // SQLite does not allow ALTER TABLE ADD COLUMN with a non-constant default.
+  // Use a constant fallback for legacy databases; new rows still receive the
+  // Prisma-side @default(now()) when created normally.
+  await addColumn("OtpToken", '"lastSentAt" DATETIME NOT NULL DEFAULT \'1970-01-01 00:00:00\'');
   await addColumn("VerificationCode", '"attempts" INTEGER NOT NULL DEFAULT 0');
 
   await exec(`CREATE INDEX IF NOT EXISTS "TypingTest_userId_idx" ON "TypingTest" ("userId")`);
