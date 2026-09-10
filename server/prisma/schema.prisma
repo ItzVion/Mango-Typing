@@ -92,6 +92,7 @@ model Donation {
 model LegalPage {
   slug      String   @id
   content   String
+  version   String   @default("2026-09-10")
   updatedAt DateTime @updatedAt
 }
 
