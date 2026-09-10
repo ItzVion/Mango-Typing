@@ -1,5 +1,8 @@
 import crypto from "crypto";
 
+export const MIN_PASSWORD_LENGTH = 8;
+export const MAX_PASSWORD_LENGTH = 25;
+
 const N = 32768;
 const R = 8;
 const P = 1;
