@@ -24,9 +24,6 @@ app.use((req, res, next) => {
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=*");
-  // Google Identity Services uses a popup/postMessage flow. This policy keeps
-  // the opener relationship compatible with the Google button without
-  // weakening the application to arbitrary cross-origin isolation.
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   if (process.env.NODE_ENV === "production" || process.env.VERCEL) res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   next();
@@ -40,19 +37,9 @@ app.use(express.json({ limit: "32kb", strict: true }));
 app.use(cookieParser());
 app.use(ensureCsrfCookie);
 
-// Runtime schema repair is intentionally disabled on Vercel. Running a large
-// series of remote CREATE/ALTER/INDEX statements before every cold function
-// instance made even cheap endpoints feel extremely slow. Production Turso
-// schema changes belong in migrations/deployment, not request middleware.
-// Keep the additive bootstrap for local development/recovery only.
 if (!process.env.VERCEL) {
   app.use(async (_req, _res, next) => {
-    try {
-      await ensureDbSchema();
-      next();
-    } catch (error) {
-      next(error);
-    }
+    try { await ensureDbSchema(); next(); } catch (error) { next(error); }
   });
 }
 
@@ -67,7 +54,10 @@ function requireSafeOrigin(req: express.Request, res: express.Response, next: ex
   return res.status(403).json({ error: "Cross-site request blocked." });
 }
 app.use(requireSafeOrigin);
-app.use(requireCsrf);
+app.use((req, res, next) => {
+  if (req.method === "POST" && req.path === "/api/auth/logout") return next();
+  return requireCsrf(req, res, next);
+});
 app.use("/api/auth", authRoutes);
 app.use("/api/sheets", sheetsRoutes);
 app.use("/api/tests", testsRoutes);
@@ -81,6 +71,4 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => { console.error("Unhandled request error:", err?.message || err); if (res.headersSent) return next(err); const status = Number.isInteger(err?.statusCode) ? err.statusCode : 500; res.status(status).json({ error: status >= 500 ? "Internal server error" : String(err?.message || "Request failed") }); });
 
 export default app;
-if (!process.env.VERCEL) {
-  app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
-}
+if (!process.env.VERCEL) app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
