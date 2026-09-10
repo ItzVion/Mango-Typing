@@ -228,7 +228,7 @@ export const Auth = () => {
 
   return (
     <div className="max-w-4xl mx-auto grid md:grid-cols-2 rounded-2xl overflow-hidden border border-[var(--card-border)]">
-      <Seo title="Sign In" description="Sign in or create your MangoTyping account." path="/auth" noindex />
+      <Seo title="Sign In" description="Sign in or create a MangoTyping account." path="/auth" noindex />
       {/* Left: branded panel with the tilted keyboard illustration */}
       <div className="hidden md:flex relative flex-col justify-between bg-black text-white p-8 overflow-hidden">
         <div className="absolute -right-24 -bottom-24 w-[420px] h-[420px] opacity-90" style={{ transform: "rotate(45deg)" }}>
@@ -357,6 +357,7 @@ export const Auth = () => {
                 type="password"
                 placeholder="Password"
                 value={form.password}
+                maxLength={25}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className={inputClass}
               />
@@ -502,6 +503,7 @@ export const Auth = () => {
                 type="password"
                 placeholder="Password"
                 value={googleSetupForm.password}
+                maxLength={25}
                 onChange={(e) => setGoogleSetupForm({ ...googleSetupForm, password: e.target.value })}
                 className={inputClass}
               />
@@ -518,7 +520,7 @@ export const Auth = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={completeGoogleSetup}
-                disabled={loading || googleSetupForm.username.trim().length < 3 || googleSetupForm.password.length < 6}
+                disabled={loading || googleSetupForm.username.trim().length < 3 || googleSetupForm.password.length < 8}
                 className="bg-black text-white dark:bg-white dark:text-black rounded-xl py-2 font-semibold disabled:opacity-40"
               >
                 {loading ? "Creating account…" : "Finish Sign Up"}
