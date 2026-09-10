@@ -24,8 +24,22 @@ function isBlockedIp(ip: string): boolean {
     if (a === 0) return true;
     return false;
   }
+
   const lower = ip.toLowerCase();
-  return lower === "::1" || lower.startsWith("fe80:") || lower.startsWith("fc") || lower.startsWith("fd");
+
+  // dns.lookup() can return IPv4 addresses as IPv4-mapped IPv6 addresses
+  // (for example ::ffff:127.0.0.1). Normalize those before applying the
+  // IPv4 private/loopback checks, otherwise an SSRF filter can be bypassed.
+  const mappedIpv4 = lower.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (mappedIpv4) return isBlockedIp(mappedIpv4[1]);
+
+  return (
+    lower === "::1" ||
+    lower === "::" ||
+    lower.startsWith("fe80:") ||
+    lower.startsWith("fc") ||
+    lower.startsWith("fd")
+  );
 }
 
 async function assertSmtpHostAllowed(host: string): Promise<void> {
