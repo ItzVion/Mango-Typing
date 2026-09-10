@@ -24,6 +24,10 @@ app.use((req, res, next) => {
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=*");
+  // Google Identity Services uses a popup/postMessage flow. This policy keeps
+  // the opener relationship compatible with the Google button without
+  // weakening the application to arbitrary cross-origin isolation.
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   if (process.env.NODE_ENV === "production" || process.env.VERCEL) res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   next();
 });
@@ -36,17 +40,21 @@ app.use(express.json({ limit: "32kb", strict: true }));
 app.use(cookieParser());
 app.use(ensureCsrfCookie);
 
-// Ensure a Turso database that was provisioned without the latest migrations
-// is usable before any other Prisma-backed route executes. The operation is
-// idempotent and cached for the lifetime of a warm serverless instance.
-app.use(async (_req, _res, next) => {
-  try {
-    await ensureDbSchema();
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
+// Runtime schema repair is intentionally disabled on Vercel. Running a large
+// series of remote CREATE/ALTER/INDEX statements before every cold function
+// instance made even cheap endpoints feel extremely slow. Production Turso
+// schema changes belong in migrations/deployment, not request middleware.
+// Keep the additive bootstrap for local development/recovery only.
+if (!process.env.VERCEL) {
+  app.use(async (_req, _res, next) => {
+    try {
+      await ensureDbSchema();
+      next();
+    } catch (error) {
+      next(error);
+    }
+  });
+}
 
 function requireSafeOrigin(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) return next();
@@ -69,11 +77,9 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/legal", legalRoutes);
 app.use("/api/account", accountRoutes);
 app.use("/api/bugreport", bugReportRoutes);
-app.get("/api/health", (req, res) => res.json({ ok: true }));
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => { console.error("Unhandled request error:", err?.message || err); if (res.headersSent) return next(err); const status = Number.isInteger(err?.statusCode) ? err.statusCode : 500; res.status(status).json({ error: status >= 500 ? "Internal server error" : String(err?.message || "Request failed") }); });
 
-// Vercel imports this Express application as the serverless handler.
-// Keep the local Node entrypoint for normal development/production servers.
 export default app;
 if (!process.env.VERCEL) {
   app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
