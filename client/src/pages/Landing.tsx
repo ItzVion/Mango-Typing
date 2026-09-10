@@ -10,14 +10,15 @@ import { Seo, SITE_ORIGIN, SITE_NAME } from "../components/Seo";
 export const Landing = () => (
   <div className="flex flex-col items-center">
     <Seo
-      title={`${SITE_NAME} – Free Online Typing Test & Practice`}
-      description="MangoTyping is a free online typing test and practice platform. Measure your WPM and accuracy, play typing games, and follow a typing tutor — with your history saved to your account."
+      title={`${SITE_NAME} (Mango Typing) – Free Online Typing Test & Practice`}
+      description="MangoTyping (Mango Typing) is a free online typing test and practice platform. Take typing tests, improve WPM and accuracy, play typing games, and use a typing tutor."
       path="/"
       jsonLd={[
         {
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: SITE_NAME,
+          alternateName: ["Mango Typing", "mangotyping", "mango typing", "mangotyping.fun"],
           url: SITE_ORIGIN,
         },
         {
@@ -45,7 +46,7 @@ export const Landing = () => (
         transition={{ delay: 0.25, duration: 0.5 }}
         className="text-black/50 max-w-md"
       >
-        Typing tests, games, and a tutor — all in one place. WPM, accuracy, and full history saved to your account.
+        MangoTyping is a free online typing test and practice site with typing games, a typing tutor, WPM tracking, and accuracy scores.
       </motion.p>
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
