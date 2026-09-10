@@ -4,7 +4,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { validateConfig } from "./lib/validateConfig";
-import { AUTH_COOKIE_NAME } from "./lib/authCookie";
+import { ensureCsrfCookie, requireCsrf } from "./lib/csrf";
 import authRoutes from "./routes/auth";
 import sheetsRoutes from "./routes/sheets";
 import testsRoutes from "./routes/tests";
@@ -14,77 +14,37 @@ import adminRoutes from "./routes/admin";
 import legalRoutes from "./routes/legal";
 import accountRoutes from "./routes/account";
 import bugReportRoutes from "./routes/bugreport";
-
-// Fails fast (loudly, in the function logs) if a required secret is missing
-// in production/Vercel, instead of quietly running with an insecure default.
 validateConfig();
-
 const app = express();
-// Vercel's edge network sits in front of every request and sets
-// x-forwarded-for itself — trusting the first hop is correct here (this
-// isn't an arbitrary/unknown reverse-proxy chain). This also makes req.ip
-// accurate for any future code that reads it directly, though the rate
-// limiter below uses its own x-forwarded-for read regardless.
+app.disable("x-powered-by");
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=*");
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL) res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  next();
+});
 app.set("trust proxy", 1);
 const PORT = process.env.PORT || 5000;
-
-// No blanket *.vercel.app trust: that pattern matches ANY Vercel project on
-// the internet, not just your own preview deployments — any other Vercel
-// app could send credentialed requests here. List explicit origins only;
-// add a preview URL via ALLOWED_ORIGINS in Vercel's env vars when needed.
-const ALLOWED_ORIGINS = [
-  process.env.CLIENT_URL,
-  "http://localhost:5173",
-  ...(process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? []),
-].filter(Boolean) as string[];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    const ok = ALLOWED_ORIGINS.includes(origin);
-    callback(null, ok);
-  },
-  credentials: true,
-}));
-// Bound JSON request size to reduce memory/CPU abuse. This is intentionally
-// separate from file-upload limits, which are enforced by multer on the
-// avatar endpoint. Normal API payloads are far below this limit.
-app.use(express.json({ limit: "1mb" }));
+const ALLOWED_ORIGINS = [process.env.CLIENT_URL, "http://localhost:5173", ...(process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [])].filter(Boolean) as string[];
+app.use(cors({ origin: (origin, callback) => { if (!origin) return callback(null, true); callback(null, ALLOWED_ORIGINS.includes(origin)); }, credentials: true }));
+app.use("/api/donations/webhook", express.raw({ type: "application/json", limit: "64kb" }));
+app.use(express.json({ limit: "32kb", strict: true }));
 app.use(cookieParser());
-
-// MangoTyping cookie auth / CSRF: SameSite=lax already blocks the cookie being
-// sent on cross-site subrequests (img/fetch/xhr, non-top-level nav), but a
-// plain cross-site <form method=POST> to a same-site target IS still sent
-// under "lax". Since auth now lives in a cookie a browser attaches
-// automatically, state-changing requests get an explicit Origin check as
-// defense-in-depth. Only applies when the request is actually
-// cookie-authenticated.
+app.use(ensureCsrfCookie);
 function requireSafeOrigin(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) return next();
-  const hasAuthCookie = !!(req as any).cookies?.[AUTH_COOKIE_NAME];
-  if (!hasAuthCookie) return next();
   const originHeader = req.headers.origin || req.headers.referer;
-  if (!originHeader) return next(); // SameSite=lax remains the primary defense for these
-  let originValue: string;
-  try {
-    originValue = new URL(originHeader).origin;
-  } catch {
-    return res.status(403).json({ error: "Cross-site request blocked." });
-  }
-  // A request whose Origin host matches the host it was actually sent to is
-  // same-origin by definition — safe regardless of whether CLIENT_URL/
-  // ALLOWED_ORIGINS happens to be configured correctly.
+  if (!originHeader) return res.status(403).json({ error: "Cross-site request blocked." });
+  let originValue: string; try { originValue = new URL(originHeader).origin; } catch { return res.status(403).json({ error: "Cross-site request blocked." }); }
   const requestHost = req.headers.host;
-  try {
-    if (requestHost && new URL(originHeader).host === requestHost) return next();
-  } catch {
-    // fall through to the allowlist check below
-  }
+  if (requestHost && new URL(originHeader).host === requestHost) return next();
   if (ALLOWED_ORIGINS.includes(originValue)) return next();
   return res.status(403).json({ error: "Cross-site request blocked." });
 }
 app.use(requireSafeOrigin);
-
+app.use(requireCsrf);
 app.use("/api/auth", authRoutes);
 app.use("/api/sheets", sheetsRoutes);
 app.use("/api/tests", testsRoutes);
@@ -94,34 +54,6 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/legal", legalRoutes);
 app.use("/api/account", accountRoutes);
 app.use("/api/bugreport", bugReportRoutes);
-
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
-
-// Unmatched /api/* routes -> JSON 404 instead of falling through to index.html
-app.use("/api", (_req, res) => res.status(404).json({ error: "Not found" }));
-
-// Catches every thrown/rejected error from the routes above (including
-// Prisma/Turso connection failures) and always returns JSON instead of
-// letting it become a raw HTML crash page that breaks res.json() on the client.
-// Anything that reaches this handler is an unexpected exception — every
-// intentional/expected error in this codebase already returns its own
-// res.status(...).json(...) directly from within its route, so nothing
-// here has a deliberately-set safe message. Never forward err.message to
-// the client: on a real bug (a DB error, a null-ref, etc.) that can leak
-// internal paths, query fragments, or stack details. Multer's upload
-// errors are the one recognized exception — their messages are written to
-// be shown to users (e.g. "File too large").
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error("Unhandled error:", err);
-  if (res.headersSent) return;
-  if (err?.name === "MulterError") {
-    return res.status(400).json({ error: err.message || "Upload failed." });
-  }
-  res.status(500).json({ error: "Internal server error" });
-});
-
-if (!process.env.VERCEL) {
-  app.listen(PORT, () => console.log(`MANGOTYPING server running on http://localhost:${PORT}`));
-}
-
-export default app;
+app.get("/api/health", (req, res) => res.json({ ok: true }));
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => { console.error("Unhandled request error:", err?.message || err); if (res.headersSent) return next(err); const status = Number.isInteger(err?.statusCode) ? err.statusCode : 500; res.status(status).json({ error: status >= 500 ? "Internal server error" : String(err?.message || "Request failed") }); });
+app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));

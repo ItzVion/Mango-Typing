@@ -1,0 +1,4 @@
+Contact: mailto:support@mangotyping.fun
+Expires: 2027-09-10T00:00:00Z
+Preferred-Languages: en
+Canonical: https://mangotyping.fun/.well-known/security.txt

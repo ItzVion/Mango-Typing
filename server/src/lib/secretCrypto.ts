@@ -1,45 +1,44 @@
 import crypto from "crypto";
 
-// MT-04: Razorpay key secret and SMTP password were previously stored as
-// plaintext in the Settings table — anyone with DB read access (a Turso
-// console login, a leaked DATABASE_URL, a backup dump) could read them
-// directly. This wraps them in AES-256-GCM before they ever touch the DB.
-//
-// Key is derived from JWT_SECRET (already a required, secret env var) with
-// scrypt + a fixed, purpose-specific salt/info string, rather than requiring
-// a brand new env var to be provisioned before this can ship. This keeps the
-// encryption key itself out of the database (it never leaves the server
-// process), which is the actual point — a DB leak alone no longer exposes
-// usable secrets.
-const KEY = crypto.scryptSync(process.env.JWT_SECRET!, "vc-typing:settings-secrets:v1", 32);
 const ALGO = "aes-256-gcm";
-const PREFIX = "enc1:"; // lets decrypt() recognize our format vs. pre-existing plaintext rows
+const PREFIX = "enc2:";
+const LEGACY_PREFIX = "enc1:";
 
-export function encryptSecret(plain: string): string {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv(ALGO, KEY, iv);
-  const ciphertext = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
-  const authTag = cipher.getAuthTag();
-  return PREFIX + [iv, authTag, ciphertext].map((b) => b.toString("base64")).join(".");
+function keyFromEnv(): Buffer {
+  const raw = process.env.SETTINGS_ENCRYPTION_KEY;
+  if (!raw) throw new Error("SETTINGS_ENCRYPTION_KEY is required to encrypt stored secrets.");
+  const key = /^[0-9a-fA-F]{64}$/.test(raw) ? Buffer.from(raw, "hex") : Buffer.from(raw, "base64url");
+  if (key.length !== 32) throw new Error("SETTINGS_ENCRYPTION_KEY must be a 32-byte key (64 hex characters or base64url).");
+  return key;
 }
 
-// Transparently passes through anything not in our envelope format, so
-// secrets saved before this change (plaintext) keep working until the next
-// time they're re-saved from /admin (which always encrypts on write).
+function legacyKey(): Buffer {
+  if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET is required for legacy secret migration.");
+  return crypto.scryptSync(process.env.JWT_SECRET, "vc-typing:settings-secrets:v1", 32, { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
+}
+
+export function isEncryptedSecret(value: string | null | undefined): boolean { return !!value && (value.startsWith(PREFIX) || value.startsWith(LEGACY_PREFIX)); }
+export function generateSettingsEncryptionKey(): string { return crypto.randomBytes(32).toString("base64url"); }
+
+export function encryptSecret(plain: string): string {
+  const key = keyFromEnv(); const iv = crypto.randomBytes(12); const cipher = crypto.createCipheriv(ALGO, key, iv);
+  const ciphertext = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]); const authTag = cipher.getAuthTag();
+  return PREFIX + [iv, authTag, ciphertext].map((b) => b.toString("base64url")).join(".");
+}
+
+function decryptWithKey(value: string, prefix: string, key: Buffer): string | null {
+  try {
+    const [ivB64, tagB64, dataB64] = value.slice(prefix.length).split("."); const iv = Buffer.from(ivB64, "base64url");
+    const authTag = Buffer.from(tagB64, "base64url"); const data = Buffer.from(dataB64, "base64url");
+    if (iv.length !== 12 || authTag.length !== 16) return null;
+    const decipher = crypto.createDecipheriv(ALGO, key, iv); decipher.setAuthTag(authTag);
+    return Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
+  } catch { return null; }
+}
+
 export function decryptSecret(value: string | null | undefined): string | null {
   if (!value) return value ?? null;
-  if (!value.startsWith(PREFIX)) return value;
-  try {
-    const [ivB64, tagB64, dataB64] = value.slice(PREFIX.length).split(".");
-    const iv = Buffer.from(ivB64, "base64");
-    const authTag = Buffer.from(tagB64, "base64");
-    const data = Buffer.from(dataB64, "base64");
-    const decipher = crypto.createDecipheriv(ALGO, KEY, iv);
-    decipher.setAuthTag(authTag);
-    return Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
-  } catch {
-    // Corrupt/unreadable value (e.g. JWT_SECRET rotated) — fail closed rather
-    // than handing back ciphertext as if it were a usable secret.
-    return null;
-  }
+  if (value.startsWith(PREFIX)) return decryptWithKey(value, PREFIX, keyFromEnv());
+  if (value.startsWith(LEGACY_PREFIX)) return decryptWithKey(value, LEGACY_PREFIX, legacyKey());
+  return null;
 }

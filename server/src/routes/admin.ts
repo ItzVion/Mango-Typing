@@ -1,99 +1,25 @@
 import { Router, Request, Response } from "express";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "../lib/password";
 import { requireOwner, AuthRequest } from "../middleware/auth";
 import { prisma } from "../lib/db";
+import { DEFAULT_LEGAL, LEGAL_VERSION } from "../lib/legal";
 
 const router = Router();
-
-const DEFAULT_LEGAL: Record<string, string> = {
-  privacy:
-    "MangoTyping collects only the information needed to run the service: your username, email address, and typing test history if you create an account. Guest tests are not linked to any account.\n\nIf you sign in with Google, we receive your email, name, and profile picture from Google to create or match your account. We never receive your Google password.\n\nIf you donate, payment is processed entirely by Razorpay. We store the donation amount and payment status, but never your card, UPI, or bank details.\n\nWe do not sell or share your data with third parties for advertising. Data is used only to operate MangoTyping's features: saved history, leaderboard-style stats, and donation recognition.\n\nYou can request account deletion at any time by contacting the site owner.",
-  refund:
-    "Donations made through MangoTyping are voluntary contributions toward hosting, domain, and development costs — not a purchase of goods or a service subscription.\n\nBecause of this, donations are generally non-refundable. If a payment was made in error, was charged twice, or failed but still deducted funds, contact the site owner with your payment ID and we'll look into it.\n\nGenuine duplicate or failed-but-charged transactions are refunded via the original payment method through Razorpay.",
-  terms:
-    "MangoTyping is a free typing practice platform offering typing tests, games, and a typing tutor. By using the site you agree to use it fairly and not attempt to disrupt, exploit, or automate abuse of its games, leaderboards, or donation system.\n\nAccounts are personal to you. Don't share credentials or impersonate other users. We may suspend accounts that abuse the service.\n\nGame difficulty and scoring are designed to be fair for everyone — there is no way to pay for an advantage in tests, games, or the tutor. Donations only support the site and award a visual star badge.\n\nThe service is provided \"as is\" without warranty. We may update these terms as the site evolves.",
-};
-
-// ── Users ────────────────────────────────────────────────────────────────
-router.get("/users", requireOwner, async (_req: AuthRequest, res: Response) => {
-  const users = await prisma.user.findMany({
-    orderBy: { createdAt: "desc" },
-    select: { id: true, username: true, email: true, role: true, hasDonated: true, createdAt: true, googleId: true },
-  });
-  res.json(users);
-});
-
+router.get("/users", requireOwner, async (_req: AuthRequest, res: Response) => { const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, username: true, email: true, role: true, hasDonated: true, createdAt: true, googleId: true } }); res.json(users); });
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 router.post("/users", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => {
-  const { email, username, password } = req.body;
-  if (!email || !username || !password) return res.status(400).json({ error: "Missing fields" });
-
-  const normalEmail = String(email).trim().toLowerCase();
-  const trimmedUsername = String(username).trim();
+  const { email, username, password } = req.body; if (!email || !username || !password) return res.status(400).json({ error: "Missing fields" });
+  const normalEmail = String(email).trim().toLowerCase(); const trimmedUsername = String(username).trim();
   if (!EMAIL_RE.test(normalEmail)) return res.status(400).json({ error: "Enter a valid email address." });
-  if (trimmedUsername.length < 3) return res.status(400).json({ error: "Username must be at least 3 characters." });
-  if (String(password).length < 6) return res.status(400).json({ error: "Password must be at least 6 characters." });
-
-  // Same normalized-email / trimmed-username matching as public registration,
-  // so an admin-created account can't collide with (or duplicate) one made
-  // through /auth/register in a different case.
-  const existing = await prisma.user.findFirst({ where: { OR: [{ email: normalEmail }, { username: trimmedUsername }] } });
-  if (existing) return res.status(400).json({ error: "Username or email already taken" });
-
-  const passwordHash = await bcrypt.hash(password, 10);
-  const user = await prisma.user.create({ data: { email: normalEmail, username: trimmedUsername, passwordHash } });
+  if (trimmedUsername.length < 3 || trimmedUsername.length > 32) return res.status(400).json({ error: "Username must be between 3 and 32 characters." });
+  if (String(password).length < 8 || String(password).length > 20) return res.status(400).json({ error: "Password must be between 8 and 20 characters." });
+  const existing = await prisma.user.findFirst({ where: { OR: [{ email: normalEmail }, { username: trimmedUsername }] } }); if (existing) return res.status(400).json({ error: "Username or email already taken" });
+  const passwordHash = await hashPassword(password); const user = await prisma.user.create({ data: { email: normalEmail, username: trimmedUsername, passwordHash } });
   res.json({ id: user.id, username: user.username, email: user.email, role: user.role, hasDonated: user.hasDonated, createdAt: user.createdAt });
 });
-
-router.delete("/users/:id", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => {
-  const target = await prisma.user.findUnique({ where: { id: req.params.id } });
-  if (!target) return res.status(404).json({ error: "User not found" });
-  if (target.role === "OWNER") return res.status(400).json({ error: "Can't delete an owner account" });
-  await prisma.user.delete({ where: { id: req.params.id } });
-  res.json({ ok: true });
-});
-
-// ── Donations ────────────────────────────────────────────────────────────
-router.get("/donations", requireOwner, async (_req: AuthRequest, res: Response) => {
-  const donations = await prisma.donation.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { user: { select: { username: true, email: true } } },
-  });
-  res.json(
-    donations.map((d) => ({
-      id: d.id,
-      amountRupees: d.amountRupees,
-      status: d.status,
-      createdAt: d.createdAt,
-      razorpayPaymentId: d.razorpayPaymentId,
-      username: d.user?.username ?? "Anonymous",
-      email: d.user?.email ?? null,
-      anonymous: !d.user,
-    }))
-  );
-});
-
-// ── Legal pages ──────────────────────────────────────────────────────────
-router.get("/legal/:slug", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => {
-  const slug = req.params.slug;
-  if (!DEFAULT_LEGAL[slug]) return res.status(404).json({ error: "Unknown page" });
-  const row = await prisma.legalPage.findUnique({ where: { slug } });
-  res.json({ slug, content: row?.content ?? DEFAULT_LEGAL[slug] });
-});
-
-router.put("/legal/:slug", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => {
-  const slug = req.params.slug;
-  if (!DEFAULT_LEGAL[slug]) return res.status(404).json({ error: "Unknown page" });
-  const { content } = req.body;
-  if (typeof content !== "string") return res.status(400).json({ error: "Missing content" });
-  const row = await prisma.legalPage.upsert({
-    where: { slug },
-    update: { content },
-    create: { slug, content },
-  });
-  res.json(row);
-});
-
+router.delete("/users/:id", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => { const target = await prisma.user.findUnique({ where: { id: req.params.id } }); if (!target) return res.status(404).json({ error: "User not found" }); if (target.role === "OWNER") return res.status(400).json({ error: "Can't delete an owner account" }); await prisma.user.delete({ where: { id: req.params.id } }); res.json({ ok: true }); });
+router.get("/donations", requireOwner, async (_req: AuthRequest, res: Response) => { const donations = await prisma.donation.findMany({ orderBy: { createdAt: "desc" }, include: { user: { select: { username: true, email: true } } } }); res.json(donations.map((d) => ({ id: d.id, amountRupees: d.amountRupees, status: d.status, createdAt: d.createdAt, razorpayPaymentId: d.razorpayPaymentId, username: d.user?.username ?? "Anonymous", email: d.user?.email ?? null, anonymous: !d.user }))); });
+router.get("/legal/:slug", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => { const slug = req.params.slug; if (!DEFAULT_LEGAL[slug]) return res.status(404).json({ error: "Unknown page" }); const row = await prisma.legalPage.findUnique({ where: { slug } }); res.json({ slug, version: row?.version ?? LEGAL_VERSION, updatedAt: row?.updatedAt ?? null, content: row?.content ?? DEFAULT_LEGAL[slug] }); });
+router.put("/legal/:slug", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => { const slug = req.params.slug; if (!DEFAULT_LEGAL[slug]) return res.status(404).json({ error: "Unknown page" }); const { content } = req.body; if (typeof content !== "string") return res.status(400).json({ error: "Missing content" }); const row = await prisma.legalPage.upsert({ where: { slug }, update: { content, version: LEGAL_VERSION, updatedAt: new Date() }, create: { slug, content, version: LEGAL_VERSION } }); res.json(row); });
 export default router;
 export { DEFAULT_LEGAL };
