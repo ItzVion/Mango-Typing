@@ -1,3 +1,6 @@
+import crypto from "crypto";
+import { prisma } from "./db";
+
 export const LEGAL_VERSION = "2026-09-10";
 
 export const DEFAULT_LEGAL: Record<string, string> = {
@@ -5,3 +8,22 @@ export const DEFAULT_LEGAL: Record<string, string> = {
   refund: `MangoTyping — Refund Policy\nVersion: ${LEGAL_VERSION}\nLast updated: September 10, 2026\n\nMangoTyping donations are voluntary contributions supporting hosting, domains, infrastructure and development. They are not purchases of scores, advantages, subscriptions or guaranteed benefits. Razorpay processes payments and MangoTyping does not intentionally store full card numbers, UPI PINs or bank credentials.\n\nDonations are generally non-refundable, but this does not remove any refund, reversal, chargeback, consumer-protection, payment-network or other right that cannot lawfully be excluded. We may correct duplicate payments, failed-but-charged transactions, unauthorized transactions and technical errors. For payment problems contact support@mangotyping.fun with the Razorpay order/payment identifier, date and amount. Never send card numbers, CVV/CVC, UPI PINs or passwords.`,
   terms: `MangoTyping — Terms of Service\nVersion: ${LEGAL_VERSION}\nLast updated: September 10, 2026\n\nBy using MangoTyping or creating an account, you agree to these Terms, the Privacy Policy and the Refund Policy. MangoTyping provides typing practice, tests, games, tutor content and related features; scores and outputs may contain errors and may change. Keep account credentials secure and do not misuse the service, attempt unauthorized access, interfere with service operation, upload malicious content, impersonate others, or submit information you do not have the right to provide.\n\nYou retain rights in lawful content you submit while granting MangoTyping the limited rights needed to operate and improve the service. Donations are voluntary and governed by the Refund Policy. Third-party services have their own terms. The service is provided without a guarantee of uninterrupted or error-free operation, to the extent permitted by law. We may suspend or terminate accounts for abuse or violations. Nothing in these Terms removes mandatory legal rights. Material changes may require renewed acceptance. Contact support@mangotyping.fun for questions.`
 };
+
+const LEGAL_SLUGS = Object.keys(DEFAULT_LEGAL).sort();
+let cachedVersion: { value: string; expiresAt: number } | null = null;
+const CACHE_TTL_MS = 30_000;
+
+export async function getCurrentLegalVersion(): Promise<string> {
+  const now = Date.now();
+  if (cachedVersion && cachedVersion.expiresAt > now) return cachedVersion.value;
+  const rows = await prisma.legalPage.findMany({ where: { slug: { in: LEGAL_SLUGS } }, select: { slug: true, content: true } });
+  const contents = LEGAL_SLUGS.map((slug) => `${slug}\0${rows.find((row) => row.slug === slug)?.content ?? DEFAULT_LEGAL[slug]}`).join("\0");
+  const digest = crypto.createHash("sha256").update(contents, "utf8").digest("hex").slice(0, 16);
+  const value = `${LEGAL_VERSION}-${digest}`;
+  cachedVersion = { value, expiresAt: now + CACHE_TTL_MS };
+  return value;
+}
+
+export function clearLegalVersionCache() {
+  cachedVersion = null;
+}
