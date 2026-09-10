@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { validateConfig } from "./lib/validateConfig";
+import { ensureDbSchema } from "./lib/ensureDbSchema";
 import { ensureCsrfCookie, requireCsrf } from "./lib/csrf";
 import authRoutes from "./routes/auth";
 import sheetsRoutes from "./routes/sheets";
@@ -34,6 +35,19 @@ app.use("/api/donations/webhook", express.raw({ type: "application/json", limit:
 app.use(express.json({ limit: "32kb", strict: true }));
 app.use(cookieParser());
 app.use(ensureCsrfCookie);
+
+// Ensure a Turso database that was provisioned without the latest migrations
+// is usable before any Prisma-backed route executes. The operation is
+// idempotent and cached for the lifetime of a warm serverless instance.
+app.use(async (_req, _res, next) => {
+  try {
+    await ensureDbSchema();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
 function requireSafeOrigin(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) return next();
   const originHeader = req.headers.origin || req.headers.referer;
