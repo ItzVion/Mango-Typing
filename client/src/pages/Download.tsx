@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import { downloadSheetPdf, downloadAllSheetsPdf } from "../utils/pdf";
 import { BackButton } from "../components/BackButton";
 import { Seo } from "../components/Seo";
+import { LoadingState } from "../components/LoadingState";
 
 type Sheet = { id: number; title: string; topic: string; wordCount: number; difficulty: "easy" | "medium" | "hard" };
 
@@ -17,11 +18,23 @@ const GROUP_ORDER: Sheet["difficulty"][] = ["easy", "medium", "hard"];
 
 export const Download = () => {
   const [sheets, setSheets] = useState<Sheet[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [downloading, setDownloading] = useState<number | "all" | null>(null);
 
-  useEffect(() => {
-    api.sheets().then(setSheets).catch(console.error);
-  }, []);
+  const load = () => {
+    setLoading(true);
+    setLoadError(false);
+    api.sheets()
+      .then(setSheets)
+      .catch((err) => {
+        console.error("Failed to load download sheets:", err);
+        setLoadError(true);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(load, []);
 
   const handleDownload = async (s: Sheet, testNumber: number) => {
     setDownloading(s.id);
@@ -51,48 +64,62 @@ export const Download = () => {
         path="/download"
       />
       <BackButton to="/home" label="Back" />
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">Download Sheets</h1>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={handleDownloadAll}
-          disabled={downloading === "all" || sheets.length === 0}
-          className="px-5 py-2.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm font-semibold"
-        >
-          {downloading === "all" ? "Preparing…" : "Download All (Paper to Screen)"}
-        </motion.button>
-      </div>
 
-      {GROUP_ORDER.map((difficulty) => {
-        const group = sheets.filter((s) => s.difficulty === difficulty);
-        if (group.length === 0) return null;
-        return (
-          <div key={difficulty} className="flex flex-col gap-4">
-            <h2 className="text-lg font-bold uppercase tracking-wide text-black/50 dark:text-white/50">
-              {GROUP_LABELS[difficulty]}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {group.map((s, i) => (
-                <div key={s.id} className="card p-5 flex flex-col gap-2">
-                  <span className="text-black/40 text-xs">{s.topic}</span>
-                  <h3 className="font-semibold">
-                    Typing Test {i + 1} {GROUP_LABELS[difficulty]}
-                  </h3>
-                  <span className="text-black/40 text-xs">{s.wordCount} words</span>
-                  <button
-                    onClick={() => handleDownload(s, i + 1)}
-                    disabled={downloading === s.id}
-                    className="mt-2 px-4 py-2 rounded-xl border border-[var(--card-border)] text-center text-sm font-semibold"
-                  >
-                    {downloading === s.id ? "Preparing…" : "Download PDF (Paper to Screen)"}
-                  </button>
-                </div>
-              ))}
-            </div>
+      {loading ? (
+        <LoadingState label="Loading download sheets…" />
+      ) : loadError ? (
+        <div className="card p-10 flex flex-col items-center gap-3 text-center">
+          <p className="text-black/50 text-sm">Couldn't load the download sheets.</p>
+          <button onClick={load} className="px-5 py-2 rounded-xl card font-semibold text-sm">
+            Retry
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h1 className="text-2xl font-bold">Download Sheets</h1>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleDownloadAll}
+              disabled={downloading === "all" || sheets.length === 0}
+              className="px-5 py-2.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm font-semibold"
+            >
+              {downloading === "all" ? "Preparing…" : "Download All (Paper to Screen)"}
+            </motion.button>
           </div>
-        );
-      })}
+
+          {GROUP_ORDER.map((difficulty) => {
+            const group = sheets.filter((s) => s.difficulty === difficulty);
+            if (group.length === 0) return null;
+            return (
+              <div key={difficulty} className="flex flex-col gap-4">
+                <h2 className="text-lg font-bold uppercase tracking-wide text-black/50 dark:text-white/50">
+                  {GROUP_LABELS[difficulty]}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {group.map((s, i) => (
+                    <div key={s.id} className="card p-5 flex flex-col gap-2">
+                      <span className="text-black/40 text-xs">{s.topic}</span>
+                      <h3 className="font-semibold">
+                        Typing Test {i + 1} {GROUP_LABELS[difficulty]}
+                      </h3>
+                      <span className="text-black/40 text-xs">{s.wordCount} words</span>
+                      <button
+                        onClick={() => handleDownload(s, i + 1)}
+                        disabled={downloading === s.id}
+                        className="mt-2 px-4 py-2 rounded-xl border border-[var(--card-border)] text-center text-sm font-semibold"
+                      >
+                        {downloading === s.id ? "Preparing…" : "Download PDF (Paper to Screen)"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
     </div>
   );
 };
