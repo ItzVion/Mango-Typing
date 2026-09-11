@@ -32,7 +32,7 @@ jobs:
         run: npm ci --prefix client
 
       - name: Generate Prisma client
-        run: npx prisma generate --schema server/prisma/schema.prisma
+        run: ./server/node_modules/.bin/prisma generate --schema server/prisma/schema.prisma
 
       - name: Build server
         run: npm run build --prefix server
