@@ -41,6 +41,7 @@ export default function App() {
   const setAuthInitialized = useAuthStore((s) => s.setAuthInitialized);
   const setAuthError = useAuthStore((s) => s.setAuthError);
   const user = useAuthStore((s) => s.user);
+  const authInitialized = useAuthStore((s) => s.authInitialized);
   const location = useLocation();
   const [maintenance, setMaintenance] = useState(false);
 
@@ -110,7 +111,7 @@ export default function App() {
               <Route path="/home/tutor/:lessonId" element={<LessonRunner />} />
               <Route path="/download" element={<Download />} />
               <Route path="/results" element={<History />} />
-              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth" element={authInitialized && user ? <Navigate to="/" replace /> : <Auth />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/refund" element={<Refund />} />
