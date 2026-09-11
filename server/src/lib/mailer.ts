@@ -21,10 +21,6 @@ export async function getTransporter() {
     port,
     secure,
     auth: { user, pass },
-    // Vercel functions have their own execution time limit — without these,
-    // a stalled SMTP handshake (common with implicit-TLS port 465 from
-    // serverless/cloud IPs) hangs until Vercel kills the function instead of
-    // failing with a clear, catchable error.
     connectionTimeout: 8000,
     greetingTimeout: 8000,
     socketTimeout: 8000,
@@ -32,6 +28,18 @@ export async function getTransporter() {
 
   return { transporter, from: fromName ? `"${fromName}" <${from}>` : from };
 }
+
+const emailShell = (content: string) => `
+  <div style="margin:0;padding:32px 16px;background:#f3f3f0;font-family:Arial,Helvetica,sans-serif;color:#111111;">
+    <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e0;border-radius:20px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.06);">
+      <div style="height:5px;background:#F5A623;font-size:0;line-height:0;">&nbsp;</div>
+      ${content}
+    </div>
+    <div style="max-width:560px;margin:18px auto 0;text-align:center;color:#8a8a84;font-size:11px;line-height:18px;">
+      MangoTyping &bull; Type faster. Have fun.
+    </div>
+  </div>
+`;
 
 // Sent instead of a real OTP when someone tries to register with an email
 // that already has an account (see VC-07) — lets /register always return the
@@ -43,7 +51,15 @@ export async function sendAccountExistsEmail(email: string) {
     from,
     to: email,
     subject: "Someone tried to register with your email — MangoTyping",
-    html: `<div style="background:#0a0a0a;color:#fff;padding:48px 40px;font-family:Inter,sans-serif;max-width:480px;margin:auto;border-radius:16px;border:1px solid rgba(255,255,255,0.08)"><h2 style="margin:0 0 8px;color:#fff;font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em">MangoTyping</h2><p style="margin:0 0 16px;color:#a1a1aa;font-size:14px">Someone just tried to create a new account using this email address, but you already have one.</p><p style="margin:0;color:#71717a;font-size:13px">If this was you, just log in instead. If it wasn't, no action is needed — your account is safe.</p></div>`,
+    html: emailShell(`
+      <div style="padding:34px 36px 36px;">
+        <div style="display:inline-block;background:#111111;color:#F5A623;border-radius:10px;padding:9px 12px;font-size:15px;font-weight:900;letter-spacing:.08em;">MT</div>
+        <div style="margin-top:28px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8a8a84;">Account security</div>
+        <h1 style="margin:8px 0 12px;font-size:27px;line-height:34px;letter-spacing:-.02em;color:#111111;">Your MangoTyping account already exists</h1>
+        <p style="margin:0 0 22px;color:#5f5f59;font-size:15px;line-height:24px;">Someone just tried to create a new account using this email address.</p>
+        <div style="padding:16px 18px;background:#fafaf7;border:1px solid #e8e8e1;border-radius:12px;color:#44443f;font-size:13px;line-height:20px;">If that was you, sign in with your existing account. If it wasn't, no action is needed — your account is safe.</div>
+      </div>
+    `),
   });
 }
 
@@ -53,6 +69,39 @@ export async function sendOtpEmail(email: string, otp: string) {
     from,
     to: email,
     subject: `${otp} is your MangoTyping verification code`,
-    html: `<div style="background:#0a0a0a;color:#fff;padding:48px 40px;font-family:Inter,sans-serif;max-width:480px;margin:auto;border-radius:16px;border:1px solid rgba(255,255,255,0.08)"><h2 style="margin:0 0 8px;color:#fff;font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em">MangoTyping</h2><p style="margin:0 0 32px;color:#71717a;font-size:14px">Verify your email to continue.</p><p style="margin:0 0 12px;color:#a1a1aa;font-size:13px;text-transform:uppercase;letter-spacing:0.15em;font-weight:700">Your code</p><div style="background:#111;border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:24px;text-align:center;letter-spacing:0.5em;font-size:36px;font-weight:900;color:#fff">${otp}</div><p style="margin:24px 0 0;color:#52525b;font-size:13px">Expires in 10 minutes. Never share this code.</p></div>`,
+    html: emailShell(`
+      <div style="padding:34px 36px 36px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td>
+              <div style="display:inline-block;background:#111111;color:#F5A623;border-radius:10px;padding:9px 12px;font-size:15px;font-weight:900;letter-spacing:.08em;">MT</div>
+            </td>
+            <td align="right" style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9a9a93;">Email verification</td>
+          </tr>
+        </table>
+
+        <h1 style="margin:30px 0 8px;font-size:30px;line-height:36px;letter-spacing:-.03em;color:#111111;">Verify your email</h1>
+        <p style="margin:0;color:#666660;font-size:15px;line-height:24px;">Use the verification code below to continue to MangoTyping.</p>
+
+        <div style="margin:28px 0 10px;padding:24px 16px;background:#111111;border-radius:14px;text-align:center;">
+          <div style="margin:0 0 8px;color:#a8a8a1;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;">Your code</div>
+          <div style="color:#ffffff;font-size:38px;line-height:44px;font-weight:800;letter-spacing:.28em;padding-left:.28em;">${otp}</div>
+        </div>
+
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:16px;">
+          <tr>
+            <td valign="top" style="width:24px;color:#F5A623;font-size:16px;font-weight:900;">&#9679;</td>
+            <td style="color:#666660;font-size:13px;line-height:20px;">This code expires in <strong style="color:#33332f;">10 minutes</strong>.</td>
+          </tr>
+          <tr>
+            <td valign="top" style="padding-top:5px;width:24px;color:#F5A623;font-size:16px;font-weight:900;">&#9679;</td>
+            <td style="padding-top:5px;color:#666660;font-size:13px;line-height:20px;">Never share this code with anyone.</td>
+          </tr>
+        </table>
+
+        <div style="height:1px;background:#eeeeea;margin:28px 0 18px;">&nbsp;</div>
+        <p style="margin:0;color:#92928b;font-size:11px;line-height:18px;">You received this email because a verification attempt was made for this address. If you didn't request it, you can safely ignore this email.</p>
+      </div>
+    `),
   });
 }
