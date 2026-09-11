@@ -1,10 +1,8 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 
-// Boxed one-digit-per-cell OTP input, built to match our own design system
-// (dark/light aware via CSS vars, orange accent) rather than a copy-pasted
-// shadcn/base-ui block — same idea (input-otp), our own styling and no new
-// dependency.
+// Polished six-digit OTP control. The styling intentionally stays inside the
+// component so every auth flow gets the same focused, dark-first treatment.
 export const OtpInput = ({
   value,
   onChange,
@@ -46,25 +44,32 @@ export const OtpInput = ({
   };
 
   return (
-    <div className="flex justify-center gap-2" onPaste={handlePaste}>
-      {Array.from({ length }).map((_, i) => (
-        <motion.input
-          key={i}
-          ref={(el) => { refs.current[i] = el; }}
-          value={value[i] ?? ""}
-          onChange={(e) => setDigit(i, e.target.value)}
-          onKeyDown={(e) => handleKeyDown(i, e)}
-          inputMode="numeric"
-          maxLength={1}
-          animate={value[i] ? { scale: [1.15, 1] } : {}}
-          transition={{ duration: 0.15 }}
-          className="w-11 h-14 text-center text-2xl font-bold rounded-xl border outline-none bg-transparent"
-          style={{
-            borderColor: value[i] ? "#F5A623" : "var(--card-border)",
-            color: "var(--text-primary)",
-          }}
-        />
-      ))}
+    <div className="flex justify-center gap-2.5 sm:gap-3" onPaste={handlePaste}>
+      {Array.from({ length }).map((_, i) => {
+        const filled = Boolean(value[i]);
+        return (
+          <motion.input
+            key={i}
+            ref={(el) => { refs.current[i] = el; }}
+            value={value[i] ?? ""}
+            onChange={(e) => setDigit(i, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(i, e)}
+            onFocus={(e) => e.currentTarget.select()}
+            inputMode="numeric"
+            autoComplete={i === 0 ? "one-time-code" : "off"}
+            maxLength={1}
+            animate={filled ? { scale: [1.08, 1] } : { scale: 1 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            className="h-14 w-11 sm:h-16 sm:w-12 rounded-2xl border bg-white/[0.035] text-center text-2xl sm:text-[27px] font-bold tracking-normal outline-none transition-all duration-200 placeholder:text-white/10 focus:bg-white/[0.06] focus:ring-2 focus:ring-[#F5A623]/20"
+            style={{
+              borderColor: filled ? "rgba(245,166,35,.75)" : "var(--card-border)",
+              color: "var(--text-primary)",
+              boxShadow: filled ? "0 0 0 1px rgba(245,166,35,.08), 0 8px 24px rgba(245,166,35,.08)" : "none",
+            }}
+            aria-label={`Verification digit ${i + 1}`}
+          />
+        );
+      })}
     </div>
   );
 };
