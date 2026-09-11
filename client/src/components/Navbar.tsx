@@ -2,10 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
-import { useThemeStore } from "../stores/themeStore";
 import { useTestGuardStore } from "../stores/testGuardStore";
 import { ConfirmModal } from "./ConfirmModal";
-import { SwitchMode } from "./SwitchMode";
 
 // Motion-primitives-style "Magnetic" effect: the element nudges slightly
 // toward the cursor within its own bounds, then springs back on leave.
@@ -29,7 +27,6 @@ export const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { theme } = useThemeStore();
   const testInProgress = useTestGuardStore((s) => s.testInProgress);
   const setTestInProgress = useTestGuardStore((s) => s.setTestInProgress);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -117,7 +114,7 @@ export const Navbar = () => {
             animate={{ x: magnetic.offset.x, y: magnetic.offset.y }}
             transition={{ type: "spring", stiffness: 150, damping: 12 }}
             whileHover={{ rotate: -6, scale: 1.06 }}
-            src={theme === "light" ? "/logo-dark-bg.svg" : "/logo-light-bg.svg"}
+            src="/logo-light-bg.svg"
             alt="MangoTyping"
             className="w-9 h-9 rounded-md"
           />
@@ -144,7 +141,7 @@ export const Navbar = () => {
               {hoveredPath === l.path && (
                 <motion.span
                   layoutId="nav-hover-pill"
-                  className="absolute inset-0 rounded-xl bg-black/5 dark:bg-white/10 -z-10"
+                  className="absolute inset-0 rounded-xl bg-white/10 -z-10"
                   transition={{ type: "spring", stiffness: 500, damping: 35 }}
                 />
               )}
@@ -203,7 +200,7 @@ export const Navbar = () => {
                       handleNavClick(e, l.path);
                       if (!(testInProgress && l.path !== location.pathname)) setMobileNavOpen(false);
                     }}
-                    className="px-4 py-2.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    className="px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors"
                     style={location.pathname === l.path ? { color: "var(--text-primary)" } : { color: "var(--text-muted)" }}
                   >
                     {l.name}
@@ -215,8 +212,6 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 justify-self-end">
-          <SwitchMode />
-
           {user ? (
             <div className="relative" ref={menuRef}>
               <motion.button
@@ -228,7 +223,7 @@ export const Navbar = () => {
                 {user.avatarUrl ? (
                   <img src={user.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
                 ) : (
-                  <span className="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center text-[10px]">
+                  <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">
                     {user.username[0]?.toUpperCase()}
                   </span>
                 )}
@@ -254,20 +249,20 @@ export const Navbar = () => {
                     <Link
                       to="/donations"
                       onClick={() => setMenuOpen(false)}
-                      className="px-4 py-2.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                      className="px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors"
                     >
                       Donation History
                     </Link>
                     <Link
                       to="/settings"
                       onClick={() => setMenuOpen(false)}
-                      className="px-4 py-2.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                      className="px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors"
                     >
                       Settings
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="px-4 py-2.5 text-sm font-semibold text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                      className="px-4 py-2.5 text-sm font-semibold text-left hover:bg-white/5 transition-colors"
                       style={{ color: "var(--error)" }}
                     >
                       Log Out
@@ -293,7 +288,7 @@ export const Navbar = () => {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.15 }}
-        className="text-[11px] sm:text-xs tracking-wide text-black/40 dark:text-white/40 select-none"
+        className="text-[11px] sm:text-xs tracking-wide text-white/40 select-none"
       >
         Practice typing. Track progress. Get faster.
       </motion.p>
