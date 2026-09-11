@@ -8,7 +8,15 @@ const router = Router();
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 1 * 1024 * 1024, files: 5, fields: 8, fieldSize: 16 * 1024 },
+  limits: {
+    fileSize: 1 * 1024 * 1024,
+    files: 5,
+    fields: 8,
+    fieldSize: 16 * 1024,
+    fieldNameSize: 100,
+    parts: 13,
+    fieldArrayIndexLimit: 10,
+  },
   fileFilter: (_req, file, cb) => {
     if (!file.mimetype.startsWith("image/")) return cb(new Error("Only image files are allowed."));
     cb(null, true);
