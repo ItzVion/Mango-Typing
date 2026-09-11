@@ -1,9 +1,10 @@
 import { Routes, Route, useLocation, Navigate, useParams } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 import { BugReportButton } from "./components/BugReportButton";
+import { AnimationLayer } from "./components/AnimationLayer";
 import { Landing } from "./pages/Landing";
 import { Home } from "./pages/Home";
 import { Sheets } from "./pages/Sheets";
@@ -28,7 +29,6 @@ import { NotFound } from "./pages/NotFound";
 import { MaintenancePage } from "./pages/MaintenancePage";
 import { api } from "./api/client";
 import { useAuthStore } from "./stores/authStore";
-import { useState } from "react";
 
 const pageTransition = {
   initial: { opacity: 0, y: 16 },
@@ -76,8 +76,6 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
   }, [location.pathname]);
 
-  // Maintenance mode blocks everyone except the owner and the /auth and
-  // /admin routes, so the owner can always sign in and flip it back off.
   const isOwner = !!user?.isOwner;
   const allowedDuringMaintenance = location.pathname === "/auth" || location.pathname === "/admin";
   if (maintenance && !isOwner && !allowedDuringMaintenance) {
@@ -86,6 +84,7 @@ export default function App() {
 
   return (
     <>
+      <AnimationLayer />
       <Navbar />
       <div className="pt-32 pb-4 px-6 max-w-6xl mx-auto min-h-[70vh]">
         <AnimatePresence mode="wait">
@@ -141,9 +140,6 @@ export default function App() {
   );
 }
 
-// Old dynamic routes (/test/:sheetId, /tutor/:lessonId) redirect to their
-// new nested location under /home, preserving the param so old shared links
-// still land on the right test/lesson instead of a dead end.
 function LegacyTestRedirect() {
   const { sheetId } = useParams();
   return <Navigate to={`/home/tests/${sheetId}`} replace />;
