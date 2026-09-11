@@ -4,6 +4,7 @@ const CSRF_COOKIE_NAME = "mt_csrf";
 const SETTINGS_CACHE_TTL_MS = 30_000;
 let publicSettingsCache: { value: any; expiresAt: number } | null = null;
 let publicSettingsRequest: Promise<any> | null = null;
+let authProcessingDepth = 0;
 
 function getCookie(name: string): string | null {
   const prefix = `${encodeURIComponent(name)}=`;
@@ -13,6 +14,96 @@ function getCookie(name: string): string | null {
 
 export function getCsrfToken(): string | null {
   return getCookie(CSRF_COOKIE_NAME);
+}
+
+function showAuthProcessing(message: string) {
+  authProcessingDepth += 1;
+  if (authProcessingDepth > 1) return;
+
+  const existing = document.getElementById("mt-auth-processing");
+  if (existing) existing.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "mt-auth-processing";
+  overlay.setAttribute("role", "status");
+  overlay.setAttribute("aria-live", "polite");
+  overlay.setAttribute("aria-label", message);
+  Object.assign(overlay.style, {
+    position: "fixed",
+    inset: "0",
+    zIndex: "2147483647",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(0, 0, 0, 0.72)",
+    backdropFilter: "blur(7px)",
+    WebkitBackdropFilter: "blur(7px)",
+    cursor: "wait",
+  });
+
+  const panel = document.createElement("div");
+  Object.assign(panel.style, {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "14px",
+    padding: "28px 34px",
+    border: "1px solid rgba(255, 255, 255, 0.12)",
+    borderRadius: "20px",
+    background: "rgba(22, 22, 22, 0.94)",
+    boxShadow: "0 24px 80px rgba(0, 0, 0, 0.45)",
+    color: "#f5f5f5",
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+    userSelect: "none",
+  });
+
+  const spinner = document.createElement("div");
+  Object.assign(spinner.style, {
+    width: "32px",
+    height: "32px",
+    border: "3px solid rgba(255, 255, 255, 0.16)",
+    borderTopColor: "#F5A623",
+    borderRadius: "50%",
+    animation: "mt-auth-spin 0.75s linear infinite",
+  });
+
+  const text = document.createElement("div");
+  text.textContent = message;
+  Object.assign(text.style, {
+    fontSize: "14px",
+    fontWeight: "600",
+    letterSpacing: "0.01em",
+  });
+
+  const hint = document.createElement("div");
+  hint.textContent = "Please wait…";
+  Object.assign(hint.style, {
+    marginTop: "-8px",
+    fontSize: "12px",
+    color: "rgba(255, 255, 255, 0.48)",
+  });
+
+  const style = document.createElement("style");
+  style.textContent = "@keyframes mt-auth-spin { to { transform: rotate(360deg); } }";
+
+  panel.append(spinner, text, hint);
+  overlay.append(style, panel);
+  document.body.appendChild(overlay);
+}
+
+function hideAuthProcessing() {
+  authProcessingDepth = Math.max(0, authProcessingDepth - 1);
+  if (authProcessingDepth !== 0) return;
+  document.getElementById("mt-auth-processing")?.remove();
+}
+
+async function withAuthProcessing<T>(message: string, operation: () => Promise<T>): Promise<T> {
+  showAuthProcessing(message);
+  try {
+    return await operation();
+  } finally {
+    hideAuthProcessing();
+  }
 }
 
 async function request(path: string, opts: RequestInit = {}) {
@@ -68,16 +159,27 @@ async function legalPayload(payload: Record<string, unknown>) {
 }
 
 export const api = {
-  register: async (username: string, email: string, password: string, legalVersion?: string) =>
-    request("/auth/register", { method: "POST", body: JSON.stringify(await legalPayload({ username, email, password, ...(legalVersion ? { legalVersion } : {}) })) }),
-  verifyOtp: async (email: string, token: string) => request("/auth/verify-otp", { method: "POST", body: JSON.stringify({ email, token }) }),
+  register: (username: string, email: string, password: string, legalVersion?: string) =>
+    withAuthProcessing("Creating your account…", async () =>
+      request("/auth/register", { method: "POST", body: JSON.stringify(await legalPayload({ username, email, password, ...(legalVersion ? { legalVersion } : {}) })) })
+    ),
+  verifyOtp: (email: string, token: string) =>
+    withAuthProcessing("Verifying your code…", () =>
+      request("/auth/verify-otp", { method: "POST", body: JSON.stringify({ email, token }) })
+    ),
   resendOtp: (email: string) => request("/auth/resend-otp", { method: "POST", body: JSON.stringify({ email }) }),
-  login: async (identifier: string, password: string, legalVersion?: string) =>
-    request("/auth/login", { method: "POST", body: JSON.stringify(await legalPayload({ identifier, password, ...(legalVersion ? { legalVersion } : {}) })) }),
-  googleLogin: async (credential: string, legalVersion?: string) =>
-    request("/auth/google", { method: "POST", body: JSON.stringify(await legalPayload({ credential, ...(legalVersion ? { legalVersion } : {}) })) }),
-  googleComplete: async (credential: string, username: string, password: string, legalVersion?: string) =>
-    request("/auth/google/complete", { method: "POST", body: JSON.stringify(await legalPayload({ credential, username, password, ...(legalVersion ? { legalVersion } : {}) })) }),
+  login: (identifier: string, password: string, legalVersion?: string) =>
+    withAuthProcessing("Signing you in…", async () =>
+      request("/auth/login", { method: "POST", body: JSON.stringify(await legalPayload({ identifier, password, ...(legalVersion ? { legalVersion } : {}) })) })
+    ),
+  googleLogin: (credential: string, legalVersion?: string) =>
+    withAuthProcessing("Signing you in with Google…", async () =>
+      request("/auth/google", { method: "POST", body: JSON.stringify(await legalPayload({ credential, ...(legalVersion ? { legalVersion } : {}) })) })
+    ),
+  googleComplete: (credential: string, username: string, password: string, legalVersion?: string) =>
+    withAuthProcessing("Finishing your Google account…", async () =>
+      request("/auth/google/complete", { method: "POST", body: JSON.stringify(await legalPayload({ credential, username, password, ...(legalVersion ? { legalVersion } : {}) })) })
+    ),
   logout: () => request("/auth/logout", { method: "POST" }),
 
   me: () => request("/auth/me"),
@@ -118,7 +220,7 @@ export const api = {
     return data as { avatarUrl: string };
   },
   removeAvatar: () => request("/account/avatar", { method: "DELETE" }),
-  changePassword: (oldPassword: string, newPassword: string, confirmNewPassword: string) => request("/account/password", { method: "PATCH", body: JSON.stringify({ oldPassword, newPassword, confirmNewPassword }) }),
+  changePassword: (oldPassword: string, newPassword: string, confirmNewPassword: string) => request("/account/password", { method: "PATCH", body: JSON.stringify({ oldPassword, newPassword, confirmNewPassword })),
   requestEmailChange: (password: string) => request("/account/email/request", { method: "POST", body: JSON.stringify({ password }) }),
   verifyEmailChangeOld: (code: string, newEmail: string) => request("/account/email/verify-old", { method: "POST", body: JSON.stringify({ code, newEmail }) }),
   verifyEmailChangeNew: (code: string) => request("/account/email/verify-new", { method: "POST", body: JSON.stringify({ code }) }),
