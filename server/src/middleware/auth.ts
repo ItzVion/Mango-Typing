@@ -3,38 +3,27 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../lib/db";
 import { AUTH_COOKIE_NAME } from "../lib/authCookie";
 
-// No fallback secret — production must set a real JWT_SECRET (enforced by
-// validateConfig.ts at boot). A hardcoded fallback here would mean anyone
-// could forge a valid token if the env var was ever missing.
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 export interface AuthRequest extends Request {
   userId?: string;
 }
 
-type TokenPayload = { id: string; sv?: number };
+type TokenPayload = { id: string; username?: string; sv?: number };
 
-// Authentication is intentionally cookie-only. The browser sends the
-// httpOnly cookie automatically, while JavaScript cannot read it. Accepting
-// Authorization: Bearer would create a second token-delivery path where a
-// leaked token could be replayed directly by an attacker.
 function extractToken(req: Request): string | null {
   const cookieToken = (req as Request & { cookies?: Record<string, string> }).cookies?.[AUTH_COOKIE_NAME];
   return cookieToken || null;
 }
 
-// Shared check: does this token's embedded session version still match the
-// live DB value? A password change bumps User.sessionVersion, which makes
-// every token issued before that moment fail this check — without needing
-// a separate revocation/blocklist table.
 async function sessionStillValid(payload: TokenPayload): Promise<boolean> {
-  if (typeof payload.sv !== "number") return true; // tokens issued before this field existed
+  // Tokens without a session version are legacy tokens. Reject them instead
+  // of allowing an old token to remain valid after the auth format changed.
+  if (typeof payload.sv !== "number" || !Number.isInteger(payload.sv) || payload.sv < 0) return false;
   const user = await prisma.user.findUnique({ where: { id: payload.id }, select: { sessionVersion: true } });
   return !!user && user.sessionVersion === payload.sv;
 }
 
-// Attaches userId if a valid token is present, but never blocks the request.
-// This lets /api/tests accept both logged-in and guest submissions.
 export async function optionalAuth(req: AuthRequest, _res: Response, next: NextFunction) {
   const token = extractToken(req);
   if (token) {
@@ -42,13 +31,12 @@ export async function optionalAuth(req: AuthRequest, _res: Response, next: NextF
       const payload = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] }) as TokenPayload;
       if (await sessionStillValid(payload)) req.userId = payload.id;
     } catch {
-      // invalid/expired token -> treat as guest
+      // Invalid, expired, or legacy token -> treat as guest.
     }
   }
   next();
 }
 
-// Blocks the request unless a valid token is present.
 export async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
   const token = extractToken(req);
   if (!token) return res.status(401).json({ error: "Not authenticated" });
@@ -62,19 +50,10 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
   }
 }
 
-// Site owner is identified by a stable role on the User row, not by email
-// (emails can be changed by the account itself via /account/email). Only
-// role === "OWNER" may view/edit Razorpay keys, SMTP settings, users, and
-// legal pages via /admin.
 export async function requireOwner(req: AuthRequest, res: Response, next: NextFunction) {
   const token = extractToken(req);
   if (!token) return res.status(401).json({ error: "Not authenticated" });
 
-  // JWT verification and the DB role lookup are deliberately in separate
-  // try/catches. A malformed/expired token is genuinely a 401. A DB/network
-  // failure while looking up the current role is NOT an auth failure —
-  // returning 401 for it would make the client wipe a perfectly valid token
-  // just because the database (Turso) hiccuped.
   let payload: TokenPayload;
   try {
     payload = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] }) as TokenPayload;
@@ -82,11 +61,9 @@ export async function requireOwner(req: AuthRequest, res: Response, next: NextFu
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 
+  if (!(await sessionStillValid(payload))) return res.status(401).json({ error: "Invalid or expired token" });
   const user = await prisma.user.findUnique({ where: { id: payload.id } });
   if (!user) return res.status(401).json({ error: "Invalid or expired token" });
-  if (typeof payload.sv === "number" && user.sessionVersion !== payload.sv) {
-    return res.status(401).json({ error: "Invalid or expired token" });
-  }
   req.userId = payload.id;
   if (user.role !== "OWNER") return res.status(403).json({ error: "Owner only" });
   next();
