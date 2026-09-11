@@ -21,7 +21,8 @@ export function AnimationLayer() {
 
   useEffect(() => {
     const root = animationRootRef.current;
-    if (!root) return;
+    const appRoot = document.getElementById("root");
+    if (!root || !appRoot) return;
 
     const onPointerMove = (event: PointerEvent) => {
       if (event.pointerType === "touch") return;
@@ -69,15 +70,15 @@ export function AnimationLayer() {
     };
 
     const mark = () => {
-      document.querySelectorAll<HTMLElement>("#root section, #root article, #root .card, #root [class*='rounded-2xl'], #root [class*='rounded-3xl']").forEach(reveal);
-      document.querySelectorAll<HTMLElement>("#root .grid > *, #root .space-y-4 > *, #root .space-y-6 > *").forEach((element, index) => {
+      appRoot.querySelectorAll<HTMLElement>("section, article, .card, [class*='rounded-2xl'], [class*='rounded-3xl']").forEach(reveal);
+      appRoot.querySelectorAll<HTMLElement>(".grid > *, .space-y-4 > *, .space-y-6 > *").forEach((element, index) => {
         if (!element.closest(".type-box, textarea, input, button, a")) {
           element.classList.add("mt-reveal");
           element.style.setProperty("--mt-reveal-delay", `${Math.min(index, 8) * 45}ms`);
         }
       });
-      document.querySelectorAll<HTMLElement>("#root [data-magnetic]").forEach((element) => element.classList.add("mt-magnetic"));
-      document.querySelectorAll<HTMLElement>("#root button:not(.type-box button), #root a:not(.type-box a)").forEach((element) => element.classList.add("mt-motion-control"));
+      appRoot.querySelectorAll<HTMLElement>("[data-magnetic]").forEach((element) => element.classList.add("mt-magnetic"));
+      appRoot.querySelectorAll<HTMLElement>("button:not(.type-box button), a:not(.type-box a)").forEach((element) => element.classList.add("mt-motion-control"));
     };
 
     const observer = new IntersectionObserver((entries) => {
@@ -88,12 +89,12 @@ export function AnimationLayer() {
 
     const observeAll = () => {
       mark();
-      document.querySelectorAll<HTMLElement>("#root .mt-reveal").forEach((element) => observer.observe(element));
+      appRoot.querySelectorAll<HTMLElement>(".mt-reveal").forEach((element) => observer.observe(element));
     };
 
-    const mutation = new MutationObserver(() => observeAll());
     observeAll();
-    mutation.observe(root, { childList: true, subtree: true });
+    const mutation = new MutationObserver(() => observeAll());
+    mutation.observe(appRoot, { childList: true, subtree: true });
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("pointerout", resetMagnetic, { passive: true });
     window.addEventListener("click", onClick, { passive: true });
