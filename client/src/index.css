@@ -105,10 +105,9 @@ html.dark [class~="text-neutral-400"] { color: rgba(255, 255, 255, 0.55) !import
 
 /* ──────────────────────────────────────────────────────────────────────────
    MangoTyping motion system
-   Inspired by the interaction patterns in Watermelon UI + Motion-Primitives:
-   springy feedback, spotlight lighting, tilt/magnetic movement, reveal
-   sequences, route wipes and subtle ambient motion. Functional typing inputs
-   are deliberately excluded from the decorative effects. */
+   Theme-independent by design: light and dark mode share the same motion
+   language. The animation layer sits behind page content, while the page
+   remains fully interactive above it. */
 
 .mt-scroll-progress {
   position: fixed;
@@ -124,10 +123,16 @@ html.dark [class~="text-neutral-400"] { color: rgba(255, 255, 255, 0.55) !import
 .mt-ambient {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   overflow: hidden;
   pointer-events: none;
   opacity: 0.9;
+}
+
+/* Keep every real app surface above the decorative ambient layer. */
+.mt-ambient ~ * {
+  position: relative;
+  z-index: 1;
 }
 
 .mt-orb {
@@ -234,19 +239,21 @@ html.dark [class~="text-neutral-400"] { color: rgba(255, 255, 255, 0.55) !import
   transform: translate(-50%, -50%) scale(0);
   animation: mtRipple .62s ease-out forwards;
   pointer-events: none;
+  z-index: 2;
 }
 
-/* Cursor-following spotlight on interactive cards. */
-main .card,
-main [class*="rounded-2xl"],
-main [class*="rounded-3xl"] {
+/* Cursor-following spotlight on interactive cards. These selectors are not
+   tied to dark mode, so the same effect works on the white theme too. */
+#root .card,
+#root [class*="rounded-2xl"],
+#root [class*="rounded-3xl"] {
   position: relative;
   isolation: isolate;
 }
 
-main .card::before,
-main [class*="rounded-2xl"]::before,
-main [class*="rounded-3xl"]::before {
+#root .card::before,
+#root [class*="rounded-2xl"]::before,
+#root [class*="rounded-3xl"]::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -258,22 +265,19 @@ main [class*="rounded-3xl"]::before {
   z-index: -1;
 }
 
-main .card:hover::before,
-main [class*="rounded-2xl"]:hover::before,
-main [class*="rounded-3xl"]:hover::before { opacity: 1; }
+#root .card:hover::before,
+#root [class*="rounded-2xl"]:hover::before,
+#root [class*="rounded-3xl"]:hover::before { opacity: 1; }
 
-main button:not(.type-box button),
-main a:not(.type-box a) {
+#root .mt-motion-control {
   transition: transform .22s cubic-bezier(.22,1,.36,1), box-shadow .22s ease, filter .22s ease;
 }
 
-main button:not(:disabled):hover,
-main a:hover {
+#root .mt-motion-control:hover {
   filter: brightness(1.035);
 }
 
-main button:not(:disabled):active,
-main a:active {
+#root .mt-motion-control:active {
   transform: translateY(1px) scale(.985);
 }
 
