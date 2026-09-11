@@ -12,17 +12,17 @@ const PARTICLES = Array.from({ length: 22 }, (_, index) => ({
 
 export function AnimationLayer() {
   const location = useLocation();
-  const animationRootRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const cursorX = useSpring(0, { stiffness: 260, damping: 28, mass: 0.35 });
   const cursorY = useSpring(0, { stiffness: 260, damping: 28, mass: 0.35 });
   const { scrollYProgress } = useScroll();
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 180, damping: 32, mass: 0.35 });
+
   const particles = useMemo(() => PARTICLES, []);
 
   useEffect(() => {
-    const root = animationRootRef.current;
-    const appRoot = document.getElementById("root");
-    if (!root || !appRoot) return;
+    const root = rootRef.current;
+    if (!root) return;
 
     const onPointerMove = (event: PointerEvent) => {
       if (event.pointerType === "touch") return;
@@ -70,15 +70,14 @@ export function AnimationLayer() {
     };
 
     const mark = () => {
-      appRoot.querySelectorAll<HTMLElement>("section, article, .card, [class*='rounded-2xl'], [class*='rounded-3xl']").forEach(reveal);
-      appRoot.querySelectorAll<HTMLElement>(".grid > *, .space-y-4 > *, .space-y-6 > *").forEach((element, index) => {
-        if (!element.closest(".type-box, textarea, input, button, a")) {
+      root.querySelectorAll<HTMLElement>("main section, main article, main .card, main [class*='rounded-2xl'], main [class*='rounded-3xl']").forEach(reveal);
+      root.querySelectorAll<HTMLElement>("main .grid > *, main .space-y-4 > *, main .space-y-6 > *").forEach((element, index) => {
+        if (!element.closest(".type-box")) {
           element.classList.add("mt-reveal");
           element.style.setProperty("--mt-reveal-delay", `${Math.min(index, 8) * 45}ms`);
         }
       });
-      appRoot.querySelectorAll<HTMLElement>("[data-magnetic]").forEach((element) => element.classList.add("mt-magnetic"));
-      appRoot.querySelectorAll<HTMLElement>("button:not(.type-box button), a:not(.type-box a)").forEach((element) => element.classList.add("mt-motion-control"));
+      root.querySelectorAll<HTMLElement>("main [data-magnetic]").forEach((element) => element.classList.add("mt-magnetic"));
     };
 
     const observer = new IntersectionObserver((entries) => {
@@ -89,12 +88,12 @@ export function AnimationLayer() {
 
     const observeAll = () => {
       mark();
-      appRoot.querySelectorAll<HTMLElement>(".mt-reveal").forEach((element) => observer.observe(element));
+      root.querySelectorAll<HTMLElement>(".mt-reveal").forEach((element) => observer.observe(element));
     };
 
-    observeAll();
     const mutation = new MutationObserver(() => observeAll());
-    mutation.observe(appRoot, { childList: true, subtree: true });
+    observeAll();
+    mutation.observe(root, { childList: true, subtree: true });
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("pointerout", resetMagnetic, { passive: true });
     window.addEventListener("click", onClick, { passive: true });
@@ -111,7 +110,7 @@ export function AnimationLayer() {
   return (
     <>
       <motion.div className="mt-scroll-progress" style={{ scaleX: smoothProgress }} />
-      <div ref={animationRootRef} className="mt-ambient" aria-hidden="true">
+      <div ref={rootRef} className="mt-ambient" aria-hidden="true">
         <div className="mt-orb mt-orb-one" />
         <div className="mt-orb mt-orb-two" />
         <div className="mt-grid-glow" />
