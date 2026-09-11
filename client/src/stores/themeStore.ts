@@ -1,25 +1,17 @@
 import { create } from "zustand";
 
-type Theme = "light" | "dark";
+type Theme = "dark";
 
-function applyTheme(t: Theme) {
-  document.documentElement.classList.toggle("dark", t === "dark");
+function applyTheme() {
+  document.documentElement.classList.add("dark");
 }
 
-const initial: Theme = (localStorage.getItem("vc_theme") as Theme) || "light";
-applyTheme(initial);
+applyTheme();
 
 interface ThemeState {
   theme: Theme;
-  toggle: () => void;
 }
 
-export const useThemeStore = create<ThemeState>((set, get) => ({
-  theme: initial,
-  toggle: () => {
-    const next: Theme = get().theme === "light" ? "dark" : "light";
-    localStorage.setItem("vc_theme", next);
-    applyTheme(next);
-    set({ theme: next });
-  },
+export const useThemeStore = create<ThemeState>(() => ({
+  theme: "dark",
 }));
