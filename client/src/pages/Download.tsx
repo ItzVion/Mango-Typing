@@ -8,6 +8,8 @@ import { LoadingState } from "../components/LoadingState";
 
 type Sheet = { id: number; title: string; topic: string; wordCount: number; difficulty: "easy" | "medium" | "hard" };
 
+type FullSheet = Sheet & { content: string; charCount: number; createdAt: string };
+
 const GROUP_LABELS: Record<Sheet["difficulty"], string> = {
   easy: "Easy",
   medium: "Medium",
@@ -49,7 +51,7 @@ export const Download = () => {
   const handleDownloadAll = async () => {
     setDownloading("all");
     try {
-      const full = await Promise.all(sheets.map((s) => api.sheet(s.id)));
+      const full = await api.sheetsFull() as FullSheet[];
       downloadAllSheetsPdf(full);
     } finally {
       setDownloading(null);
