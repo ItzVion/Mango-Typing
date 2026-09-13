@@ -1,5 +1,5 @@
 import { Routes, Route, useLocation, Navigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
@@ -36,6 +36,8 @@ const pageTransition = {
   exit: { opacity: 0, y: -16 },
 };
 
+type AuthUser = NonNullable<ReturnType<typeof useAuthStore.getState>["user"]>;
+
 export default function App() {
   const setUser = useAuthStore((s) => s.setUser);
   const setAuthInitialized = useAuthStore((s) => s.setAuthInitialized);
@@ -46,20 +48,12 @@ export default function App() {
   const [maintenance, setMaintenance] = useState(false);
 
   useEffect(() => {
-    // VC-cookie-migration: there's no client-readable token to gate this
-    // on anymore — the httpOnly cookie is invisible to JS by design, so
-    // /auth/me is always called and a 401 response is what means "logged
-    // out" (handled below).
     api.me()
       .then((u) => {
         setUser(u);
         setAuthError(false);
       })
       .catch((e: any) => {
-        // Only a real 401 (invalid/expired token) means "logged out" — the
-        // api client already clears the token in that case. A network/server
-        // error must NOT be treated as a logout, or a transient outage would
-        // wrongly kick an owner out of their own session (and out of /admin).
         if (e?.status === 401) {
           setUser(null);
         } else {
@@ -103,21 +97,10 @@ export default function App() {
               <Route path="/home/tests" element={<Sheets />} />
               <Route path="/home/tests/:sheetId" element={<TypingTest />} />
               <Route path="/home/test-result" element={<TestResult />} />
-              <Route path="/home/typing-games" element={<ProtectedRoute authInitialized={authInitialized} user={user} />}>
-                <Route index element={<GamesHub />} />
-                <Route path="../games/balloon" element={<BalloonGame />} />
-                <Route path="../games/car" element={<CarGame />} />
-                <Route path="../games/boss" element={<BossGame />} />
-              </Route>
-              <Route path="/home/games/balloon" element={<ProtectedRoute authInitialized={authInitialized} user={user} />}>
-                <Route index element={<BalloonGame />} />
-              </Route>
-              <Route path="/home/games/car" element={<ProtectedRoute authInitialized={authInitialized} user={user} />}>
-                <Route index element={<CarGame />} />
-              </Route>
-              <Route path="/home/games/boss" element={<ProtectedRoute authInitialized={authInitialized} user={user} />}>
-                <Route index element={<BossGame />} />
-              </Route>
+              <Route path="/home/typing-games" element={<ProtectedRoute authInitialized={authInitialized} user={user}><GamesHub /></ProtectedRoute>} />
+              <Route path="/home/games/balloon" element={<ProtectedRoute authInitialized={authInitialized} user={user}><BalloonGame /></ProtectedRoute>} />
+              <Route path="/home/games/car" element={<ProtectedRoute authInitialized={authInitialized} user={user}><CarGame /></ProtectedRoute>} />
+              <Route path="/home/games/boss" element={<ProtectedRoute authInitialized={authInitialized} user={user}><BossGame /></ProtectedRoute>} />
               <Route path="/home/tutor" element={<TutorHub />} />
               <Route path="/home/tutor/:lessonId" element={<LessonRunner />} />
               <Route path="/download" element={<Download />} />
@@ -152,10 +135,10 @@ export default function App() {
   );
 }
 
-function ProtectedRoute({ authInitialized, user }: { authInitialized: boolean; user: NonNullable<ReturnType<typeof useAuthStore.getState>["user"]> }) {
+function ProtectedRoute({ authInitialized, user, children }: { authInitialized: boolean; user: AuthUser | null; children: ReactNode }) {
   if (!authInitialized) return null;
   if (!user) return <Navigate to="/auth" replace />;
-  return <>{/* child route renders through Outlet-less wrapper below */}</>;
+  return <>{children}</>;
 }
 
 function LegacyTestRedirect() {
