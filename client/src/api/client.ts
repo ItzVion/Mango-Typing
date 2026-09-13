@@ -110,7 +110,7 @@ export const api = {
   googleLogin: (credential: string, legalVersion?: string) => withAuthProcessing("Signing you in with Google…", async () => request("/auth/google", { method: "POST", body: JSON.stringify(await legalPayload({ credential, ...(legalVersion ? { legalVersion } : {}) })) })),
   googleComplete: (credential: string, username: string, password: string, legalVersion?: string) => withAuthProcessing("Finishing your Google account…", async () => request("/auth/google/complete", { method: "POST", body: JSON.stringify(await legalPayload({ credential, username, password, ...(legalVersion ? { legalVersion } : {}) })) })),
   logout: () => request("/auth/logout", { method: "POST" }),
-  me: () => request("/auth/me"), sheets: () => request("/sheets"), sheet: (id: number) => request(`/sheets/${id}`),
+  me: () => request("/auth/me"), sheets: () => request("/sheets"), sheetsFull: () => request("/sheets/full"), sheet: (id: number) => request(`/sheets/${id}`),
   submitTest: (payload: unknown) => request("/tests", { method: "POST", body: JSON.stringify(payload) }), myTests: () => request("/tests/me"), publicSettings, ownerSettings: () => request("/settings"),
   updateSettings: (payload: unknown) => request("/settings", { method: "PATCH", body: JSON.stringify(payload) }), testSmtp: (to?: string) => request("/settings/smtp-test", { method: "POST", body: JSON.stringify(to ? { to } : {}) }),
   createDonationOrder: (amountRupees: number) => request("/donations/create-order", { method: "POST", body: JSON.stringify({ amountRupees }) }), verifyDonation: (payload: unknown) => request("/donations/verify", { method: "POST", body: JSON.stringify(payload) }), myDonations: () => request("/donations/me"),
