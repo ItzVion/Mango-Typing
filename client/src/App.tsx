@@ -1,6 +1,5 @@
 import { Routes, Route, useLocation, Navigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
@@ -31,13 +30,7 @@ import { MaintenancePage } from "./pages/MaintenancePage";
 import { api } from "./api/client";
 import { useAuthStore } from "./stores/authStore";
 
-const pageTransition = {
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -16 },
-};
-
-type AuthUser = NonNullable<ReturnType<typeof useAuthStore.getState>["user"]>;
+const pageTransition = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -16 } };
 
 export default function App() {
   const setUser = useAuthStore((s) => s.setUser);
@@ -49,97 +42,62 @@ export default function App() {
   const [maintenance, setMaintenance] = useState(false);
 
   useEffect(() => {
-    api.me()
-      .then((u) => {
-        setUser(u);
-        setAuthError(false);
-      })
-      .catch((e: any) => {
-        if (e?.status === 401) {
-          setUser(null);
-        } else {
-          setAuthError(true);
-        }
-      })
-      .finally(() => setAuthInitialized(true));
+    api.me().then((u) => { setUser(u); setAuthError(false); }).catch((e: any) => {
+      if (e?.status === 401) setUser(null); else setAuthError(true);
+    }).finally(() => setAuthInitialized(true));
   }, [setUser, setAuthInitialized, setAuthError]);
 
-  useEffect(() => {
-    api.publicSettings().then((s) => setMaintenance(!!s.maintenanceMode)).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-  }, [location.pathname]);
+  useEffect(() => { api.publicSettings().then((s) => setMaintenance(!!s.maintenanceMode)).catch(() => {}); }, []);
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, [location.pathname]);
 
   const isOwner = !!user?.isOwner;
   const allowedDuringMaintenance = location.pathname === "/auth" || location.pathname === "/admin";
-  if (maintenance && !isOwner && !allowedDuringMaintenance) {
-    return <MaintenancePage />;
-  }
+  if (maintenance && !isOwner && !allowedDuringMaintenance) return <MaintenancePage />;
 
-  return (
-    <>
-      <AnimationLayer />
-      <Navbar />
-      <div className="pt-32 pb-4 px-6 max-w-6xl mx-auto min-h-[70vh]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            variants={pageTransition}
-            transition={{ duration: 0.28, ease: "easeOut" }}
-          >
-            <Routes location={location}>
-              <Route path="/" element={<Landing />} />
-              <Route path="/home" element={<Home />} />
-              <Route path="/home/tests" element={<Sheets />} />
-              <Route path="/home/tests/:sheetId" element={<TypingTest />} />
-              <Route path="/home/test-result" element={<TestResult />} />
-              <Route path="/home/typing-games" element={<ProtectedRoute authInitialized={authInitialized} user={user}><GamesHub /></ProtectedRoute>} />
-              <Route path="/home/games/balloon" element={<ProtectedRoute authInitialized={authInitialized} user={user}><BalloonGame /></ProtectedRoute>} />
-              <Route path="/home/games/car" element={<ProtectedRoute authInitialized={authInitialized} user={user}><CarGame /></ProtectedRoute>} />
-              <Route path="/home/games/boss" element={<ProtectedRoute authInitialized={authInitialized} user={user}><BossGame /></ProtectedRoute>} />
-              <Route path="/home/tutor" element={<TutorHub />} />
-              <Route path="/home/tutor/:lessonId" element={<LessonRunner />} />
-              <Route path="/download" element={<Download />} />
-              <Route path="/results" element={<History />} />
-              <Route path="/auth" element={authInitialized && user ? <Navigate to="/" replace /> : <Auth />} />
-              <Route path="/admin" element={<AdminPanel />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/refund" element={<Refund />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/donations" element={<DonationHistory />} />
-              <Route path="/settings" element={<Settings />} />
-
-              {/* Old URLs, kept working as redirects so existing links/bookmarks don't 404 */}
-              <Route path="/sheets" element={<Navigate to="/home/tests" replace />} />
-              <Route path="/test/:sheetId" element={<LegacyTestRedirect />} />
-              <Route path="/test-result" element={<Navigate to="/home/test-result" replace />} />
-              <Route path="/games" element={<Navigate to="/home/typing-games" replace />} />
-              <Route path="/games/balloon" element={<Navigate to="/home/games/balloon" replace />} />
-              <Route path="/games/car" element={<Navigate to="/home/games/car" replace />} />
-              <Route path="/games/boss" element={<Navigate to="/home/games/boss" replace />} />
-              <Route path="/tutor" element={<Navigate to="/home/tutor" replace />} />
-              <Route path="/tutor/:lessonId" element={<LegacyTutorRedirect />} />
-
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-      <Footer />
-      <BugReportButton />
-    </>
-  );
-}
-
-function ProtectedRoute({ authInitialized, user, children }: { authInitialized: boolean; user: AuthUser | null; children: ReactNode }) {
-  if (!authInitialized) return null;
-  if (!user) return <Navigate to="/auth" replace />;
-  return <>{children}</>;
+  return <>
+    <AnimationLayer />
+    <Navbar />
+    <div className="pt-32 pb-4 px-6 max-w-6xl mx-auto min-h-[70vh]">
+      <AnimatePresence mode="wait">
+        <motion.div key={location.pathname} initial="initial" animate="animate" exit="exit" variants={pageTransition} transition={{ duration: 0.28, ease: "easeOut" }}>
+          <Routes location={location}>
+            <Route path="/" element={<Landing />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/home/tests" element={<Sheets />} />
+            <Route path="/home/tests/:sheetId" element={<TypingTest />} />
+            <Route path="/home/test-result" element={<TestResult />} />
+            <Route path="/home/typing-games" element={<GamesHub />} />
+            <Route path="/home/games/balloon" element={<BalloonGame />} />
+            <Route path="/home/games/car" element={<CarGame />} />
+            <Route path="/home/games/boss" element={<BossGame />} />
+            <Route path="/home/tutor" element={<TutorHub />} />
+            <Route path="/home/tutor/:lessonId" element={<LessonRunner />} />
+            <Route path="/download" element={<Download />} />
+            <Route path="/results" element={<History />} />
+            <Route path="/auth" element={authInitialized && user ? <Navigate to="/" replace /> : <Auth />} />
+            <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/refund" element={<Refund />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/donations" element={<DonationHistory />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/sheets" element={<Navigate to="/home/tests" replace />} />
+            <Route path="/test/:sheetId" element={<LegacyTestRedirect />} />
+            <Route path="/test-result" element={<Navigate to="/home/test-result" replace />} />
+            <Route path="/games" element={<Navigate to="/home/typing-games" replace />} />
+            <Route path="/games/balloon" element={<Navigate to="/home/games/balloon" replace />} />
+            <Route path="/games/car" element={<Navigate to="/home/games/car" replace />} />
+            <Route path="/games/boss" element={<Navigate to="/home/games/boss" replace />} />
+            <Route path="/tutor" element={<Navigate to="/home/tutor" replace />} />
+            <Route path="/tutor/:lessonId" element={<LegacyTutorRedirect />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+    <Footer />
+    <BugReportButton />
+  </>;
 }
 
 function LegacyTestRedirect() {
