@@ -5,6 +5,7 @@ const router = Router();
 const DIFFICULTY_ORDER: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
 const CACHE_TTL_MS = 60_000;
 let listCache: { value: any[]; expiresAt: number } | null = null;
+let fullListCache: { value: any[]; expiresAt: number } | null = null;
 const sheetCache = new Map<number, { value: any; expiresAt: number }>();
 
 router.get("/", async (_req: Request, res: Response) => {
@@ -19,6 +20,20 @@ router.get("/", async (_req: Request, res: Response) => {
   });
   sheets.sort((a, b) => (DIFFICULTY_ORDER[a.difficulty] ?? 99) - (DIFFICULTY_ORDER[b.difficulty] ?? 99) || a.id - b.id);
   listCache = { value: sheets, expiresAt: now + CACHE_TTL_MS };
+  res.setHeader("Cache-Control", "public, max-age=60, s-maxage=60, stale-while-revalidate=120");
+  res.json(sheets);
+});
+
+// Downloading every printable sheet should be one request, not one API call per sheet.
+router.get("/full", async (_req: Request, res: Response) => {
+  const now = Date.now();
+  if (fullListCache && fullListCache.expiresAt > now) {
+    res.setHeader("Cache-Control", "public, max-age=60, s-maxage=60, stale-while-revalidate=120");
+    return res.json(fullListCache.value);
+  }
+  const sheets = await prisma.sheet.findMany({ orderBy: { id: "asc" } });
+  sheets.sort((a, b) => (DIFFICULTY_ORDER[a.difficulty] ?? 99) - (DIFFICULTY_ORDER[b.difficulty] ?? 99) || a.id - b.id);
+  fullListCache = { value: sheets, expiresAt: now + CACHE_TTL_MS };
   res.setHeader("Cache-Control", "public, max-age=60, s-maxage=60, stale-while-revalidate=120");
   res.json(sheets);
 });
