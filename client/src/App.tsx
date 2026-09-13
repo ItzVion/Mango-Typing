@@ -103,10 +103,21 @@ export default function App() {
               <Route path="/home/tests" element={<Sheets />} />
               <Route path="/home/tests/:sheetId" element={<TypingTest />} />
               <Route path="/home/test-result" element={<TestResult />} />
-              <Route path="/home/typing-games" element={<GamesHub />} />
-              <Route path="/home/games/balloon" element={<BalloonGame />} />
-              <Route path="/home/games/car" element={<CarGame />} />
-              <Route path="/home/games/boss" element={<BossGame />} />
+              <Route path="/home/typing-games" element={<ProtectedRoute authInitialized={authInitialized} user={user} />}>
+                <Route index element={<GamesHub />} />
+                <Route path="../games/balloon" element={<BalloonGame />} />
+                <Route path="../games/car" element={<CarGame />} />
+                <Route path="../games/boss" element={<BossGame />} />
+              </Route>
+              <Route path="/home/games/balloon" element={<ProtectedRoute authInitialized={authInitialized} user={user} />}>
+                <Route index element={<BalloonGame />} />
+              </Route>
+              <Route path="/home/games/car" element={<ProtectedRoute authInitialized={authInitialized} user={user} />}>
+                <Route index element={<CarGame />} />
+              </Route>
+              <Route path="/home/games/boss" element={<ProtectedRoute authInitialized={authInitialized} user={user} />}>
+                <Route index element={<BossGame />} />
+              </Route>
               <Route path="/home/tutor" element={<TutorHub />} />
               <Route path="/home/tutor/:lessonId" element={<LessonRunner />} />
               <Route path="/download" element={<Download />} />
@@ -139,6 +150,12 @@ export default function App() {
       <BugReportButton />
     </>
   );
+}
+
+function ProtectedRoute({ authInitialized, user }: { authInitialized: boolean; user: NonNullable<ReturnType<typeof useAuthStore.getState>["user"]> }) {
+  if (!authInitialized) return null;
+  if (!user) return <Navigate to="/auth" replace />;
+  return <>{/* child route renders through Outlet-less wrapper below */}</>;
 }
 
 function LegacyTestRedirect() {
