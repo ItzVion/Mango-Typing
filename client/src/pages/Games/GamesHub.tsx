@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BackButton } from "../../components/BackButton";
@@ -49,16 +49,7 @@ export const GamesHub = () => {
   const [selected, setSelected] = useState<GameKey | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [duration, setDuration] = useState(60);
-  const settingsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!selected) return;
-    const frame = requestAnimationFrame(() => {
-      settingsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [selected]);
 
   return (
     <div className="flex flex-col items-center gap-6 mt-8">
@@ -88,11 +79,10 @@ export const GamesHub = () => {
       <AnimatePresence>
         {selected && (
           <motion.div
-            ref={settingsRef}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="card p-6 w-full max-w-2xl flex flex-col gap-4 scroll-mt-8"
+            className="card p-6 w-full max-w-2xl flex flex-col gap-4"
           >
             <div>
               <p className="text-xs text-black/40 mb-2">Difficulty</p>
