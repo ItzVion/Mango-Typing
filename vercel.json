@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install --prefix server --legacy-peer-deps && npm install --prefix client && cd server && npx prisma generate",
+  "installCommand": "npm install --prefix server --legacy-peer-deps && npm install --prefix client && node -e \"const fs=require('fs');const p='server/prisma/schema.prisma';const s=fs.readFileSync(p,'utf8').replace('provider = \\\"sqlite\\\"','provider = \\\"postgresql\\\"');fs.writeFileSync(p,s);\" && cd server && npx prisma generate",
   "buildCommand": "npm run build --prefix client",
   "outputDirectory": "client/dist",
   "functions": {
