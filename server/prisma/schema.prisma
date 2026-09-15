@@ -1,11 +1,10 @@
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 model User {
@@ -60,6 +59,7 @@ model TypingTest {
   sheet       Sheet    @relation(fields: [sheetId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([sheetId])
 }
 
 model Settings {
@@ -89,6 +89,7 @@ model Donation {
   createdAt         DateTime @default(now())
 
   user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([userId])
 }
 
 model LegalPage {
@@ -113,6 +114,8 @@ model RateLimit {
   key         String   @id
   count       Int      @default(0)
   windowStart DateTime @default(now())
+
+  @@index([windowStart])
 }
 
 model VerificationCode {
@@ -126,12 +129,14 @@ model VerificationCode {
   attempts    Int      @default(0)
 
   @@index([userId, purpose])
+  @@index([expiresAt])
 }
 
 model RazorpayWebhookEvent {
   eventId    String   @id
   eventType  String
   receivedAt DateTime @default(now())
+  @@index([receivedAt])
 }
 
 model AuditLog {

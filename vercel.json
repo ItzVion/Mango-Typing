@@ -1,10 +1,7 @@
 {
-  "installCommand": "npm install --prefix server --legacy-peer-deps && npm install --prefix client && node -e \"const fs=require('fs');const p='server/prisma/schema.prisma';const s=fs.readFileSync(p,'utf8').replace('provider = \\\"sqlite\\\"','provider = \\\"postgresql\\\"');fs.writeFileSync(p,s);\" && cd server && npx prisma generate",
+  "installCommand": "npm install --prefix server --legacy-peer-deps && npm install --prefix client && cd server && npx prisma generate",
   "buildCommand": "npm run build --prefix client",
   "outputDirectory": "client/dist",
-  "functions": {
-    "api/index.ts": { "includeFiles": "server/prisma/{schema.prisma,migrations/**}" }
-  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
     { "source": "/robots.txt", "destination": "/robots.txt" },
@@ -19,13 +16,22 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" },
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
         { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" },
+        { "key": "X-DNS-Prefetch-Control", "value": "off" },
+        { "key": "X-Permitted-Cross-Domain-Policies", "value": "none" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' https://accounts.google.com https://checkout.razorpay.com https://cdn.razorpay.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https:; connect-src 'self' https://accounts.google.com https://api.razorpay.com https://lumberjack.razorpay.com; frame-src https://accounts.google.com https://checkout.razorpay.com https://api.razorpay.com; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self' https://accounts.google.com https://checkout.razorpay.com https://cdn.razorpay.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https:; connect-src 'self' https://accounts.google.com https://api.razorpay.com https://lumberjack.razorpay.com; frame-src https://accounts.google.com https://checkout.razorpay.com https://api.razorpay.com; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://checkout.razorpay.com"
         }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, max-age=0" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
       ]
     }
   ]
