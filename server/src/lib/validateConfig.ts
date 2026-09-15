@@ -5,7 +5,7 @@ export function validateConfig() {
   const missing: string[] = [];
   if (!process.env.JWT_SECRET) missing.push("JWT_SECRET");
   if (!process.env.SETTINGS_ENCRYPTION_KEY) missing.push("SETTINGS_ENCRYPTION_KEY");
-  if (!process.env.TURSO_DATABASE_URL && !process.env.DATABASE_URL) missing.push("TURSO_DATABASE_URL or DATABASE_URL");
+  if (!process.env.DATABASE_URL) missing.push("DATABASE_URL");
   if (process.env.SETTINGS_ENCRYPTION_KEY) {
     try {
       const rawKey = process.env.SETTINGS_ENCRYPTION_KEY!;
