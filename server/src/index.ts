@@ -23,13 +23,16 @@ app.disable("x-powered-by");
 app.set("trust proxy", 1);
 app.set("query parser", "simple");
 
-const ALLOWED_ORIGINS = [
+const PRODUCTION_ORIGINS = [
   process.env.CLIENT_URL,
   "https://mangotyping.fun",
   "https://www.mangotyping.fun",
-  "http://localhost:5173",
   ...(process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? []),
 ].filter(Boolean) as string[];
+const LOCAL_ORIGINS = ["http://localhost:5173", "http://localhost:4173"];
+const ALLOWED_ORIGINS = process.env.NODE_ENV === "production" || process.env.VERCEL
+  ? PRODUCTION_ORIGINS
+  : [...PRODUCTION_ORIGINS, ...LOCAL_ORIGINS];
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
