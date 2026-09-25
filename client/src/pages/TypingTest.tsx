@@ -109,6 +109,7 @@ export const TypingTest = () => {
   };
 
   const [submitError, setSubmitError] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastTyped, setLastTyped] = useState("");
 
   const finish = () => {
@@ -135,6 +136,8 @@ export const TypingTest = () => {
   }, [setTestInProgress]);
 
   const submit = async (finalTyped: string) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setLastTyped(finalTyped);
     setSubmitError(false);
     const elapsedDuration = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 1;
@@ -163,11 +166,13 @@ export const TypingTest = () => {
       // with no indication anything had gone wrong or any way to retry.
       console.error("Submit test failed:", err);
       finishedRef.current = false;
+      setIsSubmitting(false);
       setSubmitError(true);
     }
   };
 
   const retrySubmit = () => {
+    if (isSubmitting) return;
     finishedRef.current = true;
     submit(lastTyped);
   };
@@ -297,6 +302,7 @@ export const TypingTest = () => {
           onCancel={cancelTest}
           onSubmit={finish}
           submitError={submitError}
+          isSubmitting={isSubmitting}
           onRetrySubmit={retrySubmit}
         />
       )}
@@ -319,6 +325,7 @@ function RunningTest({
   onCancel,
   onSubmit,
   submitError,
+  isSubmitting,
   onRetrySubmit,
 }: {
   text: string;
@@ -334,6 +341,7 @@ function RunningTest({
   onCancel: () => void;
   onSubmit: () => void;
   submitError: boolean;
+  isSubmitting: boolean;
   onRetrySubmit: () => void;
 }) {
   const liveDiff = useMemo(() => diffWords(typed, text), [typed, text]);
@@ -483,7 +491,8 @@ function RunningTest({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onCancel}
-          className="px-8 py-3 rounded-lg font-semibold text-white"
+          disabled={isSubmitting}
+          className="px-8 py-3 rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ backgroundColor: "#dc2626" }}
         >
           CANCEL
@@ -492,10 +501,11 @@ function RunningTest({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onSubmit}
-          className="px-8 py-3 rounded-lg font-semibold text-white"
+          disabled={isSubmitting || timeLeft <= 0}
+          className="px-8 py-3 rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ backgroundColor: "#16a34a" }}
         >
-          SUBMIT
+          {isSubmitting ? "SAVING..." : "SUBMIT"}
         </motion.button>
       </div>
 
