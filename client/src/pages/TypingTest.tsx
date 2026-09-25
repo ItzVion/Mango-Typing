@@ -38,7 +38,7 @@ export const TypingTest = () => {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const setTestInProgress = useTestGuardStore((s) => s.setTestInProgress);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [secondStats, setSecondStats] = useState<{ sec: number; wpm: number; errors: number }[]>([]);
+  const [secondStats, setSecondStats] = useState<{ sec: number; wpm: number; raw: number; errors: number }[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const finishedRef = useRef(false);
   const caretRef = useRef<HTMLSpanElement>(null);
@@ -57,13 +57,13 @@ export const TypingTest = () => {
       setTyped((currentTyped) => {
         const d = diffWords(currentTyped, text);
         const wpm = Math.round(d.correctChars / 5 / (elapsed / 60 || 1 / 60));
+        const raw = Math.round(d.typedChars / 5 / (elapsed / 60 || 1 / 60));
         const errors = d.wrongWords + d.skippedWords;
-        setSecondStats((prev) => [...prev, { sec: Math.floor(elapsed), wpm, errors }]);
+        setSecondStats((prev) => [...prev, { sec: Math.floor(elapsed), wpm, raw, errors }]);
         return currentTyped;
       });
 
       if (remaining <= 0 && !finishedRef.current) {
-        finishedRef.current = true;
         clearInterval(interval);
         finish();
       }
@@ -137,7 +137,8 @@ export const TypingTest = () => {
   const submit = async (finalTyped: string) => {
     setLastTyped(finalTyped);
     setSubmitError(false);
-    const durationSec = duration || 1;
+    const elapsedDuration = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 1;
+    const durationSec = Math.max(1, Math.min(duration || 1, elapsedDuration));
     const d = diffWords(finalTyped, text);
     const errors = d.wrongWords + d.skippedWords;
     const accuracy = d.typedChars ? Math.max(0, Math.min(100, (d.correctChars / d.typedChars) * 100)) : 0;
