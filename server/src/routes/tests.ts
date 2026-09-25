@@ -91,7 +91,9 @@ router.post("/", optionalAuth, async (req: AuthRequest, res: Response): Promise<
   if (numRawWpm < numWpm) return res.status(400).json({ error: "rawWpm can't be lower than wpm." });
   if (numErrors > 0 && numAccuracy === 100) return res.status(400).json({ error: "Inconsistent accuracy for the reported errors." });
 
-  const sheet = await prisma.sheet.findUnique({ where: { id: Number(sheetId) } });
+  const numericSheetId = Number(sheetId);
+  if (!Number.isSafeInteger(numericSheetId) || numericSheetId < 1) return res.status(400).json({ error: "Invalid sheet id." });
+  const sheet = await prisma.sheet.findUnique({ where: { id: numericSheetId } });
   if (!sheet) return res.status(400).json({ error: "Sheet not found." });
 
   // Net wpm implies roughly (wpm * 5 * durationSec/60) characters typed
@@ -110,7 +112,7 @@ router.post("/", optionalAuth, async (req: AuthRequest, res: Response): Promise<
   const test = await prisma.typingTest.create({
     data: {
       userId: req.userId ?? null,
-      sheetId: Number(sheetId),
+      sheetId: numericSheetId,
       mode: mode === "screen" ? "screen" : "paper",
       wpm: numWpm,
       rawWpm: numRawWpm,
