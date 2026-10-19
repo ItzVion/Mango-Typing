@@ -6,17 +6,19 @@ import { sniffImageMime } from "../lib/imageSniff";
 
 const router = Router();
 
+const uploadLimits = {
+  fileSize: 1 * 1024 * 1024,
+  files: 5,
+  fields: 8,
+  fieldSize: 16 * 1024,
+  fieldNameSize: 100,
+  fieldArrayIndexLimit: 10,
+  parts: 13,
+};
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 1 * 1024 * 1024,
-    files: 5,
-    fields: 8,
-    fieldSize: 16 * 1024,
-    fieldNameSize: 100,
-    fieldArrayIndexLimit: 10,
-    parts: 13,
-  },
+  limits: uploadLimits,
   fileFilter: (_req, file, cb) => {
     if (!file.mimetype.startsWith("image/")) return cb(new Error("Only image files are allowed."));
     cb(null, true);
