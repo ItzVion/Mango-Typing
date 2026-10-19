@@ -17,10 +17,33 @@ export async function checkRateLimit(
   const now = new Date();
   const cutoff = new Date(now.getTime() - windowMs);
 
+  await cleanupExpiredRateLimits(now.getTime());
+
   // A single PostgreSQL UPSERT serializes updates to the key. This prevents
   // concurrent requests at a window boundary from all resetting the same
   // expired row and bypassing the configured limit.
-  const rows = await prisma.$queryRaw<Array<{ count: number; windowStart: Date }>>`
+  // Rate-limit keys can be attacker-controlled in account/email endpoints. Expired
+// windows are useless after a day, so periodically purge old rows to keep the
+// production table from growing indefinitely. Best-effort and safe to skip.
+const RATE_LIMIT_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
+const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000;
+let lastRateLimitCleanupAt = 0;
+
+async function cleanupExpiredRateLimits(nowMs: number) {
+  if (nowMs - lastRateLimitCleanupAt < RATE_LIMIT_CLEANUP_INTERVAL_MS) return;
+  // Set before awaiting so concurrent requests in this instance don't all run it.
+  lastRateLimitCleanupAt = nowMs;
+  try {
+    await prisma.rateLimit.deleteMany({
+      where: { windowStart: { lt: new Date(nowMs - RATE_LIMIT_RETENTION_MS) } },
+    });
+  } catch (error) {
+    // Cleanup must not break rate limiting if the database is briefly unavailable.
+    console.error("Failed to clean expired rate-limit rows:", error);
+  }
+}
+
+const rows = await prisma.$queryRaw<Array<{ count: number; windowStart: Date }>>`
     INSERT INTO public."RateLimit" AS rl ("key", "count", "windowStart")
     VALUES (${key}, 1, ${now})
     ON CONFLICT ("key") DO UPDATE SET
