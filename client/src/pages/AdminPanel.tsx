@@ -539,13 +539,13 @@ const EditorTab = () => {
         ))}
       </div>
 
-      {!ready ? (
-        loadError ? (
-          <div className="card p-5 flex flex-col items-start gap-3">
-            <p className="text-[var(--error)] text-sm">Couldn't load this legal page.</p>
-            <button onClick={load} className="px-4 py-2 rounded-xl card text-sm font-semibold">Retry</button>
-          </div>
-        ) : <p className="text-black/40 text-sm">Loading legal page…</p>
+      {loadError ? (
+        <div className="card p-5 flex flex-col items-start gap-3">
+          <p className="text-[var(--error)] text-sm">Couldn't load this legal page.</p>
+          <button onClick={load} className="px-4 py-2 rounded-xl card text-sm font-semibold">Retry</button>
+        </div>
+      ) : !ready ? (
+        <p className="text-black/40 text-sm">Loading legal page…</p>
       ) : (
         <div className="card p-6 flex flex-col gap-4">
           <p className="text-black/40 text-xs">
