@@ -31,7 +31,10 @@ router.post("/register", async (req: Request, res: Response): Promise<any> => {
   if (!ipLimit.ok) return res.status(429).json({ error: "Too many registration attempts. Please try again later." });
   const { username, email, password, legalVersion } = req.body;
   const currentLegalVersion = await getCurrentLegalVersion();
-  if (!username || !email || !password) return res.status(400).json({ error: "All fields required" });
+  if (typeof username !== "string" || typeof email !== "string" || typeof password !== "string" ||
+      !username.trim() || !email.trim() || !password) {
+    return res.status(400).json({ error: "All fields required" });
+  }
   if (username.trim().length < 3 || username.trim().length > 32) return res.status(400).json({ error: "Username must be between 3 and 32 characters." });
   if (password.length < MIN_PASSWORD_LENGTH || password.length > MAX_PASSWORD_LENGTH) return res.status(400).json({ error: `Password must be between ${MIN_PASSWORD_LENGTH} and ${MAX_PASSWORD_LENGTH} characters.` });
   if (legalVersion !== currentLegalVersion) return res.status(400).json({ error: "Please accept the current legal policies before creating an account." });
@@ -54,23 +57,81 @@ router.post("/register", async (req: Request, res: Response): Promise<any> => {
 
 router.post("/verify-otp", async (req: Request, res: Response): Promise<any> => {
   const ip = clientIp(req);
-  const ipLimit = await checkRateLimit(`verify-otp:ip:${ip}`, 10, 15 * 60 * 1000);
+  const ipLimit = await checkRateLimit("verify-otp:ip:" + ip, 10, 15 * 60 * 1000);
   if (!ipLimit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
-  const { email, token } = req.body;
+
+  const body = req.body || {};
+  const normalEmail = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const token = typeof body.token === "string" ? body.token : "";
+  if (!normalEmail || normalEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalEmail) || !/^\d{6}$/.test(token)) {
+    return res.status(400).json({ error: "Invalid verification code." });
+  }
+
   const currentLegalVersion = await getCurrentLegalVersion();
-  const normalEmail = String(email || "").trim().toLowerCase();
   const row = await prisma.otpToken.findUnique({ where: { email: normalEmail } });
   if (!row) return res.status(400).json({ error: "No pending registration for this email." });
-  if (row.expiresAt < new Date()) { await prisma.otpToken.delete({ where: { email: normalEmail } }); return res.status(400).json({ error: "Code expired. Request a new one." }); }
-  if (row.attempts >= MAX_CODE_ATTEMPTS) { await prisma.otpToken.delete({ where: { email: normalEmail } }); return res.status(429).json({ error: "Too many incorrect attempts. Request a new code." }); }
-  if (!row.legalVersion || row.legalVersion !== currentLegalVersion) { await prisma.otpToken.delete({ where: { email: normalEmail } }); return res.status(409).json({ error: "The legal policies changed while you were verifying your email. Please start registration again." }); }
-  if (!codesMatch(String(token), row.token)) { await prisma.otpToken.update({ where: { email: normalEmail }, data: { attempts: { increment: 1 } } }); return res.status(400).json({ error: "Invalid code." }); }
-  const user = await prisma.user.create({ data: { email: row.email, username: row.username, passwordHash: row.passwordHash, termsAcceptedVersion: row.legalVersion, privacyAcceptedVersion: row.legalVersion, refundAcceptedVersion: row.legalVersion, legalAcceptedAt: new Date() } });
-  await prisma.otpToken.delete({ where: { email: normalEmail } });
-  setAuthCookie(res, sign(user));
-  res.json({ user: publicUser(user) });
-});
 
+  const now = new Date();
+  if (row.expiresAt <= now) {
+    await prisma.otpToken.deleteMany({ where: { email: normalEmail, expiresAt: { lte: now } } });
+    return res.status(400).json({ error: "Code expired. Request a new one." });
+  }
+  if (row.attempts >= MAX_CODE_ATTEMPTS) {
+    await prisma.otpToken.deleteMany({ where: { email: normalEmail, attempts: { gte: MAX_CODE_ATTEMPTS } } });
+    return res.status(429).json({ error: "Too many incorrect attempts. Request a new code." });
+  }
+  if (!row.legalVersion || row.legalVersion !== currentLegalVersion) {
+    await prisma.otpToken.deleteMany({ where: { email: normalEmail, token: row.token } });
+    return res.status(409).json({ error: "The legal policies changed while you were verifying your email. Please start registration again." });
+  }
+  if (!codesMatch(token, row.token)) {
+    const changed = await prisma.otpToken.updateMany({
+      where: {
+        email: normalEmail, token: row.token, attempts: { lt: MAX_CODE_ATTEMPTS },
+        expiresAt: { gt: now }, legalVersion: currentLegalVersion,
+      },
+      data: { attempts: { increment: 1 } },
+    });
+    if (changed.count === 1) {
+      await prisma.otpToken.deleteMany({ where: { email: normalEmail, token: row.token, attempts: { gte: MAX_CODE_ATTEMPTS } } });
+    }
+    return res.status(400).json({ error: "Invalid code." });
+  }
+
+  // Consume the registration OTP and create the user in one transaction. A
+  // simultaneous verify request cannot reuse the same code.
+  try {
+    const user = await prisma.$transaction(async (tx) => {
+      const consumed = await tx.otpToken.deleteMany({
+        where: {
+          email: normalEmail, token: row.token, attempts: { lt: MAX_CODE_ATTEMPTS },
+          expiresAt: { gt: new Date() }, legalVersion: currentLegalVersion,
+        },
+      });
+      if (consumed.count !== 1) return null;
+      return tx.user.create({
+        data: {
+          email: row.email,
+          username: row.username,
+          passwordHash: row.passwordHash,
+          termsAcceptedVersion: row.legalVersion,
+          privacyAcceptedVersion: row.legalVersion,
+          refundAcceptedVersion: row.legalVersion,
+          legalAcceptedAt: new Date(),
+        },
+      });
+    });
+    if (!user) return res.status(409).json({ error: "This verification code was already used or expired. Request a new one." });
+    setAuthCookie(res, sign(user));
+    return res.json({ user: publicUser(user) });
+  } catch (err: any) {
+    if (err?.code === "P2002") {
+      await prisma.otpToken.deleteMany({ where: { email: normalEmail, token: row.token } });
+      return res.status(409).json({ error: "That username or email was just taken. Please start registration again." });
+    }
+    throw err;
+  }
+});
 router.post("/resend-otp", async (req: Request, res: Response): Promise<any> => {
   const ip = clientIp(req); const ipLimit = await checkRateLimit(`resend-otp:ip:${ip}`, 5, 15 * 60 * 1000);
   if (!ipLimit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
@@ -114,10 +175,26 @@ router.post("/google", async (req: Request, res: Response): Promise<any> => {
   if (legalVersion !== currentLegalVersion) return res.status(400).json({ error: "Please accept the current legal policies before signing in with Google." });
   let payload; try { const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID }); payload = ticket.getPayload(); } catch { return res.status(400).json({ error: "Invalid Google token" }); }
   if (!payload?.email || payload.email_verified !== true) return res.status(400).json({ error: "Google account email is not verified." });
-  const googleEmail = payload.email.toLowerCase();
-  let user = await prisma.user.findFirst({ where: { OR: [{ googleId: payload.sub }, { email: googleEmail }] } });
-  if (!user) { const base = googleEmail.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "") || "user"; let suggestedUsername = base; let n = 1; while (await prisma.user.findUnique({ where: { username: suggestedUsername } })) suggestedUsername = `${base}${n++}`; return res.json({ needsSetup: true, email: googleEmail, suggestedUsername }); }
-  if (!user.googleId) user = await prisma.user.update({ where: { id: user.id }, data: { googleId: payload.sub, avatarUrl: user.avatarUrl ?? payload.picture ?? null } });
+  const googleEmail = payload.email.trim().toLowerCase();
+  // Prefer the immutable Google subject. A verified email match must never
+  // override an existing, different Google-account link.
+  let user = await prisma.user.findUnique({ where: { googleId: payload.sub } });
+  if (!user) {
+    user = await prisma.user.findUnique({ where: { email: googleEmail } });
+    if (user?.googleId && user.googleId !== payload.sub) {
+      return res.status(409).json({ error: "This email is linked to a different Google account. Sign in using that account or contact support." });
+    }
+  }
+  if (!user) {
+    const base = googleEmail.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "") || "user";
+    let suggestedUsername = base;
+    let n = 1;
+    while (await prisma.user.findUnique({ where: { username: suggestedUsername } })) suggestedUsername = `${base}${n++}`;
+    return res.json({ needsSetup: true, email: googleEmail, suggestedUsername });
+  }
+  if (!user.googleId) {
+    user = await prisma.user.update({ where: { id: user.id }, data: { googleId: payload.sub, avatarUrl: user.avatarUrl ?? payload.picture ?? null } });
+  }
   const refreshed = await prisma.user.update({ where: { id: user.id }, data: { termsAcceptedVersion: currentLegalVersion, privacyAcceptedVersion: currentLegalVersion, refundAcceptedVersion: currentLegalVersion, legalAcceptedAt: new Date() } });
   setAuthCookie(res, sign(refreshed)); res.json({ user: publicUser(refreshed) });
 });
@@ -127,7 +204,10 @@ router.post("/google/complete", async (req: Request, res: Response): Promise<any
   if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: "Google Sign-In not configured on this server yet" });
   const { credential, username, password, legalVersion } = req.body;
   const currentLegalVersion = await getCurrentLegalVersion();
-  if (!credential || !username || !password) return res.status(400).json({ error: "All fields required" });
+  if (typeof credential !== "string" || typeof username !== "string" || typeof password !== "string" ||
+      !credential || !username.trim() || !password) {
+    return res.status(400).json({ error: "All fields required" });
+  }
   if (username.trim().length < 3 || username.trim().length > 32) return res.status(400).json({ error: "Username must be between 3 and 32 characters." });
   if (password.length < MIN_PASSWORD_LENGTH || password.length > MAX_PASSWORD_LENGTH) return res.status(400).json({ error: `Password must be between ${MIN_PASSWORD_LENGTH} and ${MAX_PASSWORD_LENGTH} characters.` });
   if (legalVersion !== currentLegalVersion) return res.status(400).json({ error: "Please accept the current legal policies before creating an account." });

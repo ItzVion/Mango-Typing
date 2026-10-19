@@ -84,7 +84,7 @@ model Donation {
   userId            String?
   amountRupees      Int
   razorpayOrderId   String   @unique
-  razorpayPaymentId String?
+  razorpayPaymentId String? @unique
   status            String   @default("created")
   createdAt         DateTime @default(now())
 
@@ -128,7 +128,7 @@ model VerificationCode {
   createdAt   DateTime @default(now())
   attempts    Int      @default(0)
 
-  @@index([userId, purpose])
+  @@unique([userId, purpose])
   @@index([expiresAt])
 }
 

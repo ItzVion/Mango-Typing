@@ -404,7 +404,7 @@ export const Auth = () => {
                 type="password"
                 placeholder="Password"
                 value={form.password}
-                maxLength={25}
+                maxLength={128}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className={inputClass}
               />
@@ -575,7 +575,7 @@ export const Auth = () => {
                 type="password"
                 autoComplete="new-password"
                 placeholder="New password"
-                maxLength={25}
+                maxLength={128}
                 value={resetPassword}
                 onChange={(e) => setResetPassword(e.target.value)}
                 className={inputClass}
@@ -584,7 +584,7 @@ export const Auth = () => {
                 type="password"
                 autoComplete="new-password"
                 placeholder="Confirm new password"
-                maxLength={25}
+                maxLength={128}
                 value={resetPasswordConfirm}
                 onChange={(e) => setResetPasswordConfirm(e.target.value)}
                 className={inputClass}
@@ -625,7 +625,7 @@ export const Auth = () => {
                 type="password"
                 placeholder="Password"
                 value={googleSetupForm.password}
-                maxLength={25}
+                maxLength={128}
                 onChange={(e) => setGoogleSetupForm({ ...googleSetupForm, password: e.target.value })}
                 className={inputClass}
               />

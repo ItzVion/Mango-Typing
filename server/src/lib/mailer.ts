@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { prisma } from "./db";
 import { decryptSecret } from "./secretCrypto";
+import { resolvePublicSmtpHost } from "./smtpSecurity";
 
 // SMTP config can be edited live from Admin (stored in Settings) — falls
 // back to env vars if the admin hasn't set anything in the DB yet. We build
@@ -8,22 +9,27 @@ import { decryptSecret } from "./secretCrypto";
 // admin can change these values at any time without a redeploy.
 export async function getTransporter() {
   const s = await prisma.settings.findUnique({ where: { id: 1 } });
-  const host = s?.smtpHost || process.env.SMTP_HOST;
+  const configuredHost = s?.smtpHost || process.env.SMTP_HOST;
+  if (!configuredHost) throw new Error("SMTP host is not configured.");
+  const pinnedHost = await resolvePublicSmtpHost(configuredHost);
   const port = s?.smtpPort ?? (Number(process.env.SMTP_PORT) || 587);
   const secure = s?.smtpSecure ?? process.env.SMTP_SECURE === "true";
   const user = s?.smtpUser || process.env.SMTP_USER;
   const pass = decryptSecret(s?.smtpPass) || process.env.SMTP_PASS;
   const from = s?.smtpFrom || process.env.SMTP_FROM || user;
   const fromName = s?.smtpFromName || process.env.SMTP_FROM_NAME || "MangoTyping";
+  if (!user || !pass || !from) throw new Error("SMTP credentials and sender address must be configured.");
 
   const transporter = nodemailer.createTransport({
-    host,
+    host: pinnedHost.address,
     port,
     secure,
     auth: { user, pass },
+    tls: { servername: pinnedHost.servername },
     connectionTimeout: 8000,
     greetingTimeout: 8000,
     socketTimeout: 8000,
+    dnsTimeout: 8000,
   });
 
   return { transporter, from: fromName ? `"${fromName}" <${from}>` : from };

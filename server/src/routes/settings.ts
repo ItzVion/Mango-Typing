@@ -1,30 +1,11 @@
 import { Router, Request, Response } from "express";
-import dns from "dns/promises";
-import net from "net";
 import { requireOwner, AuthRequest } from "../middleware/auth";
 import { prisma } from "../lib/db";
 import { getTransporter } from "../lib/mailer";
 import { encryptSecret } from "../lib/secretCrypto";
 import { getCurrentLegalVersion } from "../lib/legal";
 import { checkRateLimit, clientIp } from "../lib/rateLimit";
-
-function isBlockedIp(ip: string): boolean {
-  if (net.isIPv4(ip)) {
-    const [a, b] = ip.split(".").map(Number);
-    if (a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254) || a === 0) return true;
-    return false;
-  }
-  const lower = ip.toLowerCase();
-  const mappedIpv4 = lower.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
-  if (mappedIpv4) return isBlockedIp(mappedIpv4[1]);
-  return lower === "::1" || lower === "::" || lower.startsWith("fe80:") || lower.startsWith("fc") || lower.startsWith("fd");
-}
-
-async function assertSmtpHostAllowed(host: string): Promise<void> {
-  if (!host || host.length > 253 || /[\s\0-\x1f\x7f]/.test(host)) throw new Error("Invalid SMTP host.");
-  const addrs = await dns.lookup(host, { all: true });
-  if (addrs.length === 0 || addrs.some((a) => isBlockedIp(a.address))) throw new Error("That SMTP host resolves to a blocked/internal address.");
-}
+import { resolvePublicSmtpHost } from "../lib/smtpSecurity";
 
 const router = Router();
 const MASK = "••••••••";
@@ -61,7 +42,10 @@ router.patch("/", requireOwner, async (req: AuthRequest, res: Response) => {
   if (smtpFrom !== undefined && (typeof smtpFrom !== "string" || smtpFrom.length > 254 || !EMAIL_RE.test(smtpFrom))) return res.status(400).json({ error: "Invalid SMTP sender address." });
   if (smtpFromName !== undefined && (typeof smtpFromName !== "string" || smtpFromName.length > 120)) return res.status(400).json({ error: "SMTP sender name is too long." });
 
-  if (smtpHost) await assertSmtpHostAllowed(smtpHost);
+  if (smtpHost) {
+    try { await resolvePublicSmtpHost(smtpHost); }
+    catch { return res.status(400).json({ error: "SMTP host must resolve only to public addresses." }); }
+  }
 
   const s = await prisma.settings.upsert({
     where: { id: 1 },
@@ -94,7 +78,8 @@ router.post("/smtp-test", requireOwner, async (req: AuthRequest, res: Response):
   try {
     const s = await prisma.settings.findUnique({ where: { id: 1 } });
     const host = s?.smtpHost || process.env.SMTP_HOST;
-    if (host) await assertSmtpHostAllowed(host);
+    if (!host) return res.status(400).json({ error: "SMTP host is not configured." });
+    await resolvePublicSmtpHost(host);
     const to = typeof req.body?.to === "string" && req.body.to.trim() ? req.body.to.trim() : null;
     if (to && (to.length > 254 || !EMAIL_RE.test(to))) return res.status(400).json({ error: "That doesn't look like a valid email address." });
     const { transporter, from } = await getTransporter();
