@@ -29,6 +29,8 @@ export const TypingTest = () => {
   const { sheetId } = useParams();
   const navigate = useNavigate();
   const [text, setText] = useState("");
+  const [sheetLoading, setSheetLoading] = useState(true);
+  const [sheetLoadError, setSheetLoadError] = useState(false);
   const [mode, setMode] = useState<Mode>("screen");
   const [phase, setPhase] = useState<Phase>("setup");
   const [duration, setDuration] = useState<number | null>(null);
@@ -43,9 +45,28 @@ export const TypingTest = () => {
   const finishedRef = useRef(false);
   const caretRef = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => {
-    if (sheetId) api.sheet(Number(sheetId)).then((s: { content: string }) => setText(s.content));
-  }, [sheetId]);
+  const loadSheet = () => {
+    const id = Number(sheetId);
+    setSheetLoading(true);
+    setSheetLoadError(false);
+    if (!sheetId || !Number.isSafeInteger(id) || id < 1) {
+      setSheetLoadError(true);
+      setSheetLoading(false);
+      return;
+    }
+    api.sheet(id)
+      .then((s: { content: string }) => {
+        if (typeof s?.content !== "string" || !s.content.trim()) throw new Error("The test sheet is empty.");
+        setText(s.content);
+      })
+      .catch((err) => {
+        console.error("Failed to load typing test sheet:", err);
+        setSheetLoadError(true);
+      })
+      .finally(() => setSheetLoading(false));
+  };
+
+  useEffect(() => { loadSheet(); }, [sheetId]);
 
   useEffect(() => {
     if (!startedAt || !duration) return;
@@ -190,6 +211,20 @@ export const TypingTest = () => {
         description="Take a timed typing test, track your WPM and accuracy, and save your result to your history."
         path={`/home/tests/${sheetId}`}
       />
+      {sheetLoading ? (
+        <div className="flex flex-col gap-5 mt-16 max-w-lg mx-auto">
+          <BackButton to="/home/tests" label="Back" />
+          <div className="card p-8 text-center text-black/50">Loading test sheet…</div>
+        </div>
+      ) : sheetLoadError ? (
+        <div className="flex flex-col gap-5 mt-16 max-w-lg mx-auto">
+          <BackButton to="/home/tests" label="Back" />
+          <div className="card p-8 flex flex-col items-center gap-3 text-center">
+            <p className="text-black/50 text-sm">Couldn't load this test sheet. It may have been removed or the server may be unavailable.</p>
+            <button onClick={loadSheet} className="px-5 py-2 rounded-xl border border-[var(--card-border)] font-semibold text-sm">Retry</button>
+          </div>
+        </div>
+      ) : (
       <AnimatePresence mode="wait">
       {phase === "setup" && (
         <motion.div
@@ -307,6 +342,7 @@ export const TypingTest = () => {
         />
       )}
       </AnimatePresence>
+      )}
     </>
   );
 };

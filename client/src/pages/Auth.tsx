@@ -47,7 +47,7 @@ const GoogleLogo = () => (
   </svg>
 );
 
-type Step = "login" | "register" | "otp" | "googleSetup";
+type Step = "login" | "register" | "otp" | "googleSetup" | "resetRequest" | "resetConfirm";
 
 const inputClass =
   "bg-transparent border border-[var(--card-border)] rounded-xl px-4 py-2 w-full outline-none focus:border-black/40 dark:focus:border-white/40 transition-colors";
@@ -114,6 +114,9 @@ export const Auth = () => {
 
   const [pendingGoogleCredential, setPendingGoogleCredential] = useState<string | null>(null);
   const [googleSetupForm, setGoogleSetupForm] = useState({ username: "", password: "" });
+  const [resetCode, setResetCode] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetPasswordConfirm, setResetPasswordConfirm] = useState("");
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -180,6 +183,50 @@ export const Auth = () => {
       setResendCooldown(30);
     } catch (e: any) {
       setError(e.message);
+    }
+  };
+
+  const doRequestPasswordReset = async () => {
+    if (!form.email.trim()) {
+      setError("Enter the email address for your account.");
+      return;
+    }
+    setError("");
+    setNotice("");
+    setLoading(true);
+    try {
+      const result = await api.requestPasswordReset(form.email.trim());
+      setNotice(result.message || "If an account exists for that email address, a reset code has been sent.");
+      setResetCode("");
+      setResetPassword("");
+      setResetPasswordConfirm("");
+      setStep("resetConfirm");
+    } catch (e: any) {
+      setError(e.message || "Couldn't request a password reset.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const doConfirmPasswordReset = async () => {
+    if (resetPassword !== resetPasswordConfirm) {
+      setError("The new passwords don't match.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      await api.confirmPasswordReset(form.email.trim(), resetCode, resetPassword);
+      setForm((current) => ({ ...current, identifier: form.email.trim(), password: "" }));
+      setResetCode("");
+      setResetPassword("");
+      setResetPasswordConfirm("");
+      setNotice("Password reset successfully. Sign in with your new password.");
+      setStep("login");
+    } catch (e: any) {
+      setError(e.message || "Couldn't reset the password.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -311,7 +358,7 @@ export const Auth = () => {
                       setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.");
                       return;
                     }
-                    setNotice("Google sign-in isn't set up yet — coming soon.");
+                    setNotice("Google sign-in is unavailable on this deployment. Use email and password instead.");
                   }}
                   className="flex items-center justify-center gap-2 border border-[var(--card-border)] rounded-xl py-2 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5"
                 >
@@ -365,7 +412,12 @@ export const Auth = () => {
               {step === "login" && (
                 <button
                   type="button"
-                  onClick={() => setNotice("Password reset isn't set up yet — coming soon.")}
+                  onClick={() => {
+                    setError("");
+                    setNotice("");
+                    setForm((current) => ({ ...current, email: current.identifier.includes("@") ? current.identifier : current.email }));
+                    setStep("resetRequest");
+                  }}
                   className="text-black/40 text-xs text-left -mt-2"
                 >
                   Forgot password?
@@ -478,6 +530,76 @@ export const Auth = () => {
               <button onClick={() => setStep("register")} className="text-black/30 text-xs">
                 ← Wrong email? Go back
               </button>
+            </motion.div>
+          ) : step === "resetRequest" ? (
+            <motion.div
+              key="resetRequest"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="flex flex-col gap-4"
+            >
+              <h2 className="text-2xl font-bold text-center">Reset your password</h2>
+              <p className="text-black/50 text-sm text-center">Enter the email address on your account. If an account exists, we'll send a six-digit reset code.</p>
+              <input
+                type="email"
+                autoComplete="email"
+                placeholder="Email address"
+                value={form.email}
+                onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))}
+                className={inputClass}
+              />
+              {error && <p className="text-[var(--error)] text-sm">{error}</p>}
+              <button
+                type="button"
+                onClick={doRequestPasswordReset}
+                disabled={loading || !form.email.trim()}
+                className="bg-black text-white dark:bg-white dark:text-black rounded-xl py-2 font-semibold disabled:opacity-40"
+              >
+                {loading ? "Sending…" : "Send reset code"}
+              </button>
+              <button type="button" onClick={() => { setError(""); setNotice(""); setStep("login"); }} className="text-black/40 text-sm">Back to sign in</button>
+            </motion.div>
+          ) : step === "resetConfirm" ? (
+            <motion.div
+              key="resetConfirm"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="flex flex-col gap-4"
+            >
+              <h2 className="text-2xl font-bold text-center">Choose a new password</h2>
+              <p className="text-black/50 text-sm text-center">Enter the six-digit code sent to {form.email}. Codes expire after 10 minutes.</p>
+              <OtpInput value={resetCode} onChange={setResetCode} length={6} />
+              <input
+                type="password"
+                autoComplete="new-password"
+                placeholder="New password"
+                maxLength={25}
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                className={inputClass}
+              />
+              <input
+                type="password"
+                autoComplete="new-password"
+                placeholder="Confirm new password"
+                maxLength={25}
+                value={resetPasswordConfirm}
+                onChange={(e) => setResetPasswordConfirm(e.target.value)}
+                className={inputClass}
+              />
+              {error && <p className="text-[var(--error)] text-sm">{error}</p>}
+              {notice && <p className="text-black/40 text-sm">{notice}</p>}
+              <button
+                type="button"
+                onClick={doConfirmPasswordReset}
+                disabled={loading || resetCode.length !== 6 || resetPassword.length < 8 || resetPasswordConfirm.length < 8}
+                className="bg-black text-white dark:bg-white dark:text-black rounded-xl py-2 font-semibold disabled:opacity-40"
+              >
+                {loading ? "Resetting…" : "Reset password"}
+              </button>
+              <button type="button" onClick={() => { setError(""); setNotice(""); setStep("resetRequest"); }} className="text-black/40 text-sm">Use a different email</button>
             </motion.div>
           ) : (
             <motion.div

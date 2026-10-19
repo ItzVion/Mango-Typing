@@ -7,10 +7,17 @@ import { LoadingState } from "../../components/LoadingState";
 
 export const Terms = () => {
   const [content, setContent] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    api.legalPage("terms").then((p) => setContent(p.content));
-  }, []);
+  const load = () => {
+    setLoadError(false);
+    api.legalPage("terms").then((p) => setContent(p.content)).catch((err) => {
+      console.error("Failed to load terms of service:", err);
+      setLoadError(true);
+    });
+  };
+
+  useEffect(() => { load(); }, []);
 
   return (
     <div className="flex flex-col gap-5 max-w-2xl mx-auto text-sm text-black/70 dark:text-white/70">
@@ -18,7 +25,12 @@ export const Terms = () => {
       <BackButton to="/" label="Back" />
       <h1 className="text-2xl font-bold text-black dark:text-white">Terms of Service</h1>
       {content === null ? (
-        <LoadingState label="Loading terms of service…" />
+        loadError ? (
+          <div className="card p-5 flex flex-col items-start gap-3">
+            <p>Couldn't load the terms of service.</p>
+            <button onClick={load} className="px-4 py-2 rounded-xl border border-[var(--card-border)] font-semibold">Retry</button>
+          </div>
+        ) : <LoadingState label="Loading terms of service…" />
       ) : (
         content
           .split(/\n\s*\n/)

@@ -7,7 +7,7 @@ import { requireAuth, AuthRequest } from "../middleware/auth";
 import { sendOtpEmail } from "../lib/mailer";
 import { prisma } from "../lib/db";
 import { hashCode, codesMatch, MAX_CODE_ATTEMPTS } from "../lib/otp";
-import { checkRateLimit } from "../lib/rateLimit";
+import { checkRateLimit, clientIp } from "../lib/rateLimit";
 import { sniffImageMime } from "../lib/imageSniff";
 import { sign } from "./auth";
 import { setAuthCookie, clearAuthCookie } from "../lib/authCookie";
@@ -16,11 +16,11 @@ const router = Router();
 const CODE_TTL_MS = 10 * 60 * 1000;
 const avatarUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500 * 1024 } });
 function makeCode() { return crypto.randomInt(100000, 999999).toString(); }
-async function issueCode(userId: string, purpose: string, targetEmail: string | null, sendTo: string) {
+async function issueCode(userId: string, purpose: string, targetEmail: string | null, sendTo: string, emailPurpose: "email-verification" | "password-reset" = "email-verification") {
   const token = makeCode(); const expiresAt = new Date(Date.now() + CODE_TTL_MS);
   await prisma.verificationCode.deleteMany({ where: { userId, purpose } });
   await prisma.verificationCode.create({ data: { userId, purpose, token: hashCode(token), targetEmail, expiresAt } });
-  await sendOtpEmail(sendTo, token);
+  await sendOtpEmail(sendTo, token, emailPurpose);
 }
 async function consumeCode(userId: string, purpose: string, token: string) {
   const row = await prisma.verificationCode.findFirst({ where: { userId, purpose } });
@@ -30,6 +30,58 @@ async function consumeCode(userId: string, purpose: string, token: string) {
   if (!codesMatch(String(token), row.token)) { await prisma.verificationCode.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } }); return { ok: false as const, error: "Invalid code." }; }
   await prisma.verificationCode.delete({ where: { id: row.id } }); return { ok: true as const, targetEmail: row.targetEmail };
 }
+
+const RESET_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Public password-reset endpoints. Responses do not confirm whether an email
+// is registered. Codes are hashed at rest, expire after 10 minutes, are
+// single-use, and share the existing per-code attempt limit.
+router.post("/password-reset/request", async (req: Request, res: Response): Promise<any> => {
+  const ipLimit = await checkRateLimit(`password-reset-request:ip:${clientIp(req)}`, 5, 15 * 60 * 1000);
+  if (!ipLimit.ok) return res.status(429).json({ error: "Too many requests. Please try again later." });
+
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  if (!RESET_EMAIL_RE.test(email) || email.length > 254) return res.status(400).json({ error: "Enter a valid email address." });
+  const emailLimit = await checkRateLimit(`password-reset-request:email:${email}`, 3, 60 * 60 * 1000);
+  if (!emailLimit.ok) return res.status(429).json({ error: "Too many requests. Please try again later." });
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (user) {
+    try {
+      await issueCode(user.id, "password_reset", null, user.email, "password-reset");
+    } catch (err) {
+      // Keep the response generic to avoid leaking account existence.
+      console.error("Password reset email failed:", err);
+    }
+  }
+  return res.json({ success: true, message: "If an account exists for that email address, a password reset code has been sent." });
+});
+
+router.post("/password-reset/confirm", async (req: Request, res: Response): Promise<any> => {
+  const { email: rawEmail, code, newPassword } = req.body || {};
+  const email = String(rawEmail || "").trim().toLowerCase();
+  const ipLimit = await checkRateLimit(`password-reset-confirm:ip:${clientIp(req)}`, 10, 15 * 60 * 1000);
+  if (!ipLimit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
+  if (!RESET_EMAIL_RE.test(email) || email.length > 254 || typeof code !== "string" || !/^\d{6}$/.test(code) || typeof newPassword !== "string") {
+    return res.status(400).json({ error: "Invalid or expired reset code." });
+  }
+  if (newPassword.length < MIN_PASSWORD_LENGTH || newPassword.length > MAX_PASSWORD_LENGTH) {
+    return res.status(400).json({ error: `Password must be between ${MIN_PASSWORD_LENGTH} and ${MAX_PASSWORD_LENGTH} characters.` });
+  }
+  const emailLimit = await checkRateLimit(`password-reset-confirm:email:${email}`, 8, 15 * 60 * 1000);
+  if (!emailLimit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return res.status(400).json({ error: "Invalid or expired reset code." });
+  const result = await consumeCode(user.id, "password_reset", code);
+  if (!result.ok) return res.status(400).json({ error: "Invalid or expired reset code." });
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: await hashPassword(newPassword), sessionVersion: { increment: 1 } },
+  });
+  return res.json({ success: true });
+});
+
 router.patch("/username", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
   const limit = await checkRateLimit(`username-change:acct:${req.userId}`, 5, 15 * 60 * 1000); if (!limit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
   const { newUsername, password } = req.body; if (!newUsername || !password) return res.status(400).json({ error: "All fields required." });

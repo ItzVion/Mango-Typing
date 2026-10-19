@@ -1,6 +1,6 @@
 {
-  "installCommand": "npm install --prefix server --legacy-peer-deps && npm install --prefix client && cd server && npx prisma generate",
-  "buildCommand": "npm run build --prefix client",
+  "installCommand": "npm ci --prefix server --legacy-peer-deps && npm ci --prefix client && cd server && npx prisma generate",
+  "buildCommand": "npm run build --prefix server && npm run build --prefix client",
   "outputDirectory": "client/dist",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.ts" },

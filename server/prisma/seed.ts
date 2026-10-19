@@ -89,24 +89,28 @@ const DIFFICULTIES: ("easy" | "medium" | "hard")[] = [
 ];
 
 async function main() {
-  await prisma.typingTest.deleteMany();
-  await prisma.sheet.deleteMany();
+  // Keep seeding idempotent and non-destructive: preserve Sheet IDs and all
+  // saved TypingTest rows. Never clear production data from a seed command.
   await prisma.settings.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } });
 
   for (let i = 0; i < sheets.length; i++) {
     const s = sheets[i];
-    await prisma.sheet.create({
-      data: {
-        title: s.title,
-        topic: s.topic,
-        content: s.content,
-        wordCount: s.content.split(" ").length,
-        charCount: s.content.length,
-        difficulty: DIFFICULTIES[i] ?? "easy",
-      },
-    });
+    const data = {
+      title: s.title,
+      topic: s.topic,
+      content: s.content,
+      wordCount: s.content.split(" ").length,
+      charCount: s.content.length,
+      difficulty: DIFFICULTIES[i] ?? "easy",
+    };
+    const existing = await prisma.sheet.findFirst({ where: { title: s.title } });
+    if (existing) {
+      await prisma.sheet.update({ where: { id: existing.id }, data });
+    } else {
+      await prisma.sheet.create({ data });
+    }
   }
-  console.log(`Seeded ${sheets.length} sheets.`);
+  console.log("Seeded or updated " + sheets.length + " sheets without deleting saved history.");
 }
 
 main().finally(() => prisma.$disconnect());

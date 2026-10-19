@@ -63,12 +63,13 @@ export async function sendAccountExistsEmail(email: string) {
   });
 }
 
-export async function sendOtpEmail(email: string, otp: string) {
+export async function sendOtpEmail(email: string, otp: string, purpose: "email-verification" | "password-reset" = "email-verification") {
   const { transporter, from } = await getTransporter();
+  const isPasswordReset = purpose === "password-reset";
   await transporter.sendMail({
     from,
     to: email,
-    subject: `${otp} is your MangoTyping verification code`,
+    subject: `${otp} is your MangoTyping ${isPasswordReset ? "password reset" : "verification"} code`,
     html: emailShell(`
       <div style="padding:34px 36px 36px;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -76,12 +77,12 @@ export async function sendOtpEmail(email: string, otp: string) {
             <td>
               <div style="display:inline-block;background:#111111;color:#F5A623;border-radius:10px;padding:9px 12px;font-size:15px;font-weight:900;letter-spacing:.08em;">MT</div>
             </td>
-            <td align="right" style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9a9a93;">Email verification</td>
+            <td align="right" style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9a9a93;">${isPasswordReset ? "Password reset" : "Email verification"}</td>
           </tr>
         </table>
 
-        <h1 style="margin:30px 0 8px;font-size:30px;line-height:36px;letter-spacing:-.03em;color:#111111;">Verify your email</h1>
-        <p style="margin:0;color:#666660;font-size:15px;line-height:24px;">Use the verification code below to continue to MangoTyping.</p>
+        <h1 style="margin:30px 0 8px;font-size:30px;line-height:36px;letter-spacing:-.03em;color:#111111;">${isPasswordReset ? "Reset your password" : "Verify your email"}</h1>
+        <p style="margin:0;color:#666660;font-size:15px;line-height:24px;">${isPasswordReset ? "Use the code below to reset your MangoTyping password." : "Use the verification code below to continue to MangoTyping."}</p>
 
         <div style="margin:28px 0 10px;padding:24px 16px;background:#111111;border-radius:14px;text-align:center;">
           <div style="margin:0 0 8px;color:#a8a8a1;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;">Your code</div>

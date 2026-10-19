@@ -1,12 +1,12 @@
 import crypto from "crypto";
 import { prisma } from "./db";
 
-export const LEGAL_VERSION = "2026-09-10";
+export const LEGAL_VERSION = "2026-10-19";
 
 export const DEFAULT_LEGAL: Record<string, string> = {
   privacy: `MangoTyping — Privacy Policy
 Version: ${LEGAL_VERSION}
-Last updated: September 10, 2026
+Last updated: October 19, 2026
 
 PRIVACY CONTACT
 For privacy questions, rights requests, complaints, or security/privacy concerns, contact support@mangotyping.fun. This address is the published business contact for a person able to answer questions about MangoTyping's processing of personal data.
@@ -23,7 +23,7 @@ WHY WE PROCESS IT
 We process data only as reasonably necessary to create and authenticate accounts, provide typing tests/history/games/tutor features, prevent abuse and fraud, maintain service security and reliability, provide support, process and reconcile donations, respond to privacy requests, and comply with applicable law.
 
 THIRD-PARTY PROCESSORS
-Depending on the feature used, service providers may include hosting/deployment infrastructure, Turso/libSQL, Google authentication services, Razorpay, email/SMTP providers and other configured support providers. Some providers may process data outside India. MangoTyping should use appropriate contractual and technical safeguards with processors and disclose material processor categories in accordance with applicable law.
+Depending on the feature used, service providers may include hosting/deployment infrastructure, Neon PostgreSQL, Google authentication services, Razorpay, email/SMTP providers and other configured support providers. Some providers may process data outside India. MangoTyping should use appropriate contractual and technical safeguards with processors and disclose material processor categories in accordance with applicable law.
 
 CHILDREN
 MangoTyping does not use targeted advertising or behavioural profiling directed at children. Where applicable law requires verifiable parental or lawful-guardian consent before processing a child's personal data, MangoTyping will require an appropriate verification process before such processing. A simple checkbox or ordinary email reply is not represented as legally verified parental consent. Users must not provide another person's personal data without the required authority.
@@ -44,7 +44,7 @@ CHANGES
 We may update this policy when the service, law, processors, or processing purposes change. Material changes may require renewed acceptance where applicable. The currently effective legal revision is recorded by MangoTyping and tied to the legal content presented at the time of acceptance.`,
   refund: `MangoTyping — Refund Policy
 Version: ${LEGAL_VERSION}
-Last updated: September 10, 2026
+Last updated: October 19, 2026
 
 MangoTyping donations are voluntary contributions supporting hosting, domains, infrastructure and development. They are not purchases of scores, advantages, subscriptions or guaranteed benefits.
 
@@ -55,7 +55,7 @@ Donations are generally non-refundable, but this does not remove any refund, rev
 For payment problems contact support@mangotyping.fun with the Razorpay order/payment identifier, date and amount. Never send card numbers, CVV/CVC, UPI PINs or passwords. Any applicable refund will be processed through the available payment mechanism within a reasonable processing period, subject to the payment provider and applicable law.`,
   terms: `MangoTyping — Terms of Service
 Version: ${LEGAL_VERSION}
-Last updated: September 10, 2026
+Last updated: October 19, 2026
 
 By using MangoTyping or creating an account, you agree to these Terms, the Privacy Policy and the Refund Policy after being given a reasonable opportunity to review them. If applicable law requires a parent or lawful guardian to consent to processing of a child's personal data, that consent requirement is not replaced by these Terms.
 
