@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm ci --prefix server --legacy-peer-deps && (npm audit --prefix server --json > /tmp/mangotyping-server-audit.json || true) && node -e 'const a=require(\"/tmp/mangotyping-server-audit.json\"); console.log(\"SERVER_AUDIT_DETAILS \"+JSON.stringify(Object.values(a.vulnerabilities||{}).map(v=>({name:v.name,severity:v.severity,range:v.range,fixAvailable:v.fixAvailable,via:v.via.map(x=>typeof x===\"string\"?x:x.title)}))))' && npm ci --prefix client && (npm audit --prefix client --json > /tmp/mangotyping-client-audit.json || true) && node -e 'const a=require(\"/tmp/mangotyping-client-audit.json\"); console.log(\"CLIENT_AUDIT_DETAILS \"+JSON.stringify(Object.values(a.vulnerabilities||{}).map(v=>({name:v.name,severity:v.severity,range:v.range,fixAvailable:v.fixAvailable,via:v.via.map(x=>typeof x===\"string\"?x:x.title)}))))' && cd server && npx prisma generate",
+  "installCommand": "npm ci --prefix server --legacy-peer-deps && npm ci --prefix client && cd server && npx prisma generate",
   "buildCommand": "npm run build --prefix server && npm run build --prefix client",
   "outputDirectory": "client/dist",
   "rewrites": [
