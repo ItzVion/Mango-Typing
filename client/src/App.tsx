@@ -1,34 +1,36 @@
 import { Routes, Route, useLocation, Navigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 import { BugReportButton } from "./components/BugReportButton";
 import { AnimationLayer } from "./components/AnimationLayer";
-import { Landing } from "./pages/Landing";
-import { Home } from "./pages/Home";
-import { Sheets } from "./pages/Sheets";
-import { TypingTest } from "./pages/TypingTest";
-import { TestResult } from "./pages/TestResult";
-import { Download } from "./pages/Download";
-import { History } from "./pages/History";
-import { Auth } from "./pages/Auth";
-import { AdminPanel } from "./pages/AdminPanel";
-import { Privacy } from "./pages/legal/Privacy";
-import { Refund } from "./pages/legal/Refund";
-import { Terms } from "./pages/legal/Terms";
-import { GamesHub } from "./pages/Games/GamesHub";
-import { BalloonGame } from "./pages/Games/BalloonGame";
-import { CarGame } from "./pages/Games/CarGame";
-import { BossGame } from "./pages/Games/BossGame";
-import { TutorHub } from "./pages/Tutor/TutorHub";
-import { LessonRunner } from "./pages/Tutor/LessonRunner";
-import { DonationHistory } from "./pages/DonationHistory";
-import { Settings } from "./pages/Settings";
-import { NotFound } from "./pages/NotFound";
-import { MaintenancePage } from "./pages/MaintenancePage";
 import { api } from "./api/client";
 import { useAuthStore } from "./stores/authStore";
+import { LoadingState } from "./components/LoadingState";
+
+const Landing = lazy(() => import("./pages/Landing").then((module) => ({ default: module.Landing })));
+const Home = lazy(() => import("./pages/Home").then((module) => ({ default: module.Home })));
+const Sheets = lazy(() => import("./pages/Sheets").then((module) => ({ default: module.Sheets })));
+const TypingTest = lazy(() => import("./pages/TypingTest").then((module) => ({ default: module.TypingTest })));
+const TestResult = lazy(() => import("./pages/TestResult").then((module) => ({ default: module.TestResult })));
+const Download = lazy(() => import("./pages/Download").then((module) => ({ default: module.Download })));
+const History = lazy(() => import("./pages/History").then((module) => ({ default: module.History })));
+const Auth = lazy(() => import("./pages/Auth").then((module) => ({ default: module.Auth })));
+const AdminPanel = lazy(() => import("./pages/AdminPanel").then((module) => ({ default: module.AdminPanel })));
+const Privacy = lazy(() => import("./pages/legal/Privacy").then((module) => ({ default: module.Privacy })));
+const Refund = lazy(() => import("./pages/legal/Refund").then((module) => ({ default: module.Refund })));
+const Terms = lazy(() => import("./pages/legal/Terms").then((module) => ({ default: module.Terms })));
+const GamesHub = lazy(() => import("./pages/Games/GamesHub").then((module) => ({ default: module.GamesHub })));
+const BalloonGame = lazy(() => import("./pages/Games/BalloonGame").then((module) => ({ default: module.BalloonGame })));
+const CarGame = lazy(() => import("./pages/Games/CarGame").then((module) => ({ default: module.CarGame })));
+const BossGame = lazy(() => import("./pages/Games/BossGame").then((module) => ({ default: module.BossGame })));
+const TutorHub = lazy(() => import("./pages/Tutor/TutorHub").then((module) => ({ default: module.TutorHub })));
+const LessonRunner = lazy(() => import("./pages/Tutor/LessonRunner").then((module) => ({ default: module.LessonRunner })));
+const DonationHistory = lazy(() => import("./pages/DonationHistory").then((module) => ({ default: module.DonationHistory })));
+const Settings = lazy(() => import("./pages/Settings").then((module) => ({ default: module.Settings })));
+const NotFound = lazy(() => import("./pages/NotFound").then((module) => ({ default: module.NotFound })));
+const MaintenancePage = lazy(() => import("./pages/MaintenancePage").then((module) => ({ default: module.MaintenancePage })));
 
 const pageTransition = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -16 } };
 
@@ -52,12 +54,13 @@ export default function App() {
 
   const isOwner = !!user?.isOwner;
   const allowedDuringMaintenance = location.pathname === "/auth" || location.pathname === "/admin";
-  if (maintenance && !isOwner && !allowedDuringMaintenance) return <MaintenancePage />;
+  if (maintenance && !isOwner && !allowedDuringMaintenance) return <Suspense fallback={<LoadingState label="Loading maintenance page…" />}><MaintenancePage /></Suspense>;
 
   return <>
     <AnimationLayer />
     <Navbar />
     <div className="pt-32 pb-4 px-6 max-w-6xl mx-auto min-h-[70vh]">
+      <Suspense fallback={<LoadingState label="Loading page…" />}>
       <AnimatePresence mode="wait">
         <motion.div key={location.pathname} initial="initial" animate="animate" exit="exit" variants={pageTransition} transition={{ duration: 0.28, ease: "easeOut" }}>
           <Routes location={location}>
@@ -94,6 +97,7 @@ export default function App() {
           </Routes>
         </motion.div>
       </AnimatePresence>
+      </Suspense>
     </div>
     <Footer />
     <BugReportButton />

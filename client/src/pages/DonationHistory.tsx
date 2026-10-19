@@ -8,9 +8,23 @@ type Donation = { id: string; amountRupees: number; status: string; createdAt: s
 
 export const DonationHistory = () => {
   const [donations, setDonations] = useState<Donation[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  const loadDonations = () => {
+    setLoading(true);
+    setLoadError(false);
+    api.myDonations()
+      .then(setDonations)
+      .catch((err) => {
+        console.error("Failed to load donation history:", err);
+        setLoadError(true);
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    api.myDonations().then(setDonations).catch(() => setDonations([]));
+    loadDonations();
   }, []);
 
   return (
@@ -19,9 +33,14 @@ export const DonationHistory = () => {
       <BackButton to="/home" label="Back" />
       <h1 className="text-2xl font-bold">Donation History</h1>
 
-      {donations === null ? (
-        <p className="text-black/40 text-sm">Loading…</p>
-      ) : donations.length === 0 ? (
+      {loading ? (
+        <p className="text-black/40 text-sm">Loading donation history…</p>
+      ) : loadError ? (
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-[var(--error)] text-sm">Couldn't load your donation history. Your records haven't been changed.</p>
+          <button onClick={loadDonations} className="px-4 py-2 rounded-xl card text-sm font-semibold">Retry</button>
+        </div>
+      ) : !donations || donations.length === 0 ? (
         <p className="text-black/40 text-sm">No donations yet.</p>
       ) : (
         <div className="flex flex-col gap-3">
