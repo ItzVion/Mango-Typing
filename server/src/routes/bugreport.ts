@@ -14,6 +14,7 @@ const upload = multer({
     fields: 8,
     fieldSize: 16 * 1024,
     fieldNameSize: 100,
+    fieldArrayIndexLimit: 10,
     parts: 13,
   },
   fileFilter: (_req, file, cb) => {
