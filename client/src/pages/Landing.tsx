@@ -4,14 +4,14 @@ import { SupportSection } from "../components/SupportSection";
 import { TypingHero } from "../components/TypingHero";
 import { Seo, SITE_ORIGIN, SITE_NAME } from "../components/Seo";
 
-// mangotyping.fun — the public marketing splash. "Start" takes people
-// into the actual app at /home; scrolling down leads to the support/donate
-// section. This page itself has no app functionality.
+// The public marketing splash. "Start" takes people into the app at /home;
+// scrolling down leads to the support/donate section.
 export const Landing = () => (
   <div className="flex flex-col items-center">
     <Seo
-      title={`${SITE_NAME} (Mango Typing) – Free Online Typing Test & Practice`}
-      description="MangoTyping (Mango Typing) is a free online typing test and practice platform. Take typing tests, improve WPM and accuracy, play typing games, and use a typing tutor."
+      title="Free Online Typing Test & Practice"
+      brandSuffix={false}
+      description="Free online typing tests with WPM and accuracy tracking, typing games, and guided typing practice."
       path="/"
       jsonLd={{
         "@context": "https://schema.org",

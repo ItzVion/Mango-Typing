@@ -11,6 +11,8 @@ interface SeoProps {
   path: string;
   /** Set true for private/account/admin pages so they're excluded from search results. */
   noindex?: boolean;
+  /** Append the site brand to the page title; disable when the site name is shown separately. */
+  brandSuffix?: boolean;
   ogType?: "website" | "article";
   ogImage?: string;
   jsonLd?: object | object[];
@@ -43,9 +45,20 @@ function upsertLink(rel: string, href: string) {
   return el;
 }
 
-export function Seo({ title, description, path, noindex = false, ogType = "website", ogImage, jsonLd }: SeoProps) {
+export function Seo({
+  title,
+  description,
+  path,
+  noindex = false,
+  brandSuffix = true,
+  ogType = "website",
+  ogImage,
+  jsonLd,
+}: SeoProps) {
   useEffect(() => {
-    const fullTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
+    const fullTitle = brandSuffix
+      ? (title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`)
+      : title;
     const url = `${SITE_ORIGIN}${path}`;
     const image = ogImage || DEFAULT_OG_IMAGE;
     const prevTitle = document.title;
@@ -87,7 +100,7 @@ export function Seo({ title, description, path, noindex = false, ogType = "websi
       scriptEl?.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, description, path, noindex, ogType, ogImage, JSON.stringify(jsonLd)]);
+  }, [title, description, path, noindex, brandSuffix, ogType, ogImage, JSON.stringify(jsonLd)]);
 
   return null;
 }
