@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import { isBlockedSmtpAddress, normalizeSmtpHostname } from "../src/lib/smtpSecurity";
 import { isValidCapturedPayment } from "../src/lib/paymentValidation";
+import { hashCode, codesMatch } from "../src/lib/otp";
 
 test("SMTP destination screening rejects private and special IPv4 ranges", () => {
   for (const ip of [
@@ -41,4 +43,22 @@ test("Razorpay payment must be captured, INR, and match exact order/id/amount", 
   assert.equal(isValidCapturedPayment({ ...valid, status: "authorized", captured: false }, expected), false);
   assert.equal(isValidCapturedPayment({ ...valid, currency: "USD" }, expected), false);
   assert.equal(isValidCapturedPayment(null, expected), false);
+});
+
+test("OTP hashes are keyed and existing SHA-256 codes remain valid during rollout", () => {
+  const previousSecret = process.env.JWT_SECRET;
+  process.env.JWT_SECRET = "test-only-otp-hmac-secret";
+  try {
+    const currentHash = hashCode("123456");
+    assert.match(currentHash, /^hmac1:[a-f0-9]{64}$/);
+    assert.equal(codesMatch("123456", currentHash), true);
+    assert.equal(codesMatch("123457", currentHash), false);
+
+    const legacyHash = crypto.createHash("sha256").update("654321").digest("hex");
+    assert.equal(codesMatch("654321", legacyHash), true);
+    assert.equal(codesMatch("654322", legacyHash), false);
+  } finally {
+    if (previousSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = previousSecret;
+  }
 });

@@ -1,4 +1,4 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import { hashPassword, verifyPassword, MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from "../lib/password";
 import crypto from "crypto";
@@ -15,6 +15,17 @@ import { setAuthCookie, clearAuthCookie } from "../lib/authCookie";
 const router = Router();
 const CODE_TTL_MS = 10 * 60 * 1000;
 const avatarUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500 * 1024 } });
+
+// Apply account upload limits before Multer buffers the request body.
+async function limitAvatarUpload(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const limit = await checkRateLimit("avatar:acct:" + req.userId, 10, 15 * 60 * 1000);
+    if (!limit.ok) return res.status(429).json({ error: "Too many uploads. Please try again later." });
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
 function makeCode() { return crypto.randomInt(100000, 999999).toString(); }
 async function issueCode(userId: string, purpose: string, targetEmail: string | null, sendTo: string, emailPurpose: "email-verification" | "password-reset" = "email-verification") {
   const token = makeCode();
@@ -191,6 +202,6 @@ router.post("/delete/confirm", requireAuth, async (req: AuthRequest, res: Respon
   if (!limit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
   const { code } = req.body || {};
   if (typeof code !== "string" || !/^\d{6}$/.test(code)) return res.status(400).json({ error: "Code required." }); const result = await consumeCode(req.userId!, "delete_account", code); if (!result.ok) return res.status(400).json({ error: result.error }); await prisma.$transaction([prisma.donation.deleteMany({ where: { userId: req.userId } }), prisma.typingTest.deleteMany({ where: { userId: req.userId } }), prisma.verificationCode.deleteMany({ where: { userId: req.userId } }), prisma.user.delete({ where: { id: req.userId } })]); clearAuthCookie(res); res.json({ success: true }); });
-router.post("/avatar", requireAuth, avatarUpload.single("avatar"), async (req: AuthRequest, res: Response): Promise<any> => { if (!req.file) return res.status(400).json({ error: "No file uploaded." }); const limit = await checkRateLimit(`avatar:acct:${req.userId}`, 10, 15 * 60 * 1000); if (!limit.ok) return res.status(429).json({ error: "Too many uploads. Please try again later." }); const mime = sniffImageMime(req.file.buffer); if (!mime) return res.status(400).json({ error: "That doesn't look like a valid image file." }); const dataUrl = `data:${mime};base64,${req.file.buffer.toString("base64")}`; const user = await prisma.user.update({ where: { id: req.userId }, data: { avatarUrl: dataUrl } }); res.json({ avatarUrl: user.avatarUrl }); });
+router.post("/avatar", requireAuth, limitAvatarUpload, avatarUpload.single("avatar"), async (req: AuthRequest, res: Response): Promise<any> => { if (!req.file) return res.status(400).json({ error: "No file uploaded." }); const mime = sniffImageMime(req.file.buffer); if (!mime) return res.status(400).json({ error: "That doesn't look like a valid image file." }); const dataUrl = `data:${mime};base64,${req.file.buffer.toString("base64")}`; const user = await prisma.user.update({ where: { id: req.userId }, data: { avatarUrl: dataUrl } }); res.json({ avatarUrl: user.avatarUrl }); });
 router.delete("/avatar", requireAuth, async (req: AuthRequest, res: Response) => { await prisma.user.update({ where: { id: req.userId }, data: { avatarUrl: null } }); res.json({ success: true }); });
 export default router;
