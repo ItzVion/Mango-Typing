@@ -145,8 +145,11 @@ const PaymentsTab = () => {
   const [form, setForm] = useState({ razorpayKeyId: "", razorpayKeySecret: "", donationMessage: "", maintenanceMode: false, supportEmail: "" });
   const [status, setStatus] = useState("");
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
+    setReady(false);
+    setLoadError(false);
     api.ownerSettings().then((s) => {
       setForm({
         razorpayKeyId: s.razorpayKeyId ?? "",
@@ -155,8 +158,14 @@ const PaymentsTab = () => {
         maintenanceMode: s.maintenanceMode ?? false,
         supportEmail: s.supportEmail ?? "",
       });
-      setReady(true);
-    });
+    }).catch((err) => {
+      console.error("Failed to load payment settings:", err);
+      setLoadError(true);
+    }).finally(() => setReady(true));
+  };
+
+  useEffect(() => {
+    load();
   }, []);
 
   const save = async () => {
@@ -207,7 +216,13 @@ const PaymentsTab = () => {
     }
   };
 
-  if (!ready) return <p className="text-black/40 text-sm">Loading…</p>;
+  if (!ready) return <p className="text-black/40 text-sm">Loading payment settings…</p>;
+  if (loadError) return (
+    <div className="card p-5 flex flex-col items-start gap-3">
+      <p className="text-[var(--error)] text-sm">Couldn't load payment settings. Nothing has been changed.</p>
+      <button onClick={load} className="px-4 py-2 rounded-xl card text-sm font-semibold">Retry</button>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-5 card p-6">
@@ -303,8 +318,11 @@ const EmailTab = () => {
   const [testTo, setTestTo] = useState("");
   const [testing, setTesting] = useState(false);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
+    setReady(false);
+    setLoadError(false);
     api.ownerSettings().then((s) => {
       setForm({
         smtpHost: s.smtpHost ?? "",
@@ -315,8 +333,14 @@ const EmailTab = () => {
         smtpFrom: s.smtpFrom ?? "",
         smtpFromName: s.smtpFromName ?? "",
       });
-      setReady(true);
-    });
+    }).catch((err) => {
+      console.error("Failed to load SMTP settings:", err);
+      setLoadError(true);
+    }).finally(() => setReady(true));
+  };
+
+  useEffect(() => {
+    load();
   }, []);
 
   const save = async () => {
@@ -342,7 +366,13 @@ const EmailTab = () => {
     }
   };
 
-  if (!ready) return <p className="text-black/40 text-sm">Loading…</p>;
+  if (!ready) return <p className="text-black/40 text-sm">Loading email settings…</p>;
+  if (loadError) return (
+    <div className="card p-5 flex flex-col items-start gap-3">
+      <p className="text-[var(--error)] text-sm">Couldn't load email settings. Nothing has been changed.</p>
+      <button onClick={load} className="px-4 py-2 rounded-xl card text-sm font-semibold">Retry</button>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-5 card p-6">
@@ -466,13 +496,21 @@ const EditorTab = () => {
   const [content, setContent] = useState("");
   const [status, setStatus] = useState("");
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
     setReady(false);
+    setLoadError(false);
     api.adminLegalPage(slug).then((p) => {
       setContent(p.content);
-      setReady(true);
-    });
+    }).catch((err) => {
+      console.error("Failed to load legal page for editor:", err);
+      setLoadError(true);
+    }).finally(() => setReady(true));
+  };
+
+  useEffect(() => {
+    load();
   }, [slug]);
 
   const save = async () => {
@@ -502,7 +540,12 @@ const EditorTab = () => {
       </div>
 
       {!ready ? (
-        <p className="text-black/40 text-sm">Loading…</p>
+        loadError ? (
+          <div className="card p-5 flex flex-col items-start gap-3">
+            <p className="text-[var(--error)] text-sm">Couldn't load this legal page.</p>
+            <button onClick={load} className="px-4 py-2 rounded-xl card text-sm font-semibold">Retry</button>
+          </div>
+        ) : <p className="text-black/40 text-sm">Loading legal page…</p>
       ) : (
         <div className="card p-6 flex flex-col gap-4">
           <p className="text-black/40 text-xs">
@@ -536,16 +579,30 @@ const UsersTab = () => {
   const [form, setForm] = useState({ email: "", username: "", password: "" });
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState(false);
+  const [actionError, setActionError] = useState("");
 
-  const load = () => api.adminUsers().then(setUsers);
+  const load = () => {
+    setLoadError(false);
+    return api.adminUsers().then(setUsers).catch((err) => {
+      console.error("Failed to load admin users:", err);
+      setLoadError(true);
+    });
+  };
   useEffect(() => {
     load();
   }, []);
 
   const remove = async (id: string) => {
-    await api.adminDeleteUser(id);
-    setConfirmId(null);
-    load();
+    setActionError("");
+    try {
+      await api.adminDeleteUser(id);
+      setConfirmId(null);
+      await load();
+    } catch (err: any) {
+      console.error("Failed to delete admin user:", err);
+      setActionError(err?.message || "Failed to delete user.");
+    }
   };
 
   const createUser = async () => {
@@ -576,8 +633,13 @@ const UsersTab = () => {
         + Add User Manually
       </motion.button>
 
-      {!users ? (
-        <p className="text-black/40 text-sm">Loading…</p>
+      {loadError ? (
+        <div className="card p-5 flex flex-col items-start gap-3">
+          <p className="text-[var(--error)] text-sm">Couldn't load users.</p>
+          <button onClick={load} className="px-4 py-2 rounded-xl card text-sm font-semibold">Retry</button>
+        </div>
+      ) : !users ? (
+        <p className="text-black/40 text-sm">Loading users…</p>
       ) : (
         <div className="flex flex-col gap-2">
           {users.map((u) => (
@@ -596,7 +658,7 @@ const UsersTab = () => {
               <motion.button
                 whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => setConfirmId(u.id)}
+                onClick={() => { setActionError(""); setConfirmId(u.id); }}
                 className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-red-500/10 hover:bg-red-500/20 text-red-500 text-lg"
                 title="Delete user"
               >
@@ -627,6 +689,7 @@ const UsersTab = () => {
             >
               <p className="font-semibold mb-1">Delete this user?</p>
               <p className="text-black/40 text-xs mb-5">This can't be undone.</p>
+              {actionError && <p className="text-red-500 text-xs mb-3">{actionError}</p>}
               <div className="flex gap-3 justify-center">
                 <button
                   onClick={() => remove(confirmId)}
@@ -723,13 +786,30 @@ const UsersTab = () => {
 // ── Donations ────────────────────────────────────────────────────────────
 const DonationsTab = () => {
   const [donations, setDonations] = useState<AdminDonation[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  const load = () => {
+    setLoading(true);
+    setLoadError(false);
+    api.adminDonations().then(setDonations).catch((err) => {
+      console.error("Failed to load admin donations:", err);
+      setLoadError(true);
+    }).finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    api.adminDonations().then(setDonations);
+    load();
   }, []);
 
-  if (!donations) return <p className="text-black/40 text-sm">Loading…</p>;
-  if (donations.length === 0) return <p className="text-black/40 text-sm">No donations yet.</p>;
+  if (loading) return <p className="text-black/40 text-sm">Loading donations…</p>;
+  if (loadError) return (
+    <div className="card p-5 flex flex-col items-start gap-3">
+      <p className="text-[var(--error)] text-sm">Couldn't load donation records.</p>
+      <button onClick={load} className="px-4 py-2 rounded-xl card text-sm font-semibold">Retry</button>
+    </div>
+  );
+  if (!donations || donations.length === 0) return <p className="text-black/40 text-sm">No donations yet.</p>;
 
   return (
     <div className="flex flex-col gap-2">
