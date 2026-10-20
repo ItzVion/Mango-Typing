@@ -66,9 +66,19 @@ function useGoogleSignIn(onCredential: (credential: string) => void, enabled: bo
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) return;
-    // Google's script tag is async/defer, so on a hard refresh it can still
-    // be loading when this effect first runs. Poll briefly until it's ready
-    // instead of a single check that can miss the window entirely.
+    // Load Google's Identity Services only on the auth screen, not on every
+    // page visit. Keep the script around after first load to avoid duplicates.
+    if (!window.google && !document.querySelector('script[data-google-identity]')) {
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.dataset.googleIdentity = "true";
+      script.addEventListener("error", () => script.remove(), { once: true });
+      document.head.appendChild(script);
+    }
+    // The script loads asynchronously, so poll briefly rather than relying on
+    // a single check that could run before Google's API becomes available.
     const tryInit = () => {
       if (initializedRef.current || !window.google || !containerRef.current) return false;
       window.google.accounts.id.initialize({

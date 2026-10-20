@@ -10,6 +10,34 @@ declare global {
   }
 }
 
+let razorpayCheckoutPromise: Promise<void> | null = null;
+
+function loadRazorpayCheckout(): Promise<void> {
+  if (window.Razorpay) return Promise.resolve();
+  if (!razorpayCheckoutPromise) {
+    razorpayCheckoutPromise = new Promise<void>((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.async = true;
+      script.dataset.razorpayCheckout = "true";
+      script.onload = () => {
+        if (window.Razorpay) resolve();
+        else {
+          razorpayCheckoutPromise = null;
+          reject(new Error("Payment checkout could not be initialized. Please try again."));
+        }
+      };
+      script.onerror = () => {
+        script.remove();
+        razorpayCheckoutPromise = null;
+        reject(new Error("Could not load payment checkout. Check your connection and try again."));
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return razorpayCheckoutPromise;
+}
+
 const StarIcon = ({ size = 24, color = "#F5A623" }: { size?: number; color?: string }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} fill={color}>
     <path d="M12 2.5l2.9 6.1 6.6.7-4.9 4.5 1.3 6.6L12 17l-5.9 3.4 1.3-6.6-4.9-4.5 6.6-.7L12 2.5z" />
@@ -56,6 +84,8 @@ export const SupportSection = () => {
     if (!rupees || rupees < 1) { setError("Enter a valid amount"); return; }
     setLoading(true);
     try {
+      // Load the payment provider only after the visitor explicitly starts a donation.
+      await loadRazorpayCheckout();
       const order = await api.createDonationOrder(rupees);
       let paymentResolved = false;
       const rzp = new window.Razorpay({
