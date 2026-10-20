@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm ci --prefix server --legacy-peer-deps && npm ci --prefix client && cd server && npx prisma generate",
+  "installCommand": "npm install --prefix ./server --legacy-peer-deps && npm ci --prefix ./client && cd server && npx prisma generate",
   "buildCommand": "npm run build --prefix server && npm run build --prefix client",
   "outputDirectory": "client/dist",
   "rewrites": [
@@ -26,6 +26,14 @@
     {
       "source": "/refund",
       "destination": "/refund.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/third-party-notice",
+      "destination": "/third-party-notice.html"
     },
     {
       "source": "/(.*)",
