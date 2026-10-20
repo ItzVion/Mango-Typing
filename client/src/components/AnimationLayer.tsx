@@ -53,6 +53,12 @@ export function AnimationLayer() {
     const onClick = (event: MouseEvent) => {
       const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("button, a, [role='button']");
       if (!target || target.closest("input, textarea, .type-box")) return;
+
+      // Floating controls (for example, the Report a bug button) must stay
+      // fixed after they are clicked. The ripple host CSS uses position:
+      // relative, so do not apply it to controls that use fixed positioning.
+      if (window.getComputedStyle(target).position === "fixed") return;
+
       const rect = target.getBoundingClientRect();
       const ripple = document.createElement("span");
       ripple.className = "mt-click-ripple";
