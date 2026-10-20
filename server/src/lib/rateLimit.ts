@@ -1,10 +1,29 @@
 import { Request } from "express";
 import { prisma } from "./db";
 
-// DB-backed fixed-window rate limiter. Vercel serverless functions share no
-// in-process memory between invocations, so an in-memory Map would reset on
-// every cold start and wouldn't be shared across concurrent instances —
-// this needs to live in the DB to actually work.
+// Keep cleanup state and helpers at module scope. Defining them inside the
+// request handler below their first use causes a temporal-dead-zone exception.
+const RATE_LIMIT_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
+const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000;
+let lastRateLimitCleanupAt = 0;
+
+async function cleanupExpiredRateLimits(nowMs: number): Promise<void> {
+  if (nowMs - lastRateLimitCleanupAt < RATE_LIMIT_CLEANUP_INTERVAL_MS) return;
+
+  // Set before awaiting so concurrent requests in this instance don't all run it.
+  lastRateLimitCleanupAt = nowMs;
+  try {
+    await prisma.rateLimit.deleteMany({
+      where: { windowStart: { lt: new Date(nowMs - RATE_LIMIT_RETENTION_MS) } },
+    });
+  } catch (error) {
+    // Cleanup is best-effort and must never disable the actual rate limiter.
+    console.error("Failed to clean expired rate-limit rows:", error);
+  }
+}
+
+// DB-backed fixed-window rate limiter. This works across serverless invocations
+// and concurrent instances unlike an in-memory Map.
 export async function checkRateLimit(
   key: string,
   limit: number,
@@ -16,34 +35,11 @@ export async function checkRateLimit(
 
   const now = new Date();
   const cutoff = new Date(now.getTime() - windowMs);
-
   await cleanupExpiredRateLimits(now.getTime());
 
-  // A single PostgreSQL UPSERT serializes updates to the key. This prevents
-  // concurrent requests at a window boundary from all resetting the same
-  // expired row and bypassing the configured limit.
-  // Rate-limit keys can be attacker-controlled in account/email endpoints. Expired
-// windows are useless after a day, so periodically purge old rows to keep the
-// production table from growing indefinitely. Best-effort and safe to skip.
-const RATE_LIMIT_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
-const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000;
-let lastRateLimitCleanupAt = 0;
-
-async function cleanupExpiredRateLimits(nowMs: number) {
-  if (nowMs - lastRateLimitCleanupAt < RATE_LIMIT_CLEANUP_INTERVAL_MS) return;
-  // Set before awaiting so concurrent requests in this instance don't all run it.
-  lastRateLimitCleanupAt = nowMs;
-  try {
-    await prisma.rateLimit.deleteMany({
-      where: { windowStart: { lt: new Date(nowMs - RATE_LIMIT_RETENTION_MS) } },
-    });
-  } catch (error) {
-    // Cleanup must not break rate limiting if the database is briefly unavailable.
-    console.error("Failed to clean expired rate-limit rows:", error);
-  }
-}
-
-const rows = await prisma.$queryRaw<Array<{ count: number; windowStart: Date }>>`
+  // The UPSERT serializes updates to each key, avoiding a reset race at
+  // fixed-window boundaries.
+  const rows = await prisma.$queryRaw<Array<{ count: number; windowStart: Date }>>`
     INSERT INTO public."RateLimit" AS rl ("key", "count", "windowStart")
     VALUES (${key}, 1, ${now})
     ON CONFLICT ("key") DO UPDATE SET
@@ -55,20 +51,18 @@ const rows = await prisma.$queryRaw<Array<{ count: number; windowStart: Date }>>
 
   if (rows.length === 1) return { ok: true, retryAfterMs: 0 };
 
-  // No row is returned when a live rate-limit window has already reached its
-  // limit. Read it only to calculate the retry delay.
+  // A live window that has reached its limit returns no row; read its start
+  // time only to calculate the retry delay.
   const row = await prisma.rateLimit.findUnique({ where: { key } });
   const retryAfterMs = row
     ? Math.max(1, windowMs - (now.getTime() - row.windowStart.getTime()))
     : windowMs;
+
   return { ok: false, retryAfterMs };
 }
 
-// Relies on `app.set("trust proxy", 1)` in index.ts. With that set, Express's
-// own req.ip is derived from x-forwarded-for but only trusts exactly the
-// number of proxy hops configured — a client can't just add its own
-// x-forwarded-for header and have it taken as the real IP, unlike manually
-// reading req.headers["x-forwarded-for"] outright (the previous approach).
+// Relies on app.set("trust proxy", 1) in index.ts so client IPs use exactly
+// the configured trusted proxy hop count instead of trusting arbitrary headers.
 export function clientIp(req: Request): string {
   return req.ip || req.socket?.remoteAddress || "unknown";
 }
