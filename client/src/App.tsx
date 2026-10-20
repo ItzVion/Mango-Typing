@@ -21,6 +21,8 @@ const AdminPanel = lazy(() => import("./pages/AdminPanel").then((module) => ({ d
 const Privacy = lazy(() => import("./pages/legal/Privacy").then((module) => ({ default: module.Privacy })));
 const Refund = lazy(() => import("./pages/legal/Refund").then((module) => ({ default: module.Refund })));
 const Terms = lazy(() => import("./pages/legal/Terms").then((module) => ({ default: module.Terms })));
+const About = lazy(() => import("./pages/About").then((module) => ({ default: module.About })));
+const ThirdPartyNotice = lazy(() => import("./pages/ThirdPartyNotice").then((module) => ({ default: module.ThirdPartyNotice })));
 const GamesHub = lazy(() => import("./pages/Games/GamesHub").then((module) => ({ default: module.GamesHub })));
 const BalloonGame = lazy(() => import("./pages/Games/BalloonGame").then((module) => ({ default: module.BalloonGame })));
 const CarGame = lazy(() => import("./pages/Games/CarGame").then((module) => ({ default: module.CarGame })));
@@ -53,13 +55,13 @@ export default function App() {
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, [location.pathname]);
 
   const isOwner = !!user?.isOwner;
-  const allowedDuringMaintenance = location.pathname === "/auth" || location.pathname === "/admin";
+  const allowedDuringMaintenance = location.pathname === "/auth" || location.pathname === "/admin" || location.pathname === "/privacy" || location.pathname === "/terms" || location.pathname === "/refund" || location.pathname === "/about" || location.pathname === "/third-party-notice";
   if (maintenance && !isOwner && !allowedDuringMaintenance) return <Suspense fallback={<LoadingState label="Loading maintenance page…" />}><MaintenancePage /></Suspense>;
 
   return <>
     <AnimationLayer />
     <Navbar />
-    <div className="pt-32 pb-4 px-6 max-w-6xl mx-auto min-h-[70vh]">
+    <div className="pt-32 pb-4 px-4 sm:px-6 max-w-6xl mx-auto min-h-[70vh]">
       <Suspense fallback={<LoadingState label="Loading page…" />}>
       <AnimatePresence mode="wait">
         <motion.div key={location.pathname} initial="initial" animate="animate" exit="exit" variants={pageTransition} transition={{ duration: 0.28, ease: "easeOut" }}>
@@ -82,6 +84,8 @@ export default function App() {
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/refund" element={<Refund />} />
             <Route path="/terms" element={<Terms />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/third-party-notice" element={<ThirdPartyNotice />} />
             <Route path="/donations" element={<DonationHistory />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/sheets" element={<Navigate to="/home/tests" replace />} />

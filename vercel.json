@@ -16,6 +16,18 @@
       "destination": "/sitemap.xml"
     },
     {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
+      "source": "/refund",
+      "destination": "/refund.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

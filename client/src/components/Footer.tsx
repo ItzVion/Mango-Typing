@@ -12,15 +12,17 @@ export const Footer = () => {
   }, []);
 
   return (
-    <footer className="mt-16 mb-6 px-6 text-center text-xs text-black/40 flex flex-col items-center gap-2">
-      <a href={`mailto:${supportEmail}`} className="hover:text-black/70">
+    <footer className="mt-16 mb-6 flex flex-col items-center gap-3 px-4 pb-4 text-center text-xs text-[var(--text-muted)]">
+      <a href={`mailto:${supportEmail}`} className="inline-flex min-h-11 items-center justify-center px-2 underline-offset-4 hover:underline">
         {supportEmail}
       </a>
-      <div className="flex gap-4">
-        <Link to="/privacy" className="hover:text-black/70">Privacy Policy</Link>
-        <Link to="/refund" className="hover:text-black/70">Refund Policy</Link>
-        <Link to="/terms" className="hover:text-black/70">Terms of Service</Link>
-      </div>
+      <nav aria-label="Legal and project information" className="flex max-w-3xl flex-wrap justify-center gap-x-4 gap-y-1.5">
+        <Link to="/about" className="inline-flex min-h-11 items-center px-1 hover:underline">About Us</Link>
+        <Link to="/third-party-notice" className="inline-flex min-h-11 items-center px-1 hover:underline">Third-party Notice</Link>
+        <Link to="/privacy" className="inline-flex min-h-11 items-center px-1 hover:underline">Privacy Policy</Link>
+        <Link to="/refund" className="inline-flex min-h-11 items-center px-1 hover:underline">Refund Policy</Link>
+        <Link to="/terms" className="inline-flex min-h-11 items-center px-1 hover:underline">Terms &amp; Conditions</Link>
+      </nav>
       <span>© {new Date().getFullYear()} MangoTyping</span>
     </footer>
   );
