@@ -9,7 +9,7 @@ import { Seo, SITE_ORIGIN, SITE_NAME } from "../components/Seo";
 export const Landing = () => (
   <div className="flex flex-col items-center">
     <Seo
-      title="Free Online Typing Test & Practice"
+      title="MangoTyping – Free Online Typing Test & Practice"
       brandSuffix={false}
       description="Free online typing tests with WPM and accuracy tracking, typing games, and guided typing practice."
       path="/"
