@@ -77,6 +77,22 @@ body {
   .type-box { max-height: 45vh; font-size: 0.95rem; line-height: 2; }
 }
 
+/* Keep the decorative layer light on touch devices and honour OS motion preferences. */
+@media (pointer: coarse) {
+  .mt-cursor-glow, .mt-particle, .mt-click-ripple { display: none !important; }
+  .mt-orb { animation: none; filter: blur(56px); }
+  .mt-grid-glow { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 

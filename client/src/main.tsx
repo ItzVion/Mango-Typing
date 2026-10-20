@@ -1,4 +1,5 @@
 import { StrictMode } from "react";
+import { MotionConfig } from "framer-motion";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
@@ -12,10 +13,12 @@ document.documentElement.style.colorScheme = "dark";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    </BrowserRouter>
+    <MotionConfig reducedMotion="user">
+      <BrowserRouter>
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      </BrowserRouter>
+    </MotionConfig>
   </StrictMode>
 );

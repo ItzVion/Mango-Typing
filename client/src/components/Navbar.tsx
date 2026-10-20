@@ -163,8 +163,10 @@ export const Navbar = () => {
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setMobileNavOpen((o) => !o)}
-            aria-label="Open navigation"
-            className="w-9 h-9 rounded-xl flex flex-col items-center justify-center gap-1 border border-[var(--card-border)]"
+            aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={mobileNavOpen}
+            aria-controls="mobile-navigation-menu"
+            className="min-h-11 min-w-11 w-11 h-11 rounded-xl flex flex-col items-center justify-center gap-1 border border-[var(--card-border)]"
           >
             <motion.span
               animate={mobileNavOpen ? { rotate: 45, y: 5 } : { rotate: 0, y: 0 }}
@@ -190,7 +192,8 @@ export const Navbar = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                className="card absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] w-44 py-2 flex flex-col overflow-hidden z-50"
+                id="mobile-navigation-menu"
+                className="card absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] w-48 max-w-[calc(100vw-2rem)] py-2 flex flex-col overflow-hidden z-50"
               >
                 {links.map((l) => (
                   <Link
@@ -200,7 +203,7 @@ export const Navbar = () => {
                       handleNavClick(e, l.path);
                       if (!(testInProgress && l.path !== location.pathname)) setMobileNavOpen(false);
                     }}
-                    className="px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors"
+                    className="min-h-11 flex items-center px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors"
                     style={location.pathname === l.path ? { color: "var(--text-primary)" } : { color: "var(--text-muted)" }}
                   >
                     {l.name}
@@ -218,7 +221,7 @@ export const Navbar = () => {
                 whileTap={{ scale: 0.94, y: 1 }}
                 whileHover={{ scale: 1.03 }}
                 onClick={() => setMenuOpen((o) => !o)}
-                className="px-3 sm:px-4 py-2 text-xs font-semibold rounded-xl accent-bg whitespace-nowrap flex items-center gap-1.5"
+                className="min-h-11 max-w-[42vw] sm:max-w-none px-3 sm:px-4 py-2 text-xs font-semibold rounded-xl accent-bg whitespace-nowrap flex items-center gap-1.5"
               >
                 {user.avatarUrl ? (
                   <img src={user.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
@@ -227,7 +230,7 @@ export const Navbar = () => {
                     {user.username[0]?.toUpperCase()}
                   </span>
                 )}
-                {user.username}{user.hasDonated ? " ⭐" : ""}
+                <span className="max-w-[24vw] truncate sm:max-w-none">{user.username}</span>{user.hasDonated ? " ⭐" : ""}
                 <motion.span
                   animate={{ rotate: menuOpen ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
