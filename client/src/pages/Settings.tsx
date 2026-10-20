@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
@@ -484,6 +484,158 @@ function AvatarSection() {
   );
 }
 
+type PrivacyRequestRow = {
+  id: string;
+  type: string;
+  status: string;
+  details?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const PRIVACY_REQUEST_OPTIONS = [
+  { value: "ACCESS", label: "Access my data" },
+  { value: "CORRECT", label: "Correct my data" },
+  { value: "DELETE", label: "Delete my data" },
+  { value: "WITHDRAW_CONSENT", label: "Withdraw consent" },
+  { value: "GRIEVANCE", label: "Privacy complaint / grievance" },
+];
+
+function PrivacyRequestsSection() {
+  const [requests, setRequests] = useState<PrivacyRequestRow[]>([]);
+  const [type, setType] = useState("ACCESS");
+  const [details, setDetails] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [message, setMessage] = useState<{ text: string; kind: "error" | "success" } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    api.privacyRequests()
+      .then((rows: PrivacyRequestRow[]) => { if (active) setRequests(Array.isArray(rows) ? rows : []); })
+      .catch(() => { if (active) setMessage({ text: "Couldn't load privacy requests. Please try again.", kind: "error" }); });
+    return () => { active = false; };
+  }, []);
+
+  const refreshRequests = async () => {
+    const rows = await api.privacyRequests();
+    setRequests(Array.isArray(rows) ? rows : []);
+  };
+
+  const submitRequest = async () => {
+    setMessage(null);
+    setLoading(true);
+    try {
+      const result = await api.createPrivacyRequest(type, details.trim());
+      await refreshRequests();
+      setDetails("");
+      setMessage({
+        text: result?.duplicate
+          ? "You already have an open request of this type. Its current status is shown below."
+          : "Privacy request submitted. You can track its status below.",
+        kind: "success",
+      });
+    } catch (error: any) {
+      setMessage({ text: error?.message || "Couldn't submit your request. Please try again.", kind: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const downloadExport = async () => {
+    setMessage(null);
+    setExporting(true);
+    try {
+      const payload = await api.privacyExport();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `mangotyping-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMessage({ text: "Your data export was prepared for download.", kind: "success" });
+    } catch (error: any) {
+      setMessage({ text: error?.message || "Couldn't export your data. Please try again.", kind: "error" });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card p-6 flex flex-col gap-4">
+      <div>
+        <h2 className="font-bold">Privacy &amp; Data</h2>
+        <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+          Request access, correction, deletion, consent withdrawal, or raise a privacy grievance. Download a copy of your account data at any time.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={downloadExport}
+        disabled={exporting}
+        className="min-h-11 w-full rounded-xl border border-[var(--card-border)] px-4 py-3 text-sm font-semibold disabled:opacity-50"
+      >
+        {exporting ? "Preparing export…" : "Download my data"}
+      </button>
+      <div className="flex flex-col gap-2">
+        <label htmlFor="privacy-request-type" className="text-sm font-semibold">Request type</label>
+        <select
+          id="privacy-request-type"
+          value={type}
+          onChange={(event) => setType(event.target.value)}
+          className={inputClass + " min-h-11"}
+        >
+          {PRIVACY_REQUEST_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </div>
+      <div className="flex flex-col gap-2">
+        <label htmlFor="privacy-request-details" className="text-sm font-semibold">Details (optional)</label>
+        <textarea
+          id="privacy-request-details"
+          value={details}
+          onChange={(event) => setDetails(event.target.value)}
+          maxLength={10000}
+          rows={3}
+          placeholder="Tell us what you need. Don't include passwords, full payment credentials, or another person's private data."
+          className={inputClass + " resize-y"}
+        />
+        <span className="text-xs" style={{ color: "var(--text-muted)" }}>{details.length}/10,000 characters</span>
+      </div>
+      <button
+        type="button"
+        onClick={submitRequest}
+        disabled={loading}
+        className="min-h-11 w-full rounded-xl px-4 py-3 text-sm font-semibold disabled:opacity-50"
+        style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-main)" }}
+      >
+        {loading ? "Submitting…" : "Submit privacy request"}
+      </button>
+      {message && <Message text={message.text} kind={message.kind} />}
+      <div className="flex flex-col gap-2">
+        <h3 className="text-sm font-semibold">Your requests</h3>
+        {requests.length === 0 ? (
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>No privacy requests yet.</p>
+        ) : requests.map((request) => (
+          <div key={request.id} className="rounded-xl border border-[var(--card-border)] p-3 flex flex-col gap-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold">{PRIVACY_REQUEST_OPTIONS.find((option) => option.value === request.type)?.label || request.type}</span>
+              <span className="text-xs font-semibold" style={{ color: request.status === "RESOLVED" ? "var(--accent)" : "var(--text-muted)" }}>{request.status.replaceAll("_", " ")}</span>
+            </div>
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>Submitted {new Date(request.createdAt).toLocaleString()}</span>
+            {request.details && <p className="text-sm whitespace-pre-wrap break-words">{request.details}</p>}
+          </div>
+        ))}
+      </div>
+      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+        You can also contact support@mangotyping.fun. We may need to verify your identity before acting on a request.
+      </p>
+    </motion.section>
+  );
+}
+
 export const Settings = () => {
   return (
     <div className="flex flex-col gap-6 max-w-lg mx-auto">
@@ -494,6 +646,7 @@ export const Settings = () => {
       <UsernameSection />
       <PasswordSection />
       <EmailSection />
+      <PrivacyRequestsSection />
       <DeleteSection />
     </div>
   );
