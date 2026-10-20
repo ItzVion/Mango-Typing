@@ -1,6 +1,6 @@
 {
-  "installCommand": "npm install --prefix ./server --legacy-peer-deps && npm ci --prefix ./client && cd server && npx prisma generate",
-  "buildCommand": "npm run build --prefix server && npm run build --prefix client",
+  "installCommand": "cd server && npm ci --no-audit --no-fund --legacy-peer-deps && npx prisma generate && cd ../client && npm ci --no-audit --no-fund",
+  "buildCommand": "cd server && npm run build && cd ../client && npm run build",
   "outputDirectory": "client/dist",
   "rewrites": [
     {
