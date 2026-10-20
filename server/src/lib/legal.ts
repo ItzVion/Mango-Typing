@@ -1,29 +1,29 @@
 import crypto from "crypto";
 import { prisma } from "./db";
 
-export const LEGAL_VERSION = "2026-10-19";
+export const LEGAL_VERSION = "2026-10-20";
 
 export const DEFAULT_LEGAL: Record<string, string> = {
   privacy: `MangoTyping — Privacy Policy
 Version: ${LEGAL_VERSION}
-Last updated: October 19, 2026
+Last updated: October 20, 2026
 
 PRIVACY CONTACT
 For privacy questions, rights requests, complaints, or security/privacy concerns, contact support@mangotyping.fun. This address is the published business contact for a person able to answer questions about MangoTyping's processing of personal data.
 
 PERSONAL DATA WE MAY COLLECT
 1. Account data: username, email address, password hash, profile/avatar information, authentication identifiers and account timestamps.
-2. Google sign-in data: Google account identifier, verified email and, where supplied, profile name/image. MangoTyping never receives a Google password.
+2. Google sign-in data: when you choose Google sign-in, we verify the credential server-side and may receive and store your Google account identifier, verified email, profile name, and profile image if available. MangoTyping never receives your Google password and does not request access to Gmail, Google Drive, contacts, or other Google content APIs.
 3. Service data: typing-test results, scores, accuracy, test mode, timing/statistics and related history saved to an account.
 4. Payment/donation data: Razorpay order/payment identifiers, amount, status and timestamps. Razorpay handles payment credentials; MangoTyping does not intentionally store full card numbers, CVV/CVC, UPI PINs or bank credentials.
 5. Security/support data: IP address or related request information used for rate limiting, abuse prevention and security; information voluntarily submitted in support or bug reports; and security/audit records needed to investigate incidents.
 6. Privacy-request data: the type, details and status of requests submitted through MangoTyping's privacy-request mechanism.
 
 WHY WE PROCESS IT
-We process data only as reasonably necessary to create and authenticate accounts, provide typing tests/history/games/tutor features, prevent abuse and fraud, maintain service security and reliability, provide support, process and reconcile donations, respond to privacy requests, and comply with applicable law.
+We process data only as reasonably necessary to create and authenticate accounts, provide typing tests/history/games/tutor features, show account profiles, prevent abuse and fraud, maintain service security and reliability, provide support, process and reconcile voluntary donations, respond to privacy requests, diagnose issues, and comply with applicable law. We do not sell personal information or use MangoTyping data for targeted advertising.
 
 THIRD-PARTY PROCESSORS
-Depending on the feature used, service providers may include hosting/deployment infrastructure, Neon PostgreSQL, Google authentication services, Razorpay, email/SMTP providers and other configured support providers. Some providers may process data outside India. MangoTyping should use appropriate contractual and technical safeguards with processors and disclose material processor categories in accordance with applicable law.
+Depending on the feature used, service providers may include hosting/deployment infrastructure, Neon PostgreSQL, Google authentication services, Razorpay, email/SMTP providers and other configured support providers. Some providers may process data outside India. We use reasonable contractual and technical safeguards with service providers as appropriate and describe material provider categories in this policy.
 
 CHILDREN
 MangoTyping does not use targeted advertising or behavioural profiling directed at children. Where applicable law requires verifiable parental or lawful-guardian consent before processing a child's personal data, MangoTyping will require an appropriate verification process before such processing. A simple checkbox or ordinary email reply is not represented as legally verified parental consent. Users must not provide another person's personal data without the required authority.
@@ -44,7 +44,7 @@ CHANGES
 We may update this policy when the service, law, processors, or processing purposes change. Material changes may require renewed acceptance where applicable. The currently effective legal revision is recorded by MangoTyping and tied to the legal content presented at the time of acceptance.`,
   refund: `MangoTyping — Refund Policy
 Version: ${LEGAL_VERSION}
-Last updated: October 19, 2026
+Last updated: October 20, 2026
 
 MangoTyping donations are voluntary contributions supporting hosting, domains, infrastructure and development. They are not purchases of scores, advantages, subscriptions or guaranteed benefits.
 
@@ -55,11 +55,11 @@ Donations are generally non-refundable, but this does not remove any refund, rev
 For payment problems contact support@mangotyping.fun with the Razorpay order/payment identifier, date and amount. Never send card numbers, CVV/CVC, UPI PINs or passwords. Any applicable refund will be processed through the available payment mechanism within a reasonable processing period, subject to the payment provider and applicable law.`,
   terms: `MangoTyping — Terms of Service
 Version: ${LEGAL_VERSION}
-Last updated: October 19, 2026
+Last updated: October 20, 2026
 
 By using MangoTyping or creating an account, you agree to these Terms, the Privacy Policy and the Refund Policy after being given a reasonable opportunity to review them. If applicable law requires a parent or lawful guardian to consent to processing of a child's personal data, that consent requirement is not replaced by these Terms.
 
-MangoTyping provides typing practice, tests, games, tutor content and related features. Scores and outputs may contain errors and may change. Keep account credentials secure and do not misuse the service, attempt unauthorized access, interfere with service operation, upload malicious content, impersonate others, or submit information you do not have the right to provide.
+MangoTyping provides typing practice, printable tests, games, tutor content, accounts, history, and related features. Scores and outputs may contain errors and may change. Keep account credentials secure and do not misuse the service, attempt unauthorized access, interfere with service operation, upload malicious content, impersonate others, or submit information you do not have the right to provide. This is an independent project and is not officially affiliated with Google, Razorpay, Neon, or Vercel; third-party services are governed by their own terms and privacy policies.
 
 You retain rights in lawful content you submit while granting MangoTyping the limited rights needed to operate the service. Donations are voluntary and governed by the Refund Policy. Third-party services have their own terms and policies.
 
