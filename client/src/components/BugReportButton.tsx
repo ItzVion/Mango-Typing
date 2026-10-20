@@ -59,8 +59,19 @@ export const BugReportButton = () => {
 
   return (
     <>
-      <motion.button initial={{ opacity: 0, scale: 0, rotate: -30 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.6 }} whileHover={{ scale: 1.12, rotate: -8, boxShadow: "0 8px 28px rgba(245,166,35,0.35)" }} whileTap={{ scale: 0.88, rotate: 4 }} onClick={() => setOpen(true)} aria-label="Report a bug" className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full flex items-center justify-center text-xl accent-bg shadow-lg">
-        <motion.span animate={{ y: [0, -2, 0] }} transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}>🐞</motion.span>
+      <motion.button
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 22, delay: 0.35 }}
+        whileHover={{ y: -2, boxShadow: "0 8px 28px rgba(245,166,35,0.35)" }}
+        whileTap={{ scale: 0.97 }}
+        onClick={() => setOpen(true)}
+        aria-label="Report a bug"
+        title="Report a bug"
+        className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-40 min-h-12 rounded-full flex items-center justify-center gap-2.5 pl-4 pr-5 py-3 text-sm font-semibold accent-bg shadow-lg border border-black/10 dark:border-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--accent)]"
+      >
+        <span aria-hidden="true" className="text-xl leading-none">🐞</span>
+        <span>Report a bug</span>
       </motion.button>
       <AnimatePresence>
         {open && (
