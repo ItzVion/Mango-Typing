@@ -383,8 +383,7 @@ export const Auth = () => {
           </AnimatePresence>
         )}
 
-        {showGoogleAndHeading && (
-          <section className="flex flex-col gap-3" aria-label="Google sign in">
+        <section className={showGoogleAndHeading ? "flex flex-col gap-3" : "hidden"} aria-label="Google sign in">
             {GOOGLE_CLIENT_ID ? (
               <>
                 <div className={`relative min-h-11 flex items-center justify-center rounded-xl border border-[var(--card-border)] bg-[var(--bg-main)]/40 transition-opacity ${!agreed ? "opacity-45" : ""}`}>
@@ -426,7 +425,6 @@ export const Auth = () => {
               <div className="h-px flex-1 bg-[var(--card-border)]" />
             </div>
           </section>
-        )}
 
         <AnimatePresence mode="wait">
           {step === "login" || step === "register" ? (
