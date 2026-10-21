@@ -308,9 +308,8 @@ export const Auth = () => {
       } catch (e: any) {
         setError(e.message || "Google sign-in failed");
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    [redirectTo]
+    [redirectTo, agreed, login, navigate]
   );
 
   const completeGoogleSetup = async () => {
