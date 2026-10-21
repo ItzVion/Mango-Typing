@@ -41,7 +41,6 @@ export const TypingTest = () => {
   const setTestInProgress = useTestGuardStore((s) => s.setTestInProgress);
   const [timeLeft, setTimeLeft] = useState(0);
   type SecondStat = { sec: number; wpm: number; raw: number; errors: number };
-  const [secondStats, setSecondStats] = useState<SecondStat[]>([]);
   const secondStatsRef = useRef<SecondStat[]>([]);
   const typedRef = useRef("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -86,7 +85,6 @@ export const TypingTest = () => {
       const errors = d.wrongWords + d.skippedWords;
       const nextStats = [...secondStatsRef.current, { sec: Math.floor(elapsed), wpm, raw, errors }];
       secondStatsRef.current = nextStats;
-      setSecondStats(nextStats);
 
       if (remaining <= 0 && !finishedRef.current) {
         clearInterval(interval);
@@ -110,7 +108,6 @@ export const TypingTest = () => {
     setTimeLeft(secs);
     setTyped("");
     typedRef.current = "";
-    setSecondStats([]);
     secondStatsRef.current = [];
     setStartedAt(null);
     finishedRef.current = false;
