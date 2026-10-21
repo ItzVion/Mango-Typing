@@ -136,17 +136,20 @@ export const TypingTest = () => {
 
   const [submitError, setSubmitError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [lastTyped, setLastTyped] = useState("");
 
   useEffect(() => {
-    if (!isSubmitting) return;
+    // Register once and read a synchronous ref so the browser warning is active
+    // immediately, even before React has rendered the saving overlay.
     const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      if (!isSubmittingRef.current) return;
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", warnBeforeLeaving);
     return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
-  }, [isSubmitting]);
+  }, []);
 
   const finish = () => {
     if (finishedRef.current) return;
@@ -173,7 +176,8 @@ export const TypingTest = () => {
   }, [setTestInProgress]);
 
   const submit = async (finalTyped: string) => {
-    if (isSubmitting) return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     setLastTyped(finalTyped);
     setSubmitError(false);
@@ -203,13 +207,14 @@ export const TypingTest = () => {
       // with no indication anything had gone wrong or any way to retry.
       console.error("Submit test failed:", err);
       finishedRef.current = false;
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
       setSubmitError(true);
     }
   };
 
   const retrySubmit = () => {
-    if (isSubmitting) return;
+    if (isSubmittingRef.current) return;
     finishedRef.current = true;
     submit(lastTyped);
   };
