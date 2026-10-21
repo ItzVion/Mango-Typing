@@ -51,7 +51,40 @@ export default function App() {
     }).finally(() => setAuthInitialized(true));
   }, [setUser, setAuthInitialized, setAuthError]);
 
-  useEffect(() => { api.publicSettings().then((s) => setMaintenance(!!s.maintenanceMode)).catch(() => {}); }, []);
+  useEffect(() => {
+    let active = true;
+    let requestSequence = 0;
+
+    const refreshMaintenance = () => {
+      // Avoid requests while hidden; refresh immediately when the tab returns.
+      if (document.visibilityState === "hidden") return;
+      const sequence = ++requestSequence;
+      api.publicSettings(true)
+        .then((settings) => {
+          if (active && sequence === requestSequence) {
+            setMaintenance(!!settings.maintenanceMode);
+          }
+        })
+        .catch(() => {
+          // Keep the last known state during a transient network failure.
+        });
+    };
+
+    refreshMaintenance();
+    const interval = window.setInterval(refreshMaintenance, 10_000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshMaintenance();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", refreshMaintenance);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", refreshMaintenance);
+    };
+  }, []);
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, [location.pathname]);
 
   const isOwner = !!user?.isOwner;
