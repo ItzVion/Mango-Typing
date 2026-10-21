@@ -58,7 +58,7 @@ const inputClass =
 // Register switch), the button is gone for good until a full page reload.
 // This hook owns that one persistent node and its one-time init, completely
 // decoupled from whatever step the form is currently on.
-function useGoogleSignIn(onCredential: (credential: string) => void, enabled: boolean) {
+function useGoogleSignIn(onCredential: (credential: string) => void, _enabled: boolean) {
   const containerRef = useRef<HTMLDivElement>(null);
   const initializedContainerRef = useRef<HTMLDivElement | null>(null);
   const onCredentialRef = useRef(onCredential);
