@@ -94,8 +94,8 @@ export const TestResult = () => {
                 />
                 <Tooltip
                   labelFormatter={(value) => `Time: ${value}s`}
-                  formatter={(value: number, name: string) => [
-                    `${Math.round(value)} WPM`,
+                  formatter={(value, name) => [
+                    `${Math.round(Number(value))} WPM`,
                     name === "wpm" ? "Net WPM" : "Gross WPM",
                   ]}
                   contentStyle={{
