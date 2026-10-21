@@ -148,7 +148,7 @@ function useGoogleSignIn(onCredential: (credential: string) => void, _enabled: b
     };
   }, []);
 
-  return { containerRef, visible: enabled, loadState };
+  return { containerRef, loadState };
 }
 
 export const Auth = () => {
