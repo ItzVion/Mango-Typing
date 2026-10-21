@@ -96,7 +96,7 @@ export const TestResult = () => {
                   labelFormatter={(value) => `Time: ${value}s`}
                   formatter={(value, name) => [
                     `${Math.round(Number(value))} WPM`,
-                    name === "wpm" ? "Net WPM" : "Gross WPM",
+                    String(name),
                   ]}
                   contentStyle={{
                     background: "#111111",
