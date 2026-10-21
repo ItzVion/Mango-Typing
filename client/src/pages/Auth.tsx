@@ -409,14 +409,17 @@ export const Auth = () => {
                 )}
               </>
             ) : (
-              <button
-                type="button"
-                onClick={() => setNotice("Google sign-in is not configured for this deployment. Email and password sign-in still work.")}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--card-border)] py-3 text-sm font-semibold opacity-80 hover:bg-black/5 dark:hover:bg-white/5"
-              >
-                <GoogleLogo />
-                Continue with Google
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNotice("Google sign-in is not configured for this deployment. Email and password sign-in still work.")}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--card-border)] py-3 text-sm font-semibold opacity-80 hover:bg-black/5 dark:hover:bg-white/5"
+                >
+                  <GoogleLogo />
+                  Continue with Google
+                </button>
+                <p className="text-center text-xs text-[var(--text-muted)]">Google sign-in is not configured on this deployment.</p>
+              </div>
             )}
             <div className="flex items-center gap-3 text-xs text-[var(--text-muted)]">
               <div className="h-px flex-1 bg-[var(--card-border)]" />
