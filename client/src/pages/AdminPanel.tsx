@@ -144,6 +144,7 @@ export const AdminPanel = () => {
 const PaymentsTab = () => {
   const [form, setForm] = useState({ razorpayKeyId: "", razorpayKeySecret: "", donationMessage: "", maintenanceMode: false, supportEmail: "" });
   const [status, setStatus] = useState("");
+  const [saving, setSaving] = useState(false);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
@@ -169,12 +170,22 @@ const PaymentsTab = () => {
   }, []);
 
   const save = async () => {
-    setStatus("Saving…");
+    if (saving) return;
+    setSaving(true);
+    setStatus("Saving settings…");
     try {
       await api.updateSettings(form);
-      setStatus("Saved.");
+      // Fetch fresh public values immediately, not from the old client cache.
+      await api.publicSettings(true);
+      setStatus(
+        form.maintenanceMode
+          ? "Saved. Maintenance mode will reach other visitors within a few seconds."
+          : "Saved. The site is returning to normal for visitors.",
+      );
     } catch (e: any) {
       setStatus(e.message || "Failed to save");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -296,12 +307,13 @@ const PaymentsTab = () => {
       </label>
 
       <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.97 }}
+        whileHover={saving ? undefined : { scale: 1.02 }}
+        whileTap={saving ? undefined : { scale: 0.97 }}
         onClick={save}
-        className="px-6 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold"
+        disabled={saving}
+        className="px-6 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold disabled:opacity-60 disabled:cursor-wait"
       >
-        Save
+        {saving ? "Saving…" : "Save"}
       </motion.button>
       {status && <p className="text-black/40 text-sm">{status}</p>}
     </div>

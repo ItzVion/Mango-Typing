@@ -5,6 +5,7 @@ const CSRF_COOKIE_NAME = "mt_csrf";
 const SETTINGS_CACHE_TTL_MS = 30_000;
 let publicSettingsCache: { value: any; expiresAt: number } | null = null;
 let publicSettingsRequest: Promise<any> | null = null;
+let publicSettingsRevision = 0;
 let authProcessingDepth = 0;
 
 function getCookie(name: string): string | null {
@@ -88,12 +89,31 @@ async function request(path: string, opts: RequestInit = {}) {
   return data;
 }
 
-async function publicSettings() {
+async function publicSettings(forceRefresh = false) {
   const now = Date.now();
-  if (publicSettingsCache && publicSettingsCache.expiresAt > now) return publicSettingsCache.value;
+  if (!forceRefresh && publicSettingsCache && publicSettingsCache.expiresAt > now) return publicSettingsCache.value;
   if (publicSettingsRequest) return publicSettingsRequest;
-  publicSettingsRequest = request("/settings/public").then((value) => { publicSettingsCache = { value, expiresAt: Date.now() + SETTINGS_CACHE_TTL_MS }; return value; }).finally(() => { publicSettingsRequest = null; });
-  return publicSettingsRequest;
+
+  const revision = publicSettingsRevision;
+  const pending = request("/settings/public", { cache: "no-store" })
+    .then((value) => {
+      // An older request must not repopulate stale settings after an admin save.
+      if (revision === publicSettingsRevision) {
+        publicSettingsCache = { value, expiresAt: Date.now() + SETTINGS_CACHE_TTL_MS };
+      }
+      return value;
+    })
+    .finally(() => {
+      if (publicSettingsRequest === pending) publicSettingsRequest = null;
+    });
+  publicSettingsRequest = pending;
+  return pending;
+}
+
+function invalidatePublicSettingsCache() {
+  publicSettingsRevision += 1;
+  publicSettingsCache = null;
+  publicSettingsRequest = null;
 }
 
 async function legalPayload(payload: Record<string, unknown>) {
@@ -114,7 +134,12 @@ export const api = {
   logout: () => request("/auth/logout", { method: "POST" }),
   me: () => request("/auth/me"), sheets: () => request("/sheets"), sheetsFull: () => request("/sheets/full"), sheet: (id: number) => request(`/sheets/${id}`),
   submitTest: (payload: unknown) => request("/tests", { method: "POST", body: JSON.stringify(payload) }), myTests: () => request("/tests/me"), publicSettings, ownerSettings: () => request("/settings"),
-  updateSettings: (payload: unknown) => request("/settings", { method: "PATCH", body: JSON.stringify(payload) }), testSmtp: (to?: string) => request("/settings/smtp-test", { method: "POST", body: JSON.stringify(to ? { to } : {}) }),
+  updateSettings: async (payload: unknown) => {
+    const result = await request("/settings", { method: "PATCH", body: JSON.stringify(payload) });
+    invalidatePublicSettingsCache();
+    return result;
+  },
+  testSmtp: (to?: string) => request("/settings/smtp-test", { method: "POST", body: JSON.stringify(to ? { to } : {}) }),
   createDonationOrder: (amountRupees: number) => request("/donations/create-order", { method: "POST", body: JSON.stringify({ amountRupees }) }), verifyDonation: (payload: unknown) => request("/donations/verify", { method: "POST", body: JSON.stringify(payload) }), myDonations: () => request("/donations/me"),
   legalPage: (slug: string) => request(`/legal/${slug}`), privacyExport: () => request("/privacy/export"), privacyRequests: () => request("/privacy/requests"),
   createPrivacyRequest: (type: string, details?: string) => request("/privacy/requests", { method: "POST", body: JSON.stringify({ type, details: details ?? "" }) }),

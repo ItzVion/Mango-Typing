@@ -44,6 +44,7 @@ export default function App() {
   const authInitialized = useAuthStore((s) => s.authInitialized);
   const location = useLocation();
   const [maintenance, setMaintenance] = useState(false);
+  const [maintenanceReady, setMaintenanceReady] = useState(false);
 
   useEffect(() => {
     api.me().then((u) => { setUser(u); setAuthError(false); }).catch((e: any) => {
@@ -51,12 +52,59 @@ export default function App() {
     }).finally(() => setAuthInitialized(true));
   }, [setUser, setAuthInitialized, setAuthError]);
 
-  useEffect(() => { api.publicSettings().then((s) => setMaintenance(!!s.maintenanceMode)).catch(() => {}); }, []);
+  useEffect(() => {
+    let active = true;
+    let requestSequence = 0;
+
+    const refreshMaintenance = () => {
+      // Avoid requests while hidden; refresh immediately when the tab returns.
+      if (document.visibilityState === "hidden") return;
+      const sequence = ++requestSequence;
+      api.publicSettings(true)
+        .then((settings) => {
+          if (active && sequence === requestSequence) {
+            setMaintenance(!!settings.maintenanceMode);
+            setMaintenanceReady(true);
+          }
+        })
+        .catch(() => {
+          // Fail open if the first settings request is unavailable; keep
+          // the last known value on subsequent refresh failures.
+          if (active && sequence === requestSequence) setMaintenanceReady(true);
+        });
+    };
+
+    refreshMaintenance();
+    const interval = window.setInterval(refreshMaintenance, 10_000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshMaintenance();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", refreshMaintenance);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", refreshMaintenance);
+    };
+  }, []);
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, [location.pathname]);
 
   const isOwner = !!user?.isOwner;
   const allowedDuringMaintenance = location.pathname === "/auth" || location.pathname === "/admin" || location.pathname === "/privacy" || location.pathname === "/terms" || location.pathname === "/refund" || location.pathname === "/about" || location.pathname === "/third-party-notice";
-  if (maintenance && !isOwner && !allowedDuringMaintenance) return <Suspense fallback={<LoadingState label="Loading maintenance page…" />}><MaintenancePage /></Suspense>;
+
+  // Prevent a flash of the normal site before public settings load, and don't
+  // mistake an owner for a guest while their session is still being restored.
+  if (!allowedDuringMaintenance && !maintenanceReady) {
+    return <LoadingState label="Checking site availability…" />;
+  }
+  if (maintenance && !authInitialized && !allowedDuringMaintenance) {
+    return <LoadingState label="Checking maintenance access…" />;
+  }
+  if (maintenance && authInitialized && !isOwner && !allowedDuringMaintenance) {
+    return <Suspense fallback={<LoadingState label="Loading maintenance page…" />}><MaintenancePage /></Suspense>;
+  }
 
   return <>
     <AnimationLayer />

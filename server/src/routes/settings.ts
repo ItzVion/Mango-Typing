@@ -13,7 +13,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 router.get("/public", async (_req: Request, res: Response) => {
   const [s, legalVersion] = await Promise.all([prisma.settings.findUnique({ where: { id: 1 } }), getCurrentLegalVersion()]);
-  res.setHeader("Cache-Control", "public, max-age=30, s-maxage=30, stale-while-revalidate=60");
+  // Maintenance toggles must take effect promptly; stale CDN/browser copies
+  // can otherwise keep visitors on the wrong screen for over a minute.
+  res.setHeader("Cache-Control", "no-store, max-age=0");
   res.json({
     donationMessage: s?.donationMessage ?? "",
     razorpayConfigured: !!(s?.razorpayKeyId && s?.razorpayKeySecret),

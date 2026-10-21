@@ -136,17 +136,31 @@ export const TypingTest = () => {
 
   const [submitError, setSubmitError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [lastTyped, setLastTyped] = useState("");
+
+  useEffect(() => {
+    // Register once and read a synchronous ref so the browser warning is active
+    // immediately, even before React has rendered the saving overlay.
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      if (!isSubmittingRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, []);
 
   const finish = () => {
     if (finishedRef.current) return;
     finishedRef.current = true;
     setTestInProgress(false);
+    setTimeLeft(0);
+    setSubmitError(false);
     inputRef.current?.blur();
-    setTyped((finalTyped) => {
-      submit(finalTyped);
-      return finalTyped;
-    });
+    // Submit directly from the ref instead of waiting for a state updater.
+    // That makes the saving overlay appear immediately when the timer expires.
+    void submit(typedRef.current);
   };
 
   const cancelTest = () => {
@@ -162,7 +176,8 @@ export const TypingTest = () => {
   }, [setTestInProgress]);
 
   const submit = async (finalTyped: string) => {
-    if (isSubmitting) return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     setLastTyped(finalTyped);
     setSubmitError(false);
@@ -192,13 +207,14 @@ export const TypingTest = () => {
       // with no indication anything had gone wrong or any way to retry.
       console.error("Submit test failed:", err);
       finishedRef.current = false;
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
       setSubmitError(true);
     }
   };
 
   const retrySubmit = () => {
-    if (isSubmitting) return;
+    if (isSubmittingRef.current) return;
     finishedRef.current = true;
     submit(lastTyped);
   };
@@ -405,6 +421,35 @@ function RunningTest({
       className="flex flex-col items-center gap-8 mt-8"
       onClick={() => timeLeft > 0 && inputRef.current?.focus()}
     >
+      <AnimatePresence>
+        {isSubmitting && !submitError && (
+          <motion.div
+            key="saving-result"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm"
+            role="status"
+            aria-live="assertive"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className="flex w-full max-w-sm flex-col items-center gap-4 rounded-3xl border border-white/10 bg-[#151515] px-7 py-8 text-center text-white shadow-2xl"
+            >
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/15 border-t-[#F5A623]" aria-hidden="true" />
+              <h2 className="text-xl font-bold">
+                {timeLeft <= 0 ? "Time’s up!" : "Submitting your test…"}
+              </h2>
+              <p className="text-sm leading-relaxed text-white/70">
+                Please wait while we save your result. Don’t refresh or close this page.
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex gap-8 text-center">
         {[
           { label: "Time Left", value: formatTime(timeLeft) },
