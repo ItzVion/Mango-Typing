@@ -44,6 +44,7 @@ export default function App() {
   const authInitialized = useAuthStore((s) => s.authInitialized);
   const location = useLocation();
   const [maintenance, setMaintenance] = useState(false);
+  const [maintenanceReady, setMaintenanceReady] = useState(false);
 
   useEffect(() => {
     api.me().then((u) => { setUser(u); setAuthError(false); }).catch((e: any) => {
@@ -63,10 +64,13 @@ export default function App() {
         .then((settings) => {
           if (active && sequence === requestSequence) {
             setMaintenance(!!settings.maintenanceMode);
+            setMaintenanceReady(true);
           }
         })
         .catch(() => {
-          // Keep the last known state during a transient network failure.
+          // Fail open if the first settings request is unavailable; keep
+          // the last known value on subsequent refresh failures.
+          if (active && sequence === requestSequence) setMaintenanceReady(true);
         });
     };
 
@@ -89,7 +93,18 @@ export default function App() {
 
   const isOwner = !!user?.isOwner;
   const allowedDuringMaintenance = location.pathname === "/auth" || location.pathname === "/admin" || location.pathname === "/privacy" || location.pathname === "/terms" || location.pathname === "/refund" || location.pathname === "/about" || location.pathname === "/third-party-notice";
-  if (maintenance && !isOwner && !allowedDuringMaintenance) return <Suspense fallback={<LoadingState label="Loading maintenance page…" />}><MaintenancePage /></Suspense>;
+
+  // Prevent a flash of the normal site before public settings load, and don't
+  // mistake an owner for a guest while their session is still being restored.
+  if (!allowedDuringMaintenance && !maintenanceReady) {
+    return <LoadingState label="Checking site availability…" />;
+  }
+  if (maintenance && !authInitialized && !allowedDuringMaintenance) {
+    return <LoadingState label="Checking maintenance access…" />;
+  }
+  if (maintenance && authInitialized && !isOwner && !allowedDuringMaintenance) {
+    return <Suspense fallback={<LoadingState label="Loading maintenance page…" />}><MaintenancePage /></Suspense>;
+  }
 
   return <>
     <AnimationLayer />
