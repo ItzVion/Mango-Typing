@@ -40,7 +40,10 @@ export const TypingTest = () => {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const setTestInProgress = useTestGuardStore((s) => s.setTestInProgress);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [secondStats, setSecondStats] = useState<{ sec: number; wpm: number; raw: number; errors: number }[]>([]);
+  type SecondStat = { sec: number; wpm: number; raw: number; errors: number };
+  const [secondStats, setSecondStats] = useState<SecondStat[]>([]);
+  const secondStatsRef = useRef<SecondStat[]>([]);
+  const typedRef = useRef("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const finishedRef = useRef(false);
   const caretRef = useRef<HTMLSpanElement>(null);
@@ -75,14 +78,15 @@ export const TypingTest = () => {
       const remaining = Math.max(0, Math.round(duration - elapsed));
       setTimeLeft(remaining);
 
-      setTyped((currentTyped) => {
-        const d = diffWords(currentTyped, text);
-        const wpm = Math.round(d.correctChars / 5 / (elapsed / 60 || 1 / 60));
-        const raw = Math.round(d.typedChars / 5 / (elapsed / 60 || 1 / 60));
-        const errors = d.wrongWords + d.skippedWords;
-        setSecondStats((prev) => [...prev, { sec: Math.floor(elapsed), wpm, raw, errors }]);
-        return currentTyped;
-      });
+      // Use refs for samples so the final submit always includes the latest
+      // values. State captured by the interval callback can be stale at finish.
+      const d = diffWords(typedRef.current, text);
+      const wpm = Math.round(d.correctChars / 5 / (elapsed / 60 || 1 / 60));
+      const raw = Math.round(d.typedChars / 5 / (elapsed / 60 || 1 / 60));
+      const errors = d.wrongWords + d.skippedWords;
+      const nextStats = [...secondStatsRef.current, { sec: Math.floor(elapsed), wpm, raw, errors }];
+      secondStatsRef.current = nextStats;
+      setSecondStats(nextStats);
 
       if (remaining <= 0 && !finishedRef.current) {
         clearInterval(interval);
@@ -91,7 +95,7 @@ export const TypingTest = () => {
     }, 1000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startedAt, duration]);
+  }, [startedAt, duration, text]);
 
   useEffect(() => {
     caretRef.current?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
@@ -105,7 +109,10 @@ export const TypingTest = () => {
     setDuration(secs);
     setTimeLeft(secs);
     setTyped("");
+    typedRef.current = "";
     setSecondStats([]);
+    secondStatsRef.current = [];
+    setStartedAt(null);
     finishedRef.current = false;
     setPhase("running");
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -118,6 +125,7 @@ export const TypingTest = () => {
       setTestInProgress(true);
     }
     if (!allowBackspace && val.length < typed.length) return;
+    typedRef.current = val;
     setTyped(val);
   };
 
@@ -178,7 +186,7 @@ export const TypingTest = () => {
         accuracy,
         errors,
         durationSec,
-        secondStats,
+        secondStats: secondStatsRef.current,
       });
       navigate("/home/test-result", { state: result });
     } catch (err) {
