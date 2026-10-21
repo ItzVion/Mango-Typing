@@ -115,11 +115,14 @@ function useGoogleSignIn(onCredential: (credential: string) => void) {
           },
         });
         window.google.accounts.id.renderButton(container, {
-          theme: document.documentElement.classList.contains("dark") ? "filled_black" : "outline",
+          // Google's official outlined button stays crisp against MangoTyping's dark card
+          // and avoids the muddy filled-black appearance of the prior theme.
+          theme: "outline",
           size: "large",
           shape: "rectangular",
           text: "continue_with",
-          width: Math.min(320, Math.max(220, Math.floor(container.getBoundingClientRect().width || 320))),
+          logo_alignment: "left",
+          width: Math.min(360, Math.max(220, Math.floor(container.parentElement?.getBoundingClientRect().width || container.getBoundingClientRect().width || 360))),
         });
         initializedContainerRef.current = container;
         setLoadState("ready");
@@ -386,8 +389,8 @@ export const Auth = () => {
         <section className={showGoogleAndHeading ? "flex flex-col gap-3" : "hidden"} aria-label="Google sign in">
             {GOOGLE_CLIENT_ID ? (
               <>
-                <div className={`relative min-h-11 flex items-center justify-center rounded-xl border border-[var(--card-border)] bg-[var(--bg-main)]/40 transition-opacity ${!agreed ? "opacity-45" : ""}`}>
-                  <div ref={google.containerRef} className="flex min-h-11 w-full justify-center" />
+                <div className={`relative flex min-h-12 items-center justify-center transition-opacity ${!agreed ? "opacity-45" : ""}`}>
+                  <div ref={google.containerRef} className="flex min-h-12 w-full justify-center" />
                   {!agreed && (
                     <button
                       type="button"
