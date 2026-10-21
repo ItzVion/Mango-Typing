@@ -58,49 +58,97 @@ const inputClass =
 // Register switch), the button is gone for good until a full page reload.
 // This hook owns that one persistent node and its one-time init, completely
 // decoupled from whatever step the form is currently on.
-function useGoogleSignIn(onCredential: (credential: string) => void, enabled: boolean) {
+function useGoogleSignIn(onCredential: (credential: string) => void) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const initializedRef = useRef(false);
+  const initializedContainerRef = useRef<HTMLDivElement | null>(null);
   const onCredentialRef = useRef(onCredential);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "unavailable">(
+    GOOGLE_CLIENT_ID ? "loading" : "unavailable",
+  );
   onCredentialRef.current = onCredential;
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return;
-    // Load Google's Identity Services only on the auth screen, not on every
-    // page visit. Keep the script around after first load to avoid duplicates.
-    if (!window.google && !document.querySelector('script[data-google-identity]')) {
+    if (!GOOGLE_CLIENT_ID) {
+      setLoadState("unavailable");
+      return;
+    }
+
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+
+    const existingScript = document.querySelector<HTMLScriptElement>('script[data-google-identity]');
+    if (!window.google && !existingScript) {
       const script = document.createElement("script");
       script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
       script.dataset.googleIdentity = "true";
-      script.addEventListener("error", () => script.remove(), { once: true });
+      script.addEventListener("error", () => {
+        script.remove();
+        if (!cancelled) setLoadState("unavailable");
+      }, { once: true });
       document.head.appendChild(script);
+    } else if (existingScript) {
+      existingScript.addEventListener("error", () => {
+        if (!cancelled) setLoadState("unavailable");
+      }, { once: true });
     }
-    // The script loads asynchronously, so poll briefly rather than relying on
-    // a single check that could run before Google's API becomes available.
+
+    // Google loads asynchronously, and React StrictMode may replay effects.
+    // Retry until both the SDK and the persistent mount node are actually ready.
     const tryInit = () => {
-      if (initializedRef.current || !window.google || !containerRef.current) return false;
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (response: any) => onCredentialRef.current(response.credential),
-      });
-      window.google.accounts.id.renderButton(containerRef.current, { theme: "outline", size: "large", width: 320 });
-      initializedRef.current = true;
-      return true;
+      const container = containerRef.current;
+      if (cancelled || !window.google?.accounts?.id || !container) return false;
+      if (initializedContainerRef.current === container) {
+        setLoadState("ready");
+        return true;
+      }
+
+      try {
+        container.replaceChildren();
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (response: any) => {
+            const credential = response?.credential;
+            if (typeof credential === "string" && credential) onCredentialRef.current(credential);
+          },
+        });
+        window.google.accounts.id.renderButton(container, {
+          theme: document.documentElement.classList.contains("dark") ? "filled_black" : "outline",
+          size: "large",
+          shape: "rectangular",
+          text: "continue_with",
+          width: Math.min(320, Math.max(220, Math.floor(container.getBoundingClientRect().width || 320))),
+        });
+        initializedContainerRef.current = container;
+        setLoadState("ready");
+        return true;
+      } catch (error) {
+        console.error("Google Identity Services initialization failed:", error);
+        setLoadState("unavailable");
+        return false;
+      }
     };
-    if (tryInit()) return;
-    const interval = setInterval(() => {
-      if (tryInit()) clearInterval(interval);
-    }, 150);
-    const timeout = setTimeout(() => clearInterval(interval), 10000);
+
+    if (!tryInit()) {
+      interval = setInterval(() => {
+        if (tryInit() && interval) clearInterval(interval);
+      }, 150);
+      timeout = setTimeout(() => {
+        if (interval) clearInterval(interval);
+        if (!cancelled && !window.google?.accounts?.id) setLoadState("unavailable");
+      }, 15000);
+    }
+
     return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
+      cancelled = true;
+      if (interval) clearInterval(interval);
+      if (timeout) clearTimeout(timeout);
     };
   }, []);
 
-  return { containerRef, visible: enabled };
+  return { containerRef, loadState };
 }
 
 export const Auth = () => {
@@ -260,9 +308,8 @@ export const Auth = () => {
       } catch (e: any) {
         setError(e.message || "Google sign-in failed");
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    [redirectTo]
+    [redirectTo, agreed, login, navigate]
   );
 
   const completeGoogleSetup = async () => {
@@ -281,13 +328,13 @@ export const Auth = () => {
   };
 
   const showGoogleAndHeading = step === "login" || step === "register";
-  const google = useGoogleSignIn(handleGoogleCredential, showGoogleAndHeading);
+  const google = useGoogleSignIn(handleGoogleCredential);
 
   return (
-    <div className="max-w-4xl mx-auto grid md:grid-cols-2 rounded-2xl overflow-hidden border border-[var(--card-border)]">
+    <div className="max-w-5xl mx-auto grid md:grid-cols-[0.95fr_1.05fr] min-h-[560px] rounded-3xl overflow-hidden border border-[var(--card-border)] bg-[var(--card-bg)] shadow-2xl shadow-black/20">
       <Seo title="Sign In" description="Sign in or create a MangoTyping account." path="/auth" noindex />
       {/* Left: branded panel with the tilted keyboard illustration */}
-      <div className="hidden md:flex relative flex-col justify-between bg-black text-white p-8 overflow-hidden">
+      <div className="hidden md:flex relative min-h-[560px] flex-col justify-between bg-[#080808] text-white p-10 overflow-hidden">
         <div className="absolute -right-24 -bottom-24 w-[420px] h-[420px] opacity-90" style={{ transform: "rotate(45deg)" }}>
           <KeyboardArt />
         </div>
@@ -314,7 +361,7 @@ export const Auth = () => {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="p-6 flex flex-col gap-4 overflow-hidden bg-[var(--card-bg)]"
+        className="relative flex flex-col justify-center gap-5 overflow-hidden bg-[var(--card-bg)] px-6 py-8 sm:px-10 md:px-12"
       >
         {/* Heading and Google button both live OUTSIDE the step-keyed
             AnimatePresence block below, so switching Sign In <-> Register
@@ -336,17 +383,48 @@ export const Auth = () => {
           </AnimatePresence>
         )}
 
-        <div className={`relative ${google.visible ? "" : "hidden"}`}>
-          {GOOGLE_CLIENT_ID && (
-            <div ref={google.containerRef} className={`flex justify-center transition-opacity ${!agreed ? "opacity-40" : ""}`} />
-          )}
-          {GOOGLE_CLIENT_ID && !agreed && (
-            <div
-              className="absolute inset-0 cursor-not-allowed"
-              onClick={() => setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.")}
-            />
-          )}
-        </div>
+        <section className={showGoogleAndHeading ? "flex flex-col gap-3" : "hidden"} aria-label="Google sign in">
+            {GOOGLE_CLIENT_ID ? (
+              <>
+                <div className={`relative min-h-11 flex items-center justify-center rounded-xl border border-[var(--card-border)] bg-[var(--bg-main)]/40 transition-opacity ${!agreed ? "opacity-45" : ""}`}>
+                  <div ref={google.containerRef} className="flex min-h-11 w-full justify-center" />
+                  {!agreed && (
+                    <button
+                      type="button"
+                      aria-label="Agree to policies to enable Google sign-in"
+                      className="absolute inset-0 cursor-not-allowed"
+                      onClick={() => setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.")}
+                    />
+                  )}
+                </div>
+                {google.loadState === "loading" && (
+                  <p className="text-center text-xs text-[var(--text-muted)]" role="status">Loading Google sign-in…</p>
+                )}
+                {google.loadState === "unavailable" && (
+                  <p className="text-center text-xs text-[var(--text-muted)]" role="status">
+                    Google sign-in couldn’t load here. Check your connection or browser content blockers, then refresh.
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNotice("Google sign-in is not configured for this deployment. Email and password sign-in still work.")}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--card-border)] py-3 text-sm font-semibold opacity-80 hover:bg-black/5 dark:hover:bg-white/5"
+                >
+                  <GoogleLogo />
+                  Continue with Google
+                </button>
+                <p className="text-center text-xs text-[var(--text-muted)]">Google sign-in is not configured on this deployment.</p>
+              </div>
+            )}
+            <div className="flex items-center gap-3 text-xs text-[var(--text-muted)]">
+              <div className="h-px flex-1 bg-[var(--card-border)]" />
+              or continue with email
+              <div className="h-px flex-1 bg-[var(--card-border)]" />
+            </div>
+          </section>
 
         <AnimatePresence mode="wait">
           {step === "login" || step === "register" ? (
@@ -358,31 +436,6 @@ export const Auth = () => {
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="flex flex-col gap-4"
             >
-              {!GOOGLE_CLIENT_ID && (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                  type="button"
-                  onClick={() => {
-                    if (!agreed) {
-                      setNotice("Check the box below to agree to our Terms, Privacy Policy and Refund Policy first.");
-                      return;
-                    }
-                    setNotice("Google sign-in is unavailable on this deployment. Use email and password instead.");
-                  }}
-                  className="flex items-center justify-center gap-2 border border-[var(--card-border)] rounded-xl py-2 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5"
-                >
-                  <GoogleLogo />
-                  Continue with Google
-                </motion.button>
-              )}
-
-              <div className="flex items-center gap-3 text-black/30 text-xs">
-                <div className="flex-1 h-px bg-black/10" />
-                or
-                <div className="flex-1 h-px bg-black/10" />
-              </div>
-
               {step === "register" && (
                 <motion.input
                   initial={{ opacity: 0, height: 0 }}
