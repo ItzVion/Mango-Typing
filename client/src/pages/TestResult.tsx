@@ -27,6 +27,10 @@ export const TestResult = () => {
           Number.isFinite(sample?.raw),
       )
     : [];
+  const backspacePresses =
+    Number.isSafeInteger(state?.backspacePresses) && state.backspacePresses >= 0
+      ? state.backspacePresses
+      : "—";
 
   return (
     <div className="flex flex-col items-center gap-8">
@@ -46,15 +50,16 @@ export const TestResult = () => {
         <h1 className="text-4xl font-bold">Completed</h1>
       </motion.div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-3xl">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 w-full max-w-4xl">
         <Stat label="NET WPM" value={Math.round(state.wpm)} delay={0.1} />
-        <Stat label="GROSS WPM" value={Math.round(state.rawWpm)} delay={0.18} />
-        <Stat label="Accuracy" value={state.accuracy} decimals={1} suffix="%" delay={0.26} />
-        <Stat label="Errors" value={state.errors} delay={0.34} />
+        <Stat label="GROSS WPM" value={Math.round(state.rawWpm)} delay={0.16} />
+        <Stat label="Accuracy" value={state.accuracy} decimals={1} suffix="%" delay={0.22} />
+        <Stat label="Character errors" value={state.errors} delay={0.28} />
+        <Stat label="Backspace presses" value={backspacePresses} delay={0.34} />
       </div>
 
       <p className="max-w-3xl -mt-4 text-center text-xs text-[var(--text-muted)]">
-        Net WPM subtracts character errors per minute from gross WPM, so the gap depends on how long you typed.
+        Gross WPM is your raw typing speed; Net WPM adjusts it for character errors per minute.
       </p>
 
       {!state.saved && (
@@ -174,7 +179,7 @@ const Stat = ({
   delay = 0,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   decimals?: number;
   suffix?: string;
   delay?: number;
@@ -187,7 +192,11 @@ const Stat = ({
     className="card p-4 text-center"
   >
     <div className="text-2xl font-bold">
-      <AnimatedNumber value={value} decimals={decimals} suffix={suffix} duration={800} />
+      {typeof value === "number" ? (
+        <AnimatedNumber value={value} decimals={decimals} suffix={suffix} duration={800} />
+      ) : (
+        value
+      )}
     </div>
     <div className="text-black/40 text-xs">{label}</div>
   </motion.div>
