@@ -40,8 +40,9 @@ export const TypingTest = () => {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const setTestInProgress = useTestGuardStore((s) => s.setTestInProgress);
   const [timeLeft, setTimeLeft] = useState(0);
-  type SecondStat = { sec: number; wpm: number; raw: number; errors: number };
+  type SecondStat = { sec: number; wpm: number; raw: number; errors: number; backspaces: number };
   const secondStatsRef = useRef<SecondStat[]>([]);
+  const backspacePressesRef = useRef(0);
   const typedRef = useRef("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const finishedRef = useRef(false);
@@ -85,6 +86,7 @@ export const TypingTest = () => {
         wpm: metrics.wpm,
         raw: metrics.rawWpm,
         errors: metrics.errors,
+        backspaces: backspacePressesRef.current,
       }];
       secondStatsRef.current = nextStats;
 
@@ -111,6 +113,7 @@ export const TypingTest = () => {
     setTyped("");
     typedRef.current = "";
     secondStatsRef.current = [];
+    backspacePressesRef.current = 0;
     setStartedAt(null);
     finishedRef.current = false;
     setPhase("running");
@@ -133,7 +136,14 @@ export const TypingTest = () => {
       e.preventDefault();
       return;
     }
-    if (!allowBackspace && e.key === "Backspace") e.preventDefault();
+    if (!allowBackspace && e.key === "Backspace") {
+      e.preventDefault();
+      return;
+    }
+    // Count actual Backspace key events that can remove existing input.
+    if (e.key === "Backspace" && typedRef.current.length > 0) {
+      backspacePressesRef.current += 1;
+    }
   };
 
   const [submitError, setSubmitError] = useState(false);
@@ -188,6 +198,24 @@ export const TypingTest = () => {
     const metrics = calculateTypingMetrics(finalTyped, text, durationSec);
     const { wpm, rawWpm, accuracy, errors } = metrics;
 
+    // Persist a terminal sample so even a short/manual test stores its total
+    // Backspace count, including presses since the previous one-second sample.
+    const finalSample: SecondStat = {
+      sec: durationSec,
+      wpm,
+      raw: rawWpm,
+      errors,
+      backspaces: backspacePressesRef.current,
+    };
+    const finalSecondStats = [...secondStatsRef.current];
+    const lastSampleIndex = finalSecondStats.length - 1;
+    if (lastSampleIndex >= 0 && finalSecondStats[lastSampleIndex].sec === finalSample.sec) {
+      finalSecondStats[lastSampleIndex] = finalSample;
+    } else {
+      finalSecondStats.push(finalSample);
+    }
+    secondStatsRef.current = finalSecondStats;
+
     try {
       const result = await api.submitTest({
         sheetId: Number(sheetId),
@@ -197,7 +225,7 @@ export const TypingTest = () => {
         accuracy,
         errors,
         durationSec,
-        secondStats: secondStatsRef.current,
+        secondStats: finalSecondStats,
       });
       navigate("/home/test-result", { state: result });
     } catch (err) {
