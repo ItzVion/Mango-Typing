@@ -203,8 +203,10 @@ export function diffWords(typed: string, target: string): TypingDiff {
       let bestCost = editDistanceToAnyPrefix(partial, targetWords[pendingStart]);
 
       for (let k = 1; k <= LOOKAHEAD && pendingStart + k < targetWords.length; k++) {
-        const skippedLength = targetWords.slice(pendingStart, gi + k).reduce((sum, word) => sum + word.length, 0);
-        const distance = editDistanceToAnyPrefix(partial, targetWords[gi + k]);
+        const skippedLength = targetWords
+          .slice(pendingStart, pendingStart + k)
+          .reduce((sum, word) => sum + word.length, 0);
+        const distance = editDistanceToAnyPrefix(partial, targetWords[pendingStart + k]);
         const cost = skippedLength + distance;
         if (cost < bestCost) {
           bestSkip = k;
@@ -213,7 +215,7 @@ export function diffWords(typed: string, target: string): TypingDiff {
 
         // Also consider a partially typed pair of words with the separating
         // space missing, e.g. "hellow" against the target "hello world".
-        const joinedTarget = targetWords.slice(gi, gi + k + 1).join("");
+        const joinedTarget = targetWords.slice(pendingStart, pendingStart + k + 1).join("");
         const joinedDistance = editDistanceToAnyPrefix(partial, joinedTarget) + k;
         if (joinedDistance < bestCost) {
           bestSkip = -k;
@@ -223,7 +225,7 @@ export function diffWords(typed: string, target: string): TypingDiff {
 
       if (bestSkip > 0) {
         for (let j = 0; j < bestSkip; j++) {
-          results[pendingStart + j] = { word: targetWords[gi + j], status: "skipped" };
+          results[pendingStart + j] = { word: targetWords[pendingStart + j], status: "skipped" };
         }
       }
       errors += bestCost;
