@@ -17,6 +17,7 @@ function boundsError(wpm: number, rawWpm: number, accuracy: number, errors: numb
   if (!(rawWpm >= 0 && rawWpm <= MAX_WPM)) return "Invalid rawWpm.";
   if (!(accuracy >= 0 && accuracy <= 100)) return "Invalid accuracy.";
   if (!(errors >= 0)) return "Invalid errors.";
+  if (!Number.isSafeInteger(errors)) return "Invalid errors.";
   if (!(durationSec >= 1 && durationSec <= MAX_DURATION_SEC)) return "Invalid durationSec.";
   return null;
 }
