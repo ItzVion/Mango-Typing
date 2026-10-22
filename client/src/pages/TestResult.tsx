@@ -53,6 +53,10 @@ export const TestResult = () => {
         <Stat label="Errors" value={state.errors} delay={0.34} />
       </div>
 
+      <p className="max-w-3xl -mt-4 text-center text-xs text-[var(--text-muted)]">
+        Net WPM subtracts character errors per minute from gross WPM, so the gap depends on how long you typed.
+      </p>
+
       {!state.saved && (
         <motion.p
           initial={{ opacity: 0 }}
