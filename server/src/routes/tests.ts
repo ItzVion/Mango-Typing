@@ -30,26 +30,38 @@ function boundsError(wpm: number, rawWpm: number, accuracy: number, errors: numb
 // MAX_DURATION_SEC + slack for clock drift).
 const MAX_SECOND_STATS_ENTRIES = MAX_DURATION_SEC + 10;
 
-function sanitizeSecondStats(input: unknown): { sec: number; wpm: number; raw: number; errors: number }[] | null {
+function sanitizeSecondStats(input: unknown): { sec: number; wpm: number; raw: number; errors: number; backspaces: number }[] | null {
   if (input == null) return [];
   if (!Array.isArray(input)) return null;
   if (input.length > MAX_SECOND_STATS_ENTRIES) return null;
 
-  const out: { sec: number; wpm: number; raw: number; errors: number }[] = [];
+  const out: { sec: number; wpm: number; raw: number; errors: number; backspaces: number }[] = [];
   for (const entry of input) {
     if (typeof entry !== "object" || entry === null) return null;
-    const { sec, wpm, raw, errors } = entry as Record<string, unknown>;
+    const { sec, wpm, raw, errors, backspaces } = entry as Record<string, unknown>;
     const nSec = Number(sec);
     const nWpm = Number(wpm);
     const nRaw = Number(raw);
     const nErrors = Number(errors);
+    // Older result payloads did not include Backspace telemetry.
+    const nBackspaces = Number(backspaces ?? 0);
     if (!Number.isFinite(nSec) || nSec < 0 || nSec > MAX_DURATION_SEC) return null;
     if (!Number.isFinite(nWpm) || nWpm < 0 || nWpm > MAX_WPM) return null;
     if (!Number.isFinite(nRaw) || nRaw < 0 || nRaw > MAX_WPM) return null;
     if (!Number.isFinite(nErrors) || nErrors < 0) return null;
-    out.push({ sec: nSec, wpm: nWpm, raw: nRaw, errors: nErrors });
+    if (!Number.isSafeInteger(nBackspaces) || nBackspaces < 0 || nBackspaces > 100_000) return null;
+    out.push({ sec: nSec, wpm: nWpm, raw: nRaw, errors: nErrors, backspaces: nBackspaces });
   }
   return out;
+}
+
+function getBackspacePresses(secondStats: unknown): number | null {
+  if (!Array.isArray(secondStats) || secondStats.length === 0) return null;
+  const last = secondStats[secondStats.length - 1] as Record<string, unknown> | null;
+  const value = last?.backspaces;
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : null;
 }
 
 // Submit a completed test.
@@ -124,7 +136,13 @@ router.post("/", optionalAuth, async (req: AuthRequest, res: Response): Promise<
     },
   });
 
-  res.json({ ...test, secondStats: JSON.parse(test.secondStats), saved: !!req.userId });
+  const savedSecondStats = JSON.parse(test.secondStats);
+  res.json({
+    ...test,
+    secondStats: savedSecondStats,
+    backspacePresses: getBackspacePresses(savedSecondStats) ?? 0,
+    saved: !!req.userId,
+  });
 });
 
 // Logged-in user's own test history (dashboard/profile).
@@ -134,7 +152,10 @@ router.get("/me", requireAuth, async (req: AuthRequest, res: Response) => {
     orderBy: { createdAt: "desc" },
     include: { sheet: { select: { title: true, topic: true } } },
   });
-  res.json(tests.map((t: (typeof tests)[number]) => ({ ...t, secondStats: JSON.parse(t.secondStats) })));
+  res.json(tests.map((t: (typeof tests)[number]) => {
+    const secondStats = JSON.parse(t.secondStats);
+    return { ...t, secondStats, backspacePresses: getBackspacePresses(secondStats) };
+  }));
 });
 
 // Not used by the client today, but was a public IDOR: any test ID (a UUID,
@@ -144,7 +165,8 @@ router.get("/me", requireAuth, async (req: AuthRequest, res: Response) => {
 router.get("/:id", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
   const test = await prisma.typingTest.findUnique({ where: { id: req.params.id } });
   if (!test || test.userId !== req.userId) return res.status(404).json({ error: "Test not found" });
-  res.json({ ...test, secondStats: JSON.parse(test.secondStats) });
+  const secondStats = JSON.parse(test.secondStats);
+  res.json({ ...test, secondStats, backspacePresses: getBackspacePresses(secondStats) });
 });
 
 export default router;
