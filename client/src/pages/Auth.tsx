@@ -36,7 +36,7 @@ declare global {
   }
 }
 
-const GOOGLE_CLIENT_ID = ((import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim()) || "304576019382-dg5k528ot3c7mtjs429qfnfbe0nfetdj.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = ((import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim()) || "304576019382-dg5k528ot3c7mtjs429qnfbe0nfetdj.apps.googleusercontent.com";
 
 const GoogleLogo = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
