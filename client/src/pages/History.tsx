@@ -11,6 +11,7 @@ type Test = {
   id: string;
   wpm: number;
   accuracy: number;
+  backspacePresses?: number | null;
   mode: string;
   createdAt: string;
   sheet: { title: string; topic: string };
@@ -114,6 +115,9 @@ export const History = () => {
                   <span className="text-black/40 text-xs">{t.mode === "screen" ? "Screen to Screen" : "Paper to Screen"}</span>
                   <span>{Math.round(t.wpm)} WPM</span>
                   <span>{t.accuracy.toFixed(1)}%</span>
+                  <span className="text-black/40 text-xs">
+                    Backspace presses: {t.backspacePresses == null ? "—" : t.backspacePresses}
+                  </span>
                   <span className="text-black/40">{new Date(t.createdAt).toLocaleDateString()}</span>
                 </motion.div>
               ))
