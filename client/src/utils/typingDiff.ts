@@ -182,6 +182,7 @@ export function diffWords(typed: string, target: string): TypingDiff {
     gi++;
   }
 
+  const pendingStart = gi;
   for (; gi < targetWords.length; gi++) {
     results.push({ word: targetWords[gi], status: "pending" });
   }
@@ -192,17 +193,17 @@ export function diffWords(typed: string, target: string): TypingDiff {
   }
 
   if (partial) {
-    if (gi >= targetWords.length) {
+    if (pendingStart >= targetWords.length) {
       errors += partial.length;
     } else {
       // Look ahead for a partial token that belongs to a later target word.
       // This prevents a missing word from being misreported as several typos
       // in the next word when the test expires before a trailing space is typed.
       let bestSkip = 0;
-      let bestCost = editDistanceToAnyPrefix(partial, targetWords[gi]);
+      let bestCost = editDistanceToAnyPrefix(partial, targetWords[pendingStart]);
 
-      for (let k = 1; k <= LOOKAHEAD && gi + k < targetWords.length; k++) {
-        const skippedLength = targetWords.slice(gi, gi + k).reduce((sum, word) => sum + word.length, 0);
+      for (let k = 1; k <= LOOKAHEAD && pendingStart + k < targetWords.length; k++) {
+        const skippedLength = targetWords.slice(pendingStart, gi + k).reduce((sum, word) => sum + word.length, 0);
         const distance = editDistanceToAnyPrefix(partial, targetWords[gi + k]);
         const cost = skippedLength + distance;
         if (cost < bestCost) {
@@ -222,7 +223,7 @@ export function diffWords(typed: string, target: string): TypingDiff {
 
       if (bestSkip > 0) {
         for (let j = 0; j < bestSkip; j++) {
-          results[gi + j] = { word: targetWords[gi + j], status: "skipped" };
+          results[pendingStart + j] = { word: targetWords[gi + j], status: "skipped" };
         }
       }
       errors += bestCost;
