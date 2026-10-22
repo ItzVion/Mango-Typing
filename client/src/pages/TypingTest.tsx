@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { api } from "../api/client";
 import { BackButton } from "../components/BackButton";
-import { diffWords } from "../utils/typingDiff";
+import { calculateTypingMetrics, diffWords } from "../utils/typingDiff";
 import { useTestGuardStore } from "../stores/testGuardStore";
 import { Seo } from "../components/Seo";
 
@@ -79,11 +79,13 @@ export const TypingTest = () => {
 
       // Use refs for samples so the final submit always includes the latest
       // values. State captured by the interval callback can be stale at finish.
-      const d = diffWords(typedRef.current, text);
-      const wpm = Math.round(d.correctChars / 5 / (elapsed / 60 || 1 / 60));
-      const raw = Math.round(d.typedChars / 5 / (elapsed / 60 || 1 / 60));
-      const errors = d.wrongWords + d.skippedWords;
-      const nextStats = [...secondStatsRef.current, { sec: Math.floor(elapsed), wpm, raw, errors }];
+      const metrics = calculateTypingMetrics(typedRef.current, text, elapsed);
+      const nextStats = [...secondStatsRef.current, {
+        sec: Math.floor(elapsed),
+        wpm: metrics.wpm,
+        raw: metrics.rawWpm,
+        errors: metrics.errors,
+      }];
       secondStatsRef.current = nextStats;
 
       if (remaining <= 0 && !finishedRef.current) {
@@ -183,11 +185,8 @@ export const TypingTest = () => {
     setSubmitError(false);
     const elapsedDuration = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 1;
     const durationSec = Math.max(1, Math.min(duration || 1, elapsedDuration));
-    const d = diffWords(finalTyped, text);
-    const errors = d.wrongWords + d.skippedWords;
-    const accuracy = d.typedChars ? Math.max(0, Math.min(100, (d.correctChars / d.typedChars) * 100)) : 0;
-    const rawWpm = Math.round(d.typedChars / 5 / (durationSec / 60));
-    const wpm = Math.round(d.correctChars / 5 / (durationSec / 60));
+    const metrics = calculateTypingMetrics(finalTyped, text, durationSec);
+    const { wpm, rawWpm, accuracy, errors } = metrics;
 
     try {
       const result = await api.submitTest({
@@ -403,8 +402,12 @@ function RunningTest({
 }) {
   const liveDiff = useMemo(() => diffWords(typed, text), [typed, text]);
   const elapsedSec = startedAt ? (Date.now() - startedAt) / 1000 : 0;
-  const liveWpm = elapsedSec > 0 ? Math.round(liveDiff.correctChars / 5 / (elapsedSec / 60)) : 0;
-  const liveAccuracy = liveDiff.typedChars ? Math.round((liveDiff.correctChars / liveDiff.typedChars) * 100) : 100;
+  const liveMetrics = useMemo(
+    () => calculateTypingMetrics(typed, text, elapsedSec),
+    [typed, text, elapsedSec],
+  );
+  const liveWpm = elapsedSec > 0 ? liveMetrics.wpm : 0;
+  const liveAccuracy = liveDiff.typedChars ? Math.round(liveMetrics.accuracy) : 100;
 
   const targetWords = useMemo(() => (text.trim().length ? text.trim().split(/\s+/) : []), [text]);
   const endsWithSpace = /\s$/.test(typed);
