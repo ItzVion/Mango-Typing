@@ -199,8 +199,7 @@ export function diffWords(typed: string, target: string): TypingDiff {
       // This prevents a missing word from being misreported as several typos
       // in the next word when the test expires before a trailing space is typed.
       let bestSkip = 0;
-      let bestDistance = editDistanceToAnyPrefix(partial, targetWords[gi]);
-      let bestCost = bestDistance;
+      let bestCost = editDistanceToAnyPrefix(partial, targetWords[gi]);
 
       for (let k = 1; k <= LOOKAHEAD && gi + k < targetWords.length; k++) {
         const skippedLength = targetWords.slice(gi, gi + k).reduce((sum, word) => sum + word.length, 0);
@@ -208,7 +207,6 @@ export function diffWords(typed: string, target: string): TypingDiff {
         const cost = skippedLength + distance;
         if (cost < bestCost) {
           bestSkip = k;
-          bestDistance = distance;
           bestCost = cost;
         }
 
@@ -218,7 +216,6 @@ export function diffWords(typed: string, target: string): TypingDiff {
         const joinedDistance = editDistanceToAnyPrefix(partial, joinedTarget) + k;
         if (joinedDistance < bestCost) {
           bestSkip = -k;
-          bestDistance = joinedDistance;
           bestCost = joinedDistance;
         }
       }
@@ -228,7 +225,7 @@ export function diffWords(typed: string, target: string): TypingDiff {
           results[gi + j] = { word: targetWords[gi + j], status: "skipped" };
         }
       }
-      errors += bestDistance;
+      errors += bestCost;
     }
   }
 
