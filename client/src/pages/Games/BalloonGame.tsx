@@ -181,6 +181,7 @@ export const BalloonGame = () => {
       <motion.div
         ref={containerRef}
         tabIndex={0}
+        data-typing-area="balloon-game"
         onKeyDown={handleKey}
         onClick={() => containerRef.current?.focus()}
         animate={shake ? { x: [0, -8, 8, -6, 6, 0] } : { x: 0 }}
