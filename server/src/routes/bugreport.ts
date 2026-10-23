@@ -13,6 +13,7 @@ const uploadLimits = {
   fieldSize: 16 * 1024,
   fieldNameSize: 100,
   fieldArrayIndexLimit: 10,
+  fieldNestingDepth: 10,
   parts: 13,
 };
 
