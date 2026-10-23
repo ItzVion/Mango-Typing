@@ -520,7 +520,7 @@ function RunningTest({
         onKeyDown={handleKeyDown}
         disabled={timeLeft <= 0}
         autoFocus
-        className="opacity-0 absolute w-1 h-1"
+        className="opacity-0 absolute w-1 h-1" data-typing-feedback-source="test"
       />
 
       <AnimatePresence mode="wait">
@@ -529,7 +529,7 @@ function RunningTest({
             key="screen"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="type-box card p-6"
+            className="type-box card p-6" data-typing-feedback-target="test"
           >
             {targetWords.map((word, i) => {
               const status = liveDiff.results[i]?.status ?? "pending";
@@ -546,13 +546,14 @@ function RunningTest({
                         <span
                           key={ci}
                           ref={isCaret ? caretRef : undefined}
-                          className={
-                            isTyped
-                              ? isCorrect
-                                ? "text-[var(--text-primary)]"
-                                : "text-[var(--error)] bg-[var(--error)]/10"
-                              : "text-black/25 dark:text-white/25"
-                          }
+                          className={[
+  isTyped
+    ? isCorrect
+      ? "text-[var(--text-primary)]"
+      : "text-[var(--error)] bg-[var(--error)]/10"
+    : "text-black/25 dark:text-white/25",
+  isTyped ? "mt-typed-character" : "",
+].filter(Boolean).join(" ")}
                           style={isCaret ? { borderLeft: "2px solid currentColor" } : undefined}
                         >
                           {c}
@@ -586,7 +587,7 @@ function RunningTest({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             onClick={() => inputRef.current?.focus()}
-            className="type-box card p-6 w-full max-w-2xl min-h-[10rem] cursor-text whitespace-pre-wrap break-words font-mono"
+            className="type-box card p-6 w-full max-w-2xl min-h-[10rem] cursor-text whitespace-pre-wrap break-words font-mono" data-typing-feedback-target="test"
           >
             {typed.length === 0 ? (
               <span className="text-black/40 text-sm">Click here and start typing what's on your printed sheet…</span>
