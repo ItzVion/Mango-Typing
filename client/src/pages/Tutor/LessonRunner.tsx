@@ -92,11 +92,11 @@ export const LessonRunner = () => {
         value={typed}
         onChange={(e) => handleChange(e.target.value)}
         autoFocus
-        className="opacity-0 absolute w-1 h-1"
+        className="opacity-0 absolute w-1 h-1" data-typing-feedback-source="tutor"
       />
 
       {/* Fixed responsive box — text wraps to fit any screen, no horizontal scroll. */}
-      <div className="type-box card p-6 text-lg sm:text-xl">
+      <div className="type-box card p-6 text-lg sm:text-xl" data-typing-feedback-target="tutor">
         {[...text].map((c, i) => {
           const isTyped = i < typed.length;
           const isCorrect = isTyped && typed[i] === c;
@@ -105,13 +105,14 @@ export const LessonRunner = () => {
             <span
               key={i}
               ref={isCurrent ? caretRef : undefined}
-              className={
-                isTyped
-                  ? isCorrect
-                    ? "text-[var(--text-primary)]"
-                    : "text-[var(--error)] bg-[var(--error)]/10"
-                  : "text-black/25 dark:text-white/25"
-              }
+              className={[
+  isTyped
+    ? isCorrect
+      ? "text-[var(--text-primary)]"
+      : "text-[var(--error)] bg-[var(--error)]/10"
+    : "text-black/25 dark:text-white/25",
+  isTyped ? "mt-typed-character" : "",
+].filter(Boolean).join(" ")}
               style={isCurrent ? { borderLeft: "2px solid currentColor" } : undefined}
             >
               {c}
