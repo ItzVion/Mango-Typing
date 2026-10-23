@@ -14,7 +14,7 @@ import { setAuthCookie, clearAuthCookie } from "../lib/authCookie";
 
 const router = Router();
 const CODE_TTL_MS = 10 * 60 * 1000;
-const avatarUploadLimits = { fileSize: 500 * 1024, fieldArrayIndexLimit: 10 };
+const avatarUploadLimits = { fileSize: 500 * 1024, fieldArrayIndexLimit: 10, fieldNestingDepth: 10 };
 const avatarUpload = multer({ storage: multer.memoryStorage(), limits: avatarUploadLimits });
 
 // Apply account upload limits before Multer buffers the request body.
