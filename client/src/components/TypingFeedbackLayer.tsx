@@ -72,7 +72,6 @@ export function TypingFeedbackLayer() {
     return () => {
       document.removeEventListener("input", onInput, true);
       document.removeEventListener("keydown", onKeyDown, true);
-      activeAnimations.clear;
     };
   }, []);
 
