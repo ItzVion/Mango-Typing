@@ -9,7 +9,7 @@ const HOME_ROW_KEYS = "ASDFGHJKL;";
 export const Landing = () => (
   <main className="w-full text-[var(--text-primary)]">
     <Seo
-      title="MangoTyping — Free Typing Tests, Games & Tutor"
+      title="MangoTyping: Free Typing Tests, Games & Tutor"
       brandSuffix={false}
       description="Practise with timed typing tests, printable passages, typing games, and guided lessons. Check your words per minute and accuracy on MangoTyping."
       path="/"
@@ -24,7 +24,7 @@ export const Landing = () => (
       }}
     />
 
-    <section className="mx-auto grid min-h-[min(72vh,760px)] w-full max-w-6xl items-center gap-10 px-1 py-8 sm:gap-14 sm:py-12 md:grid-cols-[1.1fr_0.9fr]">
+    <section className="mx-auto grid min-h-[70vh] w-full max-w-6xl items-center gap-10 px-1 py-8 sm:gap-14 sm:py-12 md:grid-cols-[1.1fr_0.9fr]">
       <div className="max-w-2xl">
         <TypingHero />
         <p className="mt-6 max-w-xl text-base leading-7 text-[var(--text-muted)] sm:text-lg sm:leading-8">
@@ -45,7 +45,7 @@ export const Landing = () => (
           </Link>
         </div>
         <p className="mt-5 text-sm leading-6 text-[var(--text-muted)]">
-          Free to start. No flashy promises—just practice, a timer, and your results.
+          Free to start. Practise with a timer and review your own results.
         </p>
       </div>
 
