@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 import { BugReportButton } from "./components/BugReportButton";
-import { AnimationLayer } from "./components/AnimationLayer";
 import { api } from "./api/client";
 import { useAuthStore } from "./stores/authStore";
 import { LoadingState } from "./components/LoadingState";
@@ -107,7 +106,6 @@ export default function App() {
   }
 
   return <>
-    <AnimationLayer />
     <Navbar />
     <div className="pt-32 pb-4 px-4 sm:px-6 max-w-6xl mx-auto min-h-[70vh]">
       <Suspense fallback={<LoadingState label="Loading page…" />}>
