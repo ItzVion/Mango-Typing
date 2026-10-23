@@ -201,3 +201,23 @@ html.dark [class~="text-neutral-400"] { color: rgba(255, 255, 255, 0.55) !import
   .mt-ambient { display: none !important; }
   .mt-typed-character { animation: none !important; }
 }
+
+
+/* The hero caret adds a small typewriter cue without a JavaScript timer. */
+.mt-type-caret {
+  width: 0.065em;
+  height: 0.82em;
+  border-radius: 1px;
+  vertical-align: -0.06em;
+  background: #f5a623;
+  animation: mtCaretBlink 850ms steps(2, end) 1.2s infinite;
+}
+
+@keyframes mtCaretBlink {
+  0%, 48% { opacity: 1; }
+  49%, 100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mt-type-caret { animation: none !important; opacity: 1; }
+}
