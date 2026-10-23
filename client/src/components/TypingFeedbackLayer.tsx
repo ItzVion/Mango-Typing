@@ -1,26 +1,37 @@
 import { useEffect } from "react";
 
-const activeTimers = new WeakMap<HTMLElement, number>();
+const activeAnimations = new WeakMap<HTMLElement, Animation>();
 
-function pulse(element: HTMLElement, className: string) {
-  const previous = activeTimers.get(element);
-  if (previous !== undefined) window.clearTimeout(previous);
+function pulse(element: HTMLElement, kind: "field" | "surface") {
+  const previous = activeAnimations.get(element);
+  previous?.cancel();
 
-  element.classList.remove(className);
-  // Restart a tiny CSS animation without remounting the input or losing focus.
-  void element.offsetWidth;
-  element.classList.add(className);
+  if (typeof element.animate !== "function") return;
 
-  const timer = window.setTimeout(() => {
-    element.classList.remove(className);
-    activeTimers.delete(element);
-  }, 240);
-  activeTimers.set(element, timer);
+  const keyframes: Keyframe[] =
+    kind === "surface"
+      ? [
+          { boxShadow: "inset 0 0 0 1px rgba(245, 166, 35, 0.55)" },
+          { boxShadow: "inset 0 0 0 1px rgba(245, 166, 35, 0)" },
+        ]
+      : [
+          { boxShadow: "0 0 0 3px rgba(245, 166, 35, 0.2)" },
+          { boxShadow: "0 0 0 0 rgba(245, 166, 35, 0)" },
+        ];
+
+  const animation = element.animate(keyframes, {
+    duration: 150,
+    easing: "cubic-bezier(.22, 1, .36, 1)",
+  });
+  activeAnimations.set(element, animation);
+  animation.onfinish = () => {
+    if (activeAnimations.get(element) === animation) activeAnimations.delete(element);
+  };
 }
 
 /**
- * Delegated events keep typing feedback consistent across current and future
- * text fields, without adding custom handlers to every form.
+ * Delegated input feedback works with text inputs, textareas, editable fields,
+ * and game surfaces without adding React state updates for every key.
  */
 export function TypingFeedbackLayer() {
   useEffect(() => {
@@ -34,12 +45,13 @@ export function TypingFeedbackLayer() {
         return;
       }
 
-      pulse(target, "mt-input-typing");
+      pulse(target, "field");
 
       const source = target.dataset.typingFeedbackSource;
       if (source) {
-        const output = document.querySelector<HTMLElement>(`[data-typing-feedback-target="${source}"]`);
-        if (output) pulse(output, "mt-typing-surface-feedback");
+        const safeSource = source.replace(/[^a-zA-Z0-9_-]/g, "");
+        const output = document.querySelector<HTMLElement>('[data-typing-feedback-target="' + safeSource + '"]');
+        if (output) pulse(output, "surface");
       }
     };
 
@@ -51,7 +63,7 @@ export function TypingFeedbackLayer() {
       if (!(target instanceof HTMLElement)) return;
       const area = target.closest<HTMLElement>("[data-typing-area]");
       if (area && !target.matches("input, textarea, [contenteditable='true']")) {
-        pulse(area, "mt-typing-surface-feedback");
+        pulse(area, "surface");
       }
     };
 
@@ -60,6 +72,7 @@ export function TypingFeedbackLayer() {
     return () => {
       document.removeEventListener("input", onInput, true);
       document.removeEventListener("keydown", onKeyDown, true);
+      activeAnimations.clear;
     };
   }, []);
 

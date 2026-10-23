@@ -1,10 +1,6 @@
 @import "tailwindcss";
 
-/* Tailwind v4 defaults `dark:` to prefers-color-scheme (OS setting). This app
-   toggles dark mode manually via a `.dark` class on <html>, so without this
-   line every `dark:*` utility in the whole app silently ignores the in-app
-   toggle and only works if the OS itself is set to dark. This line makes
-   `dark:` respond to the `.dark` class instead. */
+/* MangoTyping's dark theme is intentionally applied in main.tsx. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
@@ -14,59 +10,75 @@
   --text-primary: #0a0a0a;
   --text-muted: #6b6b6b;
   --error: #d92d20;
-  --nav-bg: rgba(255, 255, 255, 0.75);
-  --nav-border: rgba(0, 0, 0, 0.08);
-  --mt-pointer-x: 50vw;
-  --mt-pointer-y: 50vh;
-  --mt-mx: 0px;
-  --mt-my: 0px;
+  --nav-bg: rgba(255, 255, 255, 0.96);
+  --nav-border: rgba(0, 0, 0, 0.1);
 }
 
 html.dark {
-  --bg-main: #0a0a0a;
-  --card-bg: #161616;
-  --card-border: #262626;
-  --text-primary: #f5f5f5;
-  --text-muted: #9a9a9a;
-  --error: #ff6b61;
-  --nav-bg: rgba(15, 15, 15, 0.75);
-  --nav-border: rgba(255, 255, 255, 0.08);
+  --bg-main: #0b0b0a;
+  --card-bg: #141413;
+  --card-border: #2b2a27;
+  --text-primary: #f3f1eb;
+  --text-muted: #aaa69b;
+  --error: #ff786f;
+  --nav-bg: rgba(15, 15, 14, 0.94);
+  --nav-border: rgba(255, 255, 255, 0.1);
 }
 
 * { box-sizing: border-box; }
 
+html {
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
 body {
+  margin: 0;
+  overflow-x: hidden;
   background-color: var(--bg-main);
   color: var(--text-primary);
-  font-family: Inter, system-ui, -apple-system, sans-serif;
-  margin: 0;
-  transition: background-color 0.25s ease, color 0.25s ease;
-  overflow-x: hidden;
+  font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  color: #17130a;
+  background: rgba(245, 166, 35, 0.38);
 }
 
 .glass-nav {
   background: var(--nav-bg);
-  backdrop-filter: blur(20px);
   border: 1px solid var(--nav-border);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 20px;
+  border-radius: 18px;
+  transition: border-color 160ms ease;
 }
 
-@keyframes caretBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-.animate-caret { animation: caretBlink 1s infinite; }
+@media (hover: hover) {
+  .card:hover { border-color: rgba(245, 166, 35, 0.45); }
+}
 
-/* Typing Tutor / typing surfaces — fixed responsive box, wraps instead of
-   overflowing horizontally, no manual scrolling required. */
+button, a { -webkit-tap-highlight-color: transparent; }
+
+:focus-visible {
+  outline: 2px solid #f5a623;
+  outline-offset: 3px;
+}
+
 .type-box {
   width: 100%;
   max-width: 720px;
   max-height: 40vh;
   overflow-y: auto;
   overflow-x: hidden;
+  overflow-wrap: anywhere;
   word-wrap: break-word;
   white-space: pre-wrap;
   line-height: 2.1;
@@ -77,33 +89,10 @@ body {
   .type-box { max-height: 45vh; font-size: 0.95rem; line-height: 2; }
 }
 
-/* Keep the decorative layer light on touch devices and honour OS motion preferences. */
-@media (pointer: coarse) {
-  .mt-cursor-glow, .mt-particle, .mt-click-ripple { display: none !important; }
-  .mt-orb { animation: none; filter: blur(56px); }
-  .mt-grid-glow { opacity: 0.55; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 
-/* ── Dark mode text-visibility fix ──────────────────────────────────────────
-   Many components use light-mode-only Tailwind opacity utilities like
-   text-black/40. In dark mode that stays literally black-on-black and
-   becomes unreadable. Rather than touching every file, remap every black/N
-   utility actually used in this app to the equivalent white/N when dark
-   mode is active. Uses ~= (exact whitespace-separated token match) so a
-   base class like text-black/70 doesn't also get matched inside the
-   separate token hover:text-black/70. */
+/* Existing low-contrast utility fixes for dark mode. */
 html.dark [class~="text-black/25"] { color: rgba(255, 255, 255, 0.55) !important; }
 html.dark [class~="text-black/30"] { color: rgba(255, 255, 255, 0.6) !important; }
 html.dark [class~="text-black/40"] { color: rgba(255, 255, 255, 0.65) !important; }
@@ -119,12 +108,37 @@ html.dark [class~="border-black/30"] { border-color: rgba(255, 255, 255, 0.3) !i
 html.dark [class~="hover:text-black"]:hover { color: #fff !important; }
 html.dark [class~="text-neutral-400"] { color: rgba(255, 255, 255, 0.55) !important; }
 
-/* ──────────────────────────────────────────────────────────────────────────
-   MangoTyping motion system
-   Inspired by the interaction patterns in Watermelon UI + Motion-Primitives:
-   springy feedback, spotlight lighting, tilt/magnetic movement, reveal
-   sequences, route wipes and subtle ambient motion. Functional typing inputs
-   are deliberately excluded from the decorative effects. */
+/* Lightweight ambient motion: two compositor-friendly transforms, not dozens
+   of particles, per-pointer listeners, blur trails, or perpetual JS loops. */
+.mt-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
+.mt-orb {
+  position: absolute;
+  width: min(38vw, 430px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0.13;
+  background: radial-gradient(circle, rgba(245, 166, 35, 0.7) 0%, rgba(245, 166, 35, 0.2) 35%, transparent 72%);
+  animation: mtOrbDrift 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.mt-orb-one { left: -14vw; top: 7vh; }
+.mt-orb-two {
+  right: -16vw;
+  bottom: -12vh;
+  opacity: 0.1;
+  animation-delay: -9s;
+  animation-duration: 27s;
+  background: radial-gradient(circle, rgba(234, 112, 45, 0.55) 0%, rgba(234, 112, 45, 0.15) 35%, transparent 72%);
+}
 
 .mt-scroll-progress {
   position: fixed;
@@ -132,223 +146,58 @@ html.dark [class~="text-neutral-400"] { color: rgba(255, 255, 255, 0.55) !import
   height: 3px;
   transform-origin: 0 50%;
   background: linear-gradient(90deg, #f59e0b, #fbbf24, #fde68a, #f59e0b);
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.7);
   z-index: 9999;
   pointer-events: none;
 }
 
-.mt-ambient {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-  opacity: 0.9;
-}
-
-.mt-orb {
-  position: absolute;
-  width: min(42vw, 520px);
-  height: min(42vw, 520px);
-  border-radius: 999px;
-  filter: blur(90px);
-  opacity: 0.16;
-  animation: mtOrbDrift 14s ease-in-out infinite alternate;
-}
-
-.mt-orb-one {
-  left: -12vw;
-  top: 8vh;
-  background: #f59e0b;
-}
-
-.mt-orb-two {
-  right: -15vw;
-  bottom: -10vh;
-  background: #f97316;
-  animation-delay: -5s;
-  animation-duration: 18s;
-}
-
-.mt-grid-glow {
-  position: absolute;
-  inset: 0;
-  background-image: linear-gradient(rgba(245,158,11,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(245,158,11,.035) 1px, transparent 1px);
-  background-size: 54px 54px;
-  mask-image: radial-gradient(circle at center, black, transparent 72%);
-}
-
-.mt-particle {
-  position: absolute;
-  border-radius: 999px;
-  background: #f59e0b;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.7);
+.mt-keycap {
   opacity: 0;
-  animation: mtParticleFloat 8s ease-in-out infinite;
+  animation: mtKeycapIn 420ms cubic-bezier(.22, 1, .36, 1) forwards;
+  animation-delay: var(--key-delay, 0ms);
+  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease;
 }
 
-.mt-cursor-glow {
-  position: fixed;
-  left: -18px;
-  top: -18px;
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  pointer-events: none;
-  z-index: 9998;
-  background: radial-gradient(circle, rgba(245,158,11,.34), rgba(245,158,11,.08) 42%, transparent 72%);
-  mix-blend-mode: screen;
+@media (hover: hover) {
+  .mt-keycap:hover { transform: translateY(-2px); }
 }
 
-.mt-cursor-glow::after {
-  content: "";
-  position: absolute;
-  inset: 12px;
-  border: 1px solid rgba(245,158,11,.6);
-  border-radius: 999px;
+.mt-typed-character {
+  border-radius: 0.14em;
+  animation: mtTypedCharacter 190ms ease-out;
 }
 
-.mt-route-wipe {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(90deg, rgba(245,158,11,.16), transparent 55%), var(--bg-main);
-  z-index: 9997;
-  pointer-events: none;
+@keyframes mtTypedCharacter {
+  0% {
+    background-color: rgba(245, 166, 35, 0.42);
+    text-shadow: 0 0 8px rgba(245, 166, 35, 0.26);
+  }
+  100% { background-color: transparent; text-shadow: none; }
 }
 
-.mt-reveal {
-  opacity: 0;
-  transform: translateY(18px) scale(.985);
-  filter: blur(5px);
-  transition: opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1), filter .7s cubic-bezier(.22,1,.36,1);
-  transition-delay: var(--mt-reveal-delay, 0ms);
-}
-
-.mt-reveal-visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  filter: blur(0);
-}
-
-.mt-magnetic,
-[data-magnetic] {
-  transform: translate3d(var(--mt-mx), var(--mt-my), 0);
-  transition: transform .22s cubic-bezier(.22,1,.36,1), box-shadow .25s ease;
-}
-
-.mt-ripple-host {
-  position: relative;
-  overflow: hidden;
-}
-
-.mt-click-ripple {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.45);
-  transform: translate(-50%, -50%) scale(0);
-  animation: mtRipple .62s ease-out forwards;
-  pointer-events: none;
-}
-
-/* Cursor-following spotlight on interactive cards. */
-main .card,
-main [class*="rounded-2xl"],
-main [class*="rounded-3xl"] {
-  position: relative;
-  isolation: isolate;
-}
-
-main .card::before,
-main [class*="rounded-2xl"]::before,
-main [class*="rounded-3xl"]::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity .3s ease;
-  background: radial-gradient(260px circle at var(--mt-pointer-x) var(--mt-pointer-y), rgba(245,158,11,.13), transparent 65%);
-  z-index: -1;
-}
-
-main .card:hover::before,
-main [class*="rounded-2xl"]:hover::before,
-main [class*="rounded-3xl"]:hover::before { opacity: 1; }
-
-main button:not(.type-box button),
-main a:not(.type-box a) {
-  transition: transform .22s cubic-bezier(.22,1,.36,1), box-shadow .22s ease, filter .22s ease;
-}
-
-main button:not(:disabled):hover,
-main a:hover {
-  filter: brightness(1.035);
-}
-
-main button:not(:disabled):active,
-main a:active {
-  transform: translateY(1px) scale(.985);
+@keyframes mtKeycapIn {
+  from { opacity: 0; transform: translateY(7px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes mtOrbDrift {
   0% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(7vw, -4vh, 0) scale(1.08); }
-  100% { transform: translate3d(-3vw, 5vh, 0) scale(.94); }
-}
-
-@keyframes mtParticleFloat {
-  0%, 100% { opacity: 0; transform: translate3d(0, 12px, 0) scale(.7); }
-  20% { opacity: .5; }
-  50% { opacity: .9; transform: translate3d(18px, -30px, 0) scale(1); }
-  80% { opacity: .25; }
-}
-
-@keyframes mtRipple {
-  0% { opacity: .65; transform: translate(-50%, -50%) scale(0); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(15); }
+  45% { transform: translate3d(4vw, -2vh, 0) scale(1.04); }
+  100% { transform: translate3d(-2vw, 3vh, 0) scale(.98); }
 }
 
 @media (max-width: 700px), (pointer: coarse) {
-  .mt-cursor-glow { display: none; }
-  .mt-grid-glow { opacity: .45; }
-  .mt-orb { filter: blur(70px); opacity: .1; }
-  .mt-magnetic, [data-magnetic] { transform: none !important; }
+  .mt-orb { opacity: 0.07; animation-duration: 32s; }
+  .mt-orb-two { animation-delay: -14s; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
   *, *::before, *::after {
-    scroll-behavior: auto !important;
-    animation-duration: .01ms !important;
+    animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-  .mt-cursor-glow, .mt-ambient, .mt-route-wipe { display: none !important; }
-  .mt-reveal { opacity: 1; transform: none; filter: none; }
-}
-
-
-/* Typing animation: brief character feedback without shifting line wrapping. */
-@keyframes mt-typed-character-appear {
-  0% { background-color: rgba(245,166,35,.42); text-shadow: 0 0 8px rgba(245,166,35,.26); }
-  100% { background-color: transparent; text-shadow: none; }
-}
-.mt-typed-character {
-  border-radius: .14em;
-  animation: mt-typed-character-appear 190ms ease-out;
-}
-@keyframes mt-input-keystroke {
-  0% { box-shadow: 0 0 0 3px rgba(245,166,35,.18), inset 0 0 0 1px rgba(245,166,35,.5); }
-  100% { box-shadow: 0 0 0 0 rgba(245,166,35,0), inset 0 0 0 1px rgba(245,166,35,0); }
-}
-.mt-input-typing { animation: mt-input-keystroke 170ms ease-out; }
-@keyframes mt-typing-surface-feedback {
-  0% { box-shadow: inset 0 0 0 1px rgba(245,166,35,.45); }
-  100% { box-shadow: inset 0 0 0 1px rgba(245,166,35,0); }
-}
-.mt-typing-surface-feedback { animation: mt-typing-surface-feedback 170ms ease-out; }
-@media (prefers-reduced-motion: reduce) {
-  .mt-typed-character, .mt-input-typing, .mt-typing-surface-feedback { animation: none !important; }
+  .mt-ambient { display: none !important; }
+  .mt-typed-character { animation: none !important; }
 }

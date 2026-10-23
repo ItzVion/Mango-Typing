@@ -1,88 +1,192 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { SupportSection } from "../components/SupportSection";
 import { TypingHero } from "../components/TypingHero";
 import { Seo, SITE_ORIGIN, SITE_NAME } from "../components/Seo";
 
-// The public marketing splash. "Start" takes people into the app at /home;
-// scrolling down leads to the support/donate section.
-export const Landing = () => (
-  <div className="flex flex-col items-center">
-    <Seo
-      title="MangoTyping – Free Online Typing Test & Practice"
-      brandSuffix={false}
-      description="Free online typing tests with WPM and accuracy tracking, typing games, and guided typing practice."
-      path="/"
-      jsonLd={{
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        name: SITE_NAME,
-        applicationCategory: "EducationalApplication",
-        operatingSystem: "Any (web browser)",
-        url: SITE_ORIGIN,
-        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-      }}
-    />
-    <div className="w-full flex flex-col items-center text-center gap-6 px-6 min-h-[calc(100vh-6rem)] justify-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
-        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-        transition={{ duration: 0.6 }}
-      >
-        <TypingHero />
-      </motion.div>
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.25, duration: 0.5 }}
-        className="text-black/50 max-w-md"
-      >
-        MangoTyping is a free online typing test and practice site with typing games, a typing tutor, WPM tracking, and accuracy scores.
-      </motion.p>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.45, type: "spring", stiffness: 260, damping: 18 }}
-        whileHover={{ scale: 1.05, y: -2 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <Link to="/home" className="inline-block px-8 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-semibold">
-          Start typing test
-        </Link>
-      </motion.div>
-      <motion.nav
-        aria-label="Explore MangoTyping"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-black/40 dark:text-white/40"
-      >
-        <Link to="/home/tests" className="hover:underline">Typing test</Link>
-        <span aria-hidden>·</span>
-        <Link to="/home/typing-games" className="hover:underline">Typing games</Link>
-        <span aria-hidden>·</span>
-        <Link to="/home/tutor" className="hover:underline">Typing tutor</Link>
-      </motion.nav>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1, y: [0, 8, 0] }}
-        transition={{ opacity: { delay: 1 }, y: { delay: 1, duration: 1.6, repeat: Infinity } }}
-        className="mt-4 text-black/30 text-xs"
-      >
-        ↓ scroll to support us
-      </motion.div>
-    </div>
+const KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL;", "ZXCVBNM"];
+const HOME_ROW_KEYS = "ASDFGHJKL;";
 
-    <div className="w-full min-h-[calc(100vh-6rem)] flex items-center justify-center px-6">
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
+const practiceOptions = [
+  {
+    title: "Timed tests",
+    text: "Choose an easy, medium, or hard passage and review your speed and accuracy at the end.",
+    action: "Choose a passage",
+    to: "/home/tests",
+  },
+  {
+    title: "Typing games",
+    text: "Practise timing and accuracy in Balloon, Car, and Boss challenges.",
+    action: "Browse games",
+    to: "/home/typing-games",
+  },
+  {
+    title: "Typing tutor",
+    text: "Work through guided lessons from home-row keys to longer passages.",
+    action: "Open the tutor",
+    to: "/home/tutor",
+  },
+];
+
+export const Landing = () => {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <main className="w-full text-[var(--text-primary)]">
+      <Seo
+        title="MangoTyping: Free Typing Tests, Games & Tutor"
+        brandSuffix={false}
+        description="Practise with timed typing tests, printable passages, typing games, and guided lessons. Check your words per minute and accuracy on MangoTyping."
+        path="/"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: SITE_NAME,
+          applicationCategory: "EducationalApplication",
+          operatingSystem: "Any (web browser)",
+          url: SITE_ORIGIN,
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        }}
+      />
+
+      <motion.section
+        initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: reduceMotion ? 0 : 0.42, ease: "easeOut" }}
+        className="mx-auto grid min-h-[70vh] w-full max-w-6xl items-center gap-10 px-1 py-8 sm:gap-14 sm:py-12 md:grid-cols-[1.1fr_0.9fr]"
+      >
+        <div className="max-w-2xl">
+          <TypingHero />
+          <motion.p
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.38, delay: reduceMotion ? 0 : 0.15 }}
+            className="mt-6 max-w-xl text-base leading-7 text-[var(--text-muted)] sm:text-lg sm:leading-8"
+          >
+            Choose a passage, set a timer from 30 seconds to 10 minutes, then check your words per minute and accuracy. Practise on screen or print a sheet for paper-based practice.
+          </motion.p>
+
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.38, delay: reduceMotion ? 0 : 0.24 }}
+            className="mt-8 flex flex-wrap items-center gap-3"
+          >
+            <motion.div whileHover={reduceMotion ? undefined : { y: -2, scale: 1.02 }} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+              <Link
+                to="/home/tests"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#f5a623] px-5 py-3 text-sm font-semibold text-[#18140b] transition-colors hover:bg-[#ffc15b]"
+              >
+                Take a typing test <span aria-hidden="true">→</span>
+              </Link>
+            </motion.div>
+            <motion.div whileHover={reduceMotion ? undefined : { y: -2 }} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+              <Link
+                to="/home/typing-games"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--card-border)] px-5 py-3 text-sm font-semibold transition-colors hover:border-[#f5a623]"
+              >
+                Explore typing games
+              </Link>
+            </motion.div>
+          </motion.div>
+          <p className="mt-5 text-sm leading-6 text-[var(--text-muted)]">
+            Free to start. Practise with a timer and review your own results.
+          </p>
+        </div>
+
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, y: 14, scale: 0.985 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: reduceMotion ? 0 : 0.48, delay: reduceMotion ? 0 : 0.12, ease: "easeOut" }}
+          className="mx-auto w-full max-w-lg"
+        >
+          <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card-bg)] p-5 sm:p-7">
+            <div className="flex items-start justify-between gap-4 border-b border-[var(--card-border)] pb-5">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight sm:text-xl">Start with the home row</h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">A useful starting position for touch typing.</p>
+              </div>
+              <span className="select-none font-mono text-sm text-[#f5a623]" aria-hidden="true">A / J</span>
+            </div>
+
+            <div className="mt-6 space-y-2.5" role="img" aria-label="Keyboard diagram with A, S, D, F, J, K, L and semicolon highlighted as home-row keys">
+              {KEY_ROWS.map((row, rowIndex) => (
+                <div
+                  key={row}
+                  className={["flex justify-center gap-1.5 sm:gap-2", rowIndex === 1 ? "px-1" : rowIndex === 2 ? "px-5 sm:px-8" : ""].join(" ")}
+                >
+                  {row.split("").map((key, keyIndex) => {
+                    const isHomeRow = HOME_ROW_KEYS.includes(key);
+                    return (
+                      <span
+                        key={key}
+                        className={[
+                          "mt-keycap flex h-9 min-w-0 flex-1 items-center justify-center rounded-md border font-mono text-xs sm:h-11 sm:text-sm",
+                          isHomeRow
+                            ? "border-[#f5a623] bg-[#f5a623] font-semibold text-[#18140b]"
+                            : "border-[var(--card-border)] bg-[var(--bg-main)] text-[var(--text-muted)]",
+                        ].join(" ")}
+                        style={{ animationDelay: reduceMotion ? "0ms" : `${Math.min(rowIndex * 80 + keyIndex * 22, 450)}ms` }}
+                      >
+                        {key}
+                      </span>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <p className="mt-5 text-sm leading-6 text-[var(--text-muted)]">
+              Rest your fingers on A, S, D, F and J, K, L, ; before you begin. Accuracy first; speed can follow.
+            </p>
+          </div>
+        </motion.div>
+      </motion.section>
+
+      <motion.section
+        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6 }}
-        className="w-full flex justify-center"
+        viewport={{ once: true, amount: 0.12 }}
+        transition={{ duration: reduceMotion ? 0 : 0.42, ease: "easeOut" }}
+        className="mx-auto max-w-6xl border-t border-[var(--card-border)] px-1 py-10 sm:py-14"
+      >
+        <div className="mb-7 max-w-2xl">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Pick a way to practise</h2>
+          <p className="mt-3 text-sm leading-6 text-[var(--text-muted)] sm:text-base">
+            Use a timed passage, practise through a game, or work through guided lessons at your own pace.
+          </p>
+        </div>
+        <div className="grid gap-7 md:grid-cols-3 md:gap-8">
+          {practiceOptions.map((option, index) => (
+            <motion.div
+              key={option.title}
+              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ duration: reduceMotion ? 0 : 0.34, delay: reduceMotion ? 0 : index * 0.07 }}
+              whileHover={reduceMotion ? undefined : { y: -3 }}
+              className="h-full"
+            >
+              <Link to={option.to} className="group block h-full border-t border-[var(--card-border)] py-5 transition-colors hover:border-[#f5a623]">
+                <h3 className="text-lg font-semibold">{option.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{option.text}</p>
+                <span className="mt-4 inline-block text-sm font-semibold text-[#f5a623]">
+                  {option.action} <span aria-hidden="true">→</span>
+                </span>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      </motion.section>
+
+      <motion.section
+        initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.12 }}
+        transition={{ duration: reduceMotion ? 0 : 0.42 }}
+        className="mx-auto flex max-w-6xl justify-center border-t border-[var(--card-border)] px-1 py-10 sm:py-14"
       >
         <SupportSection />
-      </motion.div>
-    </div>
-  </div>
-);
+      </motion.section>
+    </main>
+  );
+};
