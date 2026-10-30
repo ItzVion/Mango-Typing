@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { useNavigate } from "react-router-dom";
+import { FiCheck, FiCheckCircle, FiHeart, FiStar } from "react-icons/fi";
 
 declare global {
   interface Window {
@@ -37,18 +38,6 @@ function loadRazorpayCheckout(): Promise<void> {
   }
   return razorpayCheckoutPromise;
 }
-
-const StarIcon = ({ size = 24, color = "#F5A623" }: { size?: number; color?: string }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" aria-hidden="true">
-    <path d="M12 2.5 14.9 8.6l6.6.7-4.9 4.5 1.3 6.6L12 17l-5.9 3.4 1.3-6.6-4.9-4.5 6.6-.7L12 2.5Z" fill={color} />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0 text-[#f5a623]" fill="none" aria-hidden="true">
-    <path d="m5 10.25 3.1 3.1L15.5 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 
 export const SupportSection = () => {
   const [message, setMessage] = useState("Every rupee helps keep the servers running, the domains renewed, and new features shipping. Thank you for supporting MangoTyping!");
@@ -146,7 +135,7 @@ export const SupportSection = () => {
       <div className="grid w-full items-center gap-8 md:grid-cols-[minmax(0,1fr)_minmax(360px,0.88fr)] md:gap-12 lg:gap-20">
         <div className="max-w-xl py-2">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[rgba(245,166,35,0.28)] bg-[rgba(245,166,35,0.07)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f5a623]">
-            <StarIcon size={13} />
+            <FiHeart size={14} strokeWidth={1.7} />
             Community powered
           </div>
           <h2 id="support-title" className="max-w-lg text-3xl font-semibold leading-tight tracking-[-0.035em] sm:text-4xl lg:text-[2.75rem]">
@@ -163,7 +152,7 @@ export const SupportSection = () => {
               "Support new lessons, games and improvements",
             ].map((item) => (
               <div key={item} className="flex items-center gap-3 text-sm text-[var(--text-primary)]">
-                <CheckIcon />
+                <FiCheck size={17} strokeWidth={1.8} className="shrink-0 text-[#e7a23a]" />
                 <span>{item}</span>
               </div>
             ))}
@@ -175,8 +164,8 @@ export const SupportSection = () => {
         </div>
 
         <div className="relative mx-auto w-full max-w-[470px]">
-          <div className="pointer-events-none absolute -inset-4 rounded-[2rem] bg-[radial-gradient(ellipse_at_50%_0%,rgba(245,166,35,0.11),transparent_65%)]" />
-          <div className="relative overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card-bg)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.16)] sm:rounded-3xl sm:p-7">
+          
+          <div className="mt-support-card relative overflow-hidden p-5 sm:p-7">
             <div className="flex items-start justify-between gap-4 border-b border-[var(--card-border)] pb-5">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f5a623]">Support MangoTyping</p>
@@ -184,7 +173,7 @@ export const SupportSection = () => {
                 <p className="mt-1.5 text-sm leading-6 text-[var(--text-muted)]">Choose an amount that feels right.</p>
               </div>
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[rgba(245,166,35,0.24)] bg-[rgba(245,166,35,0.08)]">
-                <StarIcon size={22} />
+                <FiHeart size={21} strokeWidth={1.6} />
               </div>
             </div>
 
@@ -325,12 +314,12 @@ export const SupportSection = () => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={!letterOpen ? undefined : closeCelebration}>
             {!letterOpen ? (
               <motion.button onClick={() => setLetterOpen(true)} className="flex flex-col items-center gap-4 cursor-pointer" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 12 }}>
-                <motion.div style={{ filter: "drop-shadow(0 0 40px rgba(245,166,35,0.8))" }} animate={{ rotate: [0, 12, -12, 12, 0], scale: [1, 1.15, 1] }} transition={{ duration: 1.6, repeat: Infinity }}><StarIcon size={120} /></motion.div>
+                <motion.div initial={{ scale: .85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 220, damping: 20 }}><FiCheckCircle size={66} strokeWidth={1.25} className="text-[#e7a23a]" /></motion.div>
                 <motion.p className="text-white font-bold text-lg tracking-wide" animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.4, repeat: Infinity }}>Click the star</motion.p>
               </motion.button>
             ) : (
-              <motion.div initial={{ opacity: 0, scale: 0.7, rotateX: -30 }} animate={{ opacity: 1, scale: 1, rotateX: 0 }} transition={{ type: "spring", stiffness: 220, damping: 20 }} onClick={(e) => e.stopPropagation()} className="relative bg-[#fdfaf3] text-black rounded-2xl shadow-2xl p-8 sm:p-10 max-w-md w-full" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-                <div className="flex justify-center mb-2"><StarIcon size={40} /></div>
+              <motion.div initial={{ opacity: 0, scale: 0.7, rotateX: -30 }} animate={{ opacity: 1, scale: 1, rotateX: 0 }} transition={{ type: "spring", stiffness: 220, damping: 20 }} onClick={(e) => e.stopPropagation()} className="relative bg-[#fdfaf3] text-black rounded-xl border border-black/10 shadow-none p-8 sm:p-10 max-w-md w-full" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+                <div className="flex justify-center mb-2"><FiHeart size={30} strokeWidth={1.4} /></div>
                 <p className="text-xl font-bold text-center mb-4">Thank you{user ? `, ${user.username}` : ""}!</p>
                 <p className="text-sm leading-relaxed" style={{ color: "rgba(0,0,0,0.75)" }}>Your support means the world to us. MangoTyping is built and kept alive by people like you — every contribution goes straight toward better servers, new features, and keeping this place free for everyone who wants to improve typing.{user ? " A star now shines next to your name across the site — wear it well." : " Thanks for tipping anonymously — it counts just as much."}</p>
                 <p className="text-sm mt-4 italic" style={{ color: "rgba(0,0,0,0.6)" }}>— The MangoTyping Team</p>

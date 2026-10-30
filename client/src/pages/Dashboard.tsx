@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { FiBookOpen, FiFileText, FiGrid } from "react-icons/fi";
 import { BackButton } from "../components/BackButton";
 import { SupportSection } from "../components/SupportSection";
 import { TypingHero } from "../components/TypingHero";
@@ -8,9 +9,9 @@ import { TypingHero } from "../components/TypingHero";
 type Phase = "idle" | "choose";
 
 const OPTIONS = [
-  { key: "test", title: "Typing Test", desc: "Print a sheet, type from paper — or type straight from the screen.", to: "/sheets", emoji: "📄" },
-  { key: "games", title: "Typing Games", desc: "Balloon pop, car racing, and boss battles, with three difficulty tiers.", to: "/games", emoji: "🎮" },
-  { key: "tutor", title: "Typing Tutor", desc: "Step-by-step lessons, home row to full sentences, with an on-screen keyboard.", to: "/tutor", emoji: "⌨️" },
+  { key: "test", title: "Typing Test", desc: "Print a sheet, type from paper — or type straight from the screen.", to: "/sheets", icon: FiFileText },
+  { key: "games", title: "Typing Games", desc: "Balloon pop, car racing, and boss battles, with three difficulty tiers.", to: "/games", icon: FiGrid },
+  { key: "tutor", title: "Typing Tutor", desc: "Step-by-step lessons, home row to full sentences, with an on-screen keyboard.", to: "/tutor", icon: FiBookOpen },
 ];
 
 export const Dashboard = () => {
@@ -89,14 +90,7 @@ export const Dashboard = () => {
                     onClick={() => navigate(o.to)}
                     className="card p-6 flex flex-col items-center gap-2 text-left"
                   >
-                    <motion.span
-                      className="text-3xl"
-                      initial={{ rotate: -15, scale: 0 }}
-                      animate={{ rotate: 0, scale: 1 }}
-                      transition={{ delay: i * 0.1 + 0.15, type: "spring", stiffness: 300 }}
-                    >
-                      {o.emoji}
-                    </motion.span>
+                    <o.icon size={25} strokeWidth={1.6} className="text-[var(--accent)]" aria-hidden="true" />
                     <h3 className="font-semibold">{o.title}</h3>
                     <p className="text-black/40 text-xs text-center">{o.desc}</p>
                   </motion.button>
