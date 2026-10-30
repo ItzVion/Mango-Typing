@@ -111,7 +111,7 @@ export default function App() {
     <AnimationLayer />
     <TypingFeedbackLayer />
     <Navbar />
-    <div className="pt-32 pb-4 px-4 sm:px-6 max-w-6xl mx-auto min-h-[70vh]">
+    <div className="mt-content min-h-[70vh]">
       <Suspense fallback={<LoadingState label="Loading page…" />}>
       <AnimatePresence mode="wait">
         <motion.div key={location.pathname} initial="initial" animate="animate" exit="exit" variants={pageTransition} transition={{ duration: 0.28, ease: "easeOut" }}>

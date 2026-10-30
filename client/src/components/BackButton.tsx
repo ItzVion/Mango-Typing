@@ -7,7 +7,7 @@ export const BackButton = ({ to, label = "Back", onClick }: { to?: string; label
     <motion.button
       whileHover={{ x: -2 }}
       onClick={() => (onClick ? onClick() : to ? navigate(to) : navigate(-1))}
-      className="self-start flex items-center gap-1 text-sm font-semibold text-black/50 hover:text-black dark:hover:text-white mb-2"
+      className="self-start inline-flex min-h-10 items-center gap-2 rounded-xl border border-[var(--card-border)] px-3.5 text-xs font-semibold text-[var(--text-muted)] transition-colors hover:border-[var(--accent-border)] hover:bg-[var(--accent-soft)] hover:text-[var(--text-primary)] mb-1"
     >
       <span aria-hidden>←</span> {label}
     </motion.button>

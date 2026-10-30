@@ -99,7 +99,7 @@ export const Navbar = () => {
         initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="glass-nav grid grid-cols-[1fr_auto_1fr] items-center w-full max-w-5xl px-4 sm:px-6 py-3 rounded-2xl gap-2 transition-shadow"
+        className="glass-nav grid grid-cols-[1fr_auto_1fr] items-center w-full max-w-6xl px-4 sm:px-6 py-3.5 gap-3 transition-shadow"
         style={scrolled ? { boxShadow: "0 8px 30px -12px rgba(0,0,0,0.25)" } : {}}
       >
         <Link
@@ -117,7 +117,7 @@ export const Navbar = () => {
             whileHover={{ rotate: -6, scale: 1.06 }}
             src="/logo-light-bg.svg"
             alt="Mango Typing"
-            className="w-9 h-9 rounded-md"
+            className="w-10 h-10 rounded-xl"
           />
         </Link>
 
@@ -132,10 +132,10 @@ export const Navbar = () => {
               to={l.path}
               onClick={(e) => handleNavClick(e, l.path)}
               onMouseEnter={() => setHoveredPath(l.path)}
-              className="relative shrink-0 px-2.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-colors"
+              className="relative shrink-0 px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors"
               style={
                 location.pathname === l.path
-                  ? { color: "var(--text-primary)" }
+                  ? { color: "var(--accent)", backgroundColor: "var(--accent-soft)" }
                   : { color: "var(--text-muted)" }
               }
             >
@@ -292,7 +292,7 @@ export const Navbar = () => {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.15 }}
-        className="text-[11px] sm:text-xs tracking-wide text-white/40 select-none"
+        className="text-[11px] sm:text-xs font-medium tracking-[0.04em] text-[var(--text-subtle)] select-none"
       >
         Practice typing. Track progress. Get faster.
       </motion.p>
