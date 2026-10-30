@@ -574,7 +574,6 @@ html.dark {
 .mt-stat-card:nth-child(2) { border-top: 2px solid var(--tone-teal); }
 .mt-stat-card:nth-child(3) { border-top: 2px solid var(--tone-violet); }
 .mt-support-card { border-top: 2px solid var(--tone-amber); }
-.mt-support-card .text-\\[\\#f5a623\\] { color: var(--tone-amber); }
 .mt-button-primary {
   background: var(--tone-amber);
   border-color: var(--tone-amber);
