@@ -28,10 +28,10 @@ export const DonationHistory = () => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto">
+    <div className="mt-page max-w-3xl">
       <Seo title="Donation History" description="Your MangoTyping donation history." path="/donations" noindex />
-      <BackButton to="/home" label="Back" />
-      <h1 className="text-2xl font-bold">Donation History</h1>
+      <BackButton to="/home" label="Back to practice" />
+      <header className="mt-page-header"><span className="mt-eyebrow">Your support</span><h1 className="mt-page-title">Donation history</h1><p className="mt-page-description">A record of your contributions to keeping MangoTyping free.</p></header>
 
       {loading ? (
         <p className="text-black/40 text-sm">Loading donation history…</p>
@@ -50,7 +50,7 @@ export const DonationHistory = () => {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="card p-4 flex items-center justify-between"
+              className="card flex items-center justify-between gap-4 p-5"
             >
               <div>
                 <p className="font-semibold">₹{d.amountRupees}</p>

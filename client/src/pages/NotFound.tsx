@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Seo } from "../components/Seo";
 
 export const NotFound = () => (
-  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center px-6">
+  <main className="mt-page flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center px-6">
     <Seo title="Page Not Found" description="This page doesn't exist." path="/404" noindex />
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -44,5 +44,5 @@ export const NotFound = () => (
         </motion.span>
       </Link>
     </motion.div>
-  </div>
+  </main>
 );

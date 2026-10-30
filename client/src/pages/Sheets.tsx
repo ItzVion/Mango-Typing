@@ -59,7 +59,7 @@ export const Sheets = () => {
 
   if (loadError) {
     return (
-      <div className="flex flex-col gap-8">
+      <div className="mt-page flex flex-col gap-8">
         <BackButton to="/home" label="Back" />
         <div className="card p-10 flex flex-col items-center gap-3 text-center">
           <p className="text-black/50 text-sm">Couldn't load the test sheets.</p>
@@ -72,13 +72,14 @@ export const Sheets = () => {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="mt-page flex flex-col gap-8">
       <Seo
         title="Typing Test Sheets — Easy, Medium, Hard"
         description="Pick a typing test sheet by topic and difficulty, then test your WPM and accuracy on paper or straight from the screen."
         path="/home/tests"
       />
       <BackButton to="/home" label="Back" />
+      <header className="mt-page-header"><span className="mt-eyebrow">Timed practice</span><h1 className="mt-page-title">Choose a passage</h1><p className="mt-page-description">Pick a topic and difficulty, then practise on screen or print a clean sheet for offline typing.</p></header>
       {loading ? (
         <div className="flex flex-col gap-4">
           {[0, 1].map((g) => (
@@ -101,7 +102,7 @@ export const Sheets = () => {
               <motion.h2
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="text-lg font-bold uppercase tracking-wide text-black/50 dark:text-white/50 flex items-center gap-2"
+                className="mt-eyebrow flex items-center gap-2"
               >
                 <span
                   className="inline-block w-2 h-2 rounded-full"
@@ -117,7 +118,7 @@ export const Sheets = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(i * 0.06, 0.3), type: "spring", stiffness: 260, damping: 22 }}
                     whileHover={{ y: -4, borderColor: GROUP_ACCENT[difficulty] }}
-                    className="card p-5 flex flex-col gap-2 transition-colors"
+                    className="card p-5 flex flex-col gap-3 transition-colors"
                   >
                     <span className="text-black/40 text-xs">{s.topic}</span>
                     <h3 className="font-semibold">
@@ -126,12 +127,8 @@ export const Sheets = () => {
                     <span className="text-black/40 text-xs">{s.wordCount} words</span>
                     <div className="mt-2 flex gap-2">
                       <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex-1">
-                        <Link
-                          to={`/home/tests/${s.id}`}
-                          className="block px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black text-center text-sm font-semibold"
-                        >
-                          Start
-                        </Link>
+                        <Link to={`/home/tests/${s.id}`} className="mt-button-primary flex-1">Start test <span aria-hidden="true">→</span></Link>
+                        <button type="button" onClick={() => handleDownload(s, group.findIndex((item) => item.id === s.id) + 1)} disabled={downloading === s.id} className="mt-button-secondary">{downloading === s.id ? "Preparing…" : "PDF"}</button>
                       </motion.div>
                     </div>
                     {downloadError === s.id && (

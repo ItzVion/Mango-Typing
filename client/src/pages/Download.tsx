@@ -77,16 +77,16 @@ export const Download = () => {
   };
 
   if (loadError) {
-    return <div className="flex flex-col gap-6"><BackButton to="/home" label="Back" /><motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-10 flex flex-col items-center gap-4 text-center"><div className="w-14 h-14 rounded-2xl bg-black/[0.05] dark:bg-white/[0.06] flex items-center justify-center"><FiRefreshCw className="text-xl" /></div><div><h1 className="font-bold text-lg">Couldn't load the sheets</h1><p className="text-black/50 dark:text-white/50 text-sm mt-1">Something went wrong while fetching the printable tests.</p></div><button onClick={load} className="px-5 py-2.5 rounded-xl bg-black text-white dark:bg-white dark:text-black font-semibold text-sm inline-flex items-center gap-2"><FiRefreshCw /> Try again</button></motion.div></div>;
+    return <div className="mt-page flex flex-col gap-6"><BackButton to="/home" label="Back to practice" /><motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-10 flex flex-col items-center gap-4 text-center"><div className="w-14 h-14 rounded-2xl bg-black/[0.05] dark:bg-white/[0.06] flex items-center justify-center"><FiRefreshCw className="text-xl" /></div><div><h1 className="font-bold text-lg">Couldn't load the sheets</h1><p className="text-black/50 dark:text-white/50 text-sm mt-1">Something went wrong while fetching the printable tests.</p></div><button onClick={load} className="px-5 py-2.5 rounded-xl bg-black text-white dark:bg-white dark:text-black font-semibold text-sm inline-flex items-center gap-2"><FiRefreshCw /> Try again</button></motion.div></div>;
   }
 
   return (
-    <div className="flex flex-col gap-7 pb-6">
+    <div className="mt-page flex flex-col gap-7 pb-6">
       <Seo title="Download Printable Typing Test Sheets (PDF)" description="Download free printable typing test sheets as PDF, organized by Easy, Medium, and Hard difficulty, for offline typing practice." path="/download" />
       <BackButton to="/home" label="Back" />
       {loading ? <LoadingState label="Loading download sheets…" /> : <>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div><h1 className="text-2xl font-bold">Download Sheets</h1><p className="text-sm text-black/50 dark:text-white/50 mt-1">Printable typing practice, whenever you need it.</p></div>
+          <div><h1 className="mt-page-title">Printable sheets</h1><p className="mt-page-description">Download clean PDF passages and practise anywhere, even without a screen.</p></div>
           <div className="flex flex-col items-stretch sm:items-end gap-1">
             <motion.button whileTap={{ scale: 0.98 }} onClick={handleDownloadAll} disabled={downloading !== null || sheets.length === 0} className="px-5 py-2.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50"><FiDownload />{downloading === "all" ? "Preparing…" : "Download All"}</motion.button>
             {downloadError === "all" && <span className="text-xs text-[var(--error)]">Couldn't generate the PDF. Try again.</span>}

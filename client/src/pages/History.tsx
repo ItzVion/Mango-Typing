@@ -41,7 +41,7 @@ export const History = () => {
   if (!user) {
     return (
       <div className="flex flex-col gap-4">
-        <BackButton to="/home" label="Back" />
+        <BackButton to="/home" label="Back to practice" />
         <div className="text-center text-black/50">
           Sign in to see your saved history. <Link to="/auth" className="underline">Sign in</Link>
         </div>
@@ -53,7 +53,7 @@ export const History = () => {
   const avg = tests.length ? tests.reduce((s, t) => s + t.wpm, 0) / tests.length : 0;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mt-page flex flex-col gap-6">
       <Seo title="Test History" description="Your MangoTyping test history and progress." path="/results" noindex />
       <BackButton to="/home" label="Back" />
       <motion.h1
@@ -85,7 +85,7 @@ export const History = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ delay: i * 0.08, type: "spring", stiffness: 260, damping: 20 }}
                 whileHover={{ y: -3 }}
-                className="card p-4 text-center"
+                className="mt-stat-card"
               >
                 <div className="text-2xl font-bold">
                   <AnimatedNumber value={s.value} />
@@ -95,7 +95,7 @@ export const History = () => {
             ))}
           </div>
 
-          <h2 className="font-semibold text-black/70">Recent Tests</h2>
+          <h2 className="mt-section-heading">Recent tests</h2>
           <div className="flex flex-col gap-2">
             {loading ? (
               [0, 1, 2].map((i) => (
@@ -109,7 +109,7 @@ export const History = () => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: Math.min(i * 0.04, 0.4) }}
                   whileHover={{ x: 2, borderColor: "var(--accent)" }}
-                  className="card p-4 flex justify-between text-sm flex-wrap gap-2 transition-colors"
+                  className="card p-4 sm:p-5 grid grid-cols-2 sm:grid-cols-3 gap-3 items-center text-sm transition-colors"
                 >
                   <span>{t.sheet.title}</span>
                   <span className="text-black/40 text-xs">{t.mode === "screen" ? "Screen to Screen" : "Paper to Screen"}</span>
