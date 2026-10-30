@@ -2,44 +2,6 @@
   "installCommand": "cd server && npm install --no-audit --no-fund --legacy-peer-deps && npx prisma generate && cd ../client && npm install --no-audit --no-fund",
   "buildCommand": "cd server && npm run build && cd ../client && npm run build",
   "outputDirectory": "client/dist",
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.ts"
-    },
-    {
-      "source": "/robots.txt",
-      "destination": "/robots.txt"
-    },
-    {
-      "source": "/sitemap.xml",
-      "destination": "/sitemap.xml"
-    },
-    {
-      "source": "/privacy",
-      "destination": "/privacy.html"
-    },
-    {
-      "source": "/terms",
-      "destination": "/terms.html"
-    },
-    {
-      "source": "/refund",
-      "destination": "/refund.html"
-    },
-    {
-      "source": "/about",
-      "destination": "/about.html"
-    },
-    {
-      "source": "/third-party-notice",
-      "destination": "/third-party-notice.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -98,6 +60,60 @@
           "value": "noindex, nofollow, noarchive"
         }
       ]
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.ts"
+    },
+    {
+      "src": "/robots\\.txt",
+      "dest": "/robots.txt"
+    },
+    {
+      "src": "/sitemap\\.xml",
+      "dest": "/sitemap.xml"
+    },
+    {
+      "src": "/privacy",
+      "dest": "/privacy.html"
+    },
+    {
+      "src": "/terms",
+      "dest": "/terms.html"
+    },
+    {
+      "src": "/refund",
+      "dest": "/refund.html"
+    },
+    {
+      "src": "/about",
+      "dest": "/about.html"
+    },
+    {
+      "src": "/third-party-notice",
+      "dest": "/third-party-notice.html"
+    },
+    {
+      "src": "/home/tests/([^/]+)",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/home/tutor/([^/]+)",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(home|home/tests|home/test-result|home/typing-games|home/games/(balloon|car|boss)|home/tutor|download|results|auth|admin|donations|settings|sheets|test/[^/]+|test-result|games|games/(balloon|car|boss)|tutor|tutor/[^/]+)",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "status": 404
     }
   ]
 }
