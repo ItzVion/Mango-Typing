@@ -149,7 +149,7 @@ export const BalloonGame = () => {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 mt-6">
+    <div className="mt-page items-center">
       <Seo
         title="Balloon Typing Game — Practice Typing Speed"
         description="Pop balloons by typing the letters shown before they float away. A fast, casual way to build typing speed and accuracy."

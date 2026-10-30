@@ -167,7 +167,7 @@ export const CarGame = () => {
 
   if (status === "ready") {
     return (
-      <div className="flex flex-col items-center gap-6 mt-16">
+      <div className="mt-page items-center">
         <Seo
           title="Car Typing Game — Race by Typing Words"
           description="Type words correctly to keep your car accelerating. A fast-paced way to practice typing speed under pressure."
@@ -236,7 +236,7 @@ export const CarGame = () => {
   }
 
   return (
-    <div className="flex flex-col items-center gap-6 mt-8" onClick={() => inputRef.current?.focus()}>
+    <div className="mt-page items-center" onClick={() => inputRef.current?.focus()}>
       <div className="flex gap-8 text-center">
         <div>
           <div className="text-2xl font-bold">{timeLeft}s</div>

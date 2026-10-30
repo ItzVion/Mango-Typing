@@ -371,7 +371,7 @@ export const BossGame = () => {
 
   if (status === "ready") {
     return (
-      <div className="flex flex-col items-center gap-6 mt-16">
+      <div className="mt-page items-center">
         <Seo
           title="Boss Fight Typing Game — Type to Deal Damage"
           description="Defeat the boss by typing words accurately and quickly, and type DEFEND to dodge its attacks. A challenge mode for practicing typing speed and accuracy under pressure."
@@ -441,7 +441,7 @@ export const BossGame = () => {
   }
 
   return (
-    <div className="flex flex-col items-center gap-5 mt-6" onClick={() => inputRef.current?.focus()}>
+    <div className="mt-page items-center" onClick={() => inputRef.current?.focus()}>
       <div className="flex gap-8 text-center">
         <div>
           <div className="text-2xl font-bold">{timeLeft}s</div>
