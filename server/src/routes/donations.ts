@@ -151,7 +151,8 @@ router.post("/webhook", async (req: Request, res: Response): Promise<any> => {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
   const signature = req.headers["x-razorpay-signature"];
   const eventIdHeader = req.headers["x-razorpay-event-id"];
-  if (!secret || typeof signature !== "string" || !/^[a-f0-9]{64}$/i.test(signature) ||
+  if (!secret) return res.status(503).json({ error: "Payment webhook is not configured." });
+  if (typeof signature !== "string" || !/^[a-f0-9]{64}$/i.test(signature) ||
       typeof eventIdHeader !== "string" || !eventIdHeader || eventIdHeader.length > 200 ||
       !Buffer.isBuffer(req.body)) {
     return res.status(400).json({ error: "Invalid webhook configuration or payload." });

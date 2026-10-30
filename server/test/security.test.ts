@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { isBlockedSmtpAddress, normalizeSmtpHostname } from "../src/lib/smtpSecurity";
 import { isValidCapturedPayment } from "../src/lib/paymentValidation";
 import { hashCode, codesMatch } from "../src/lib/otp";
+import { isRazorpayWebhookRequest } from "../src/lib/requestSecurity";
 
 test("SMTP destination screening rejects private and special IPv4 ranges", () => {
   for (const ip of [
@@ -62,4 +63,12 @@ test("OTP hashes are keyed and existing SHA-256 codes remain valid during rollou
     if (previousSecret === undefined) delete process.env.JWT_SECRET;
     else process.env.JWT_SECRET = previousSecret;
   }
+});
+
+test("only the exact Razorpay POST webhook path bypasses browser request guards", () => {
+  assert.equal(isRazorpayWebhookRequest("POST", "/api/donations/webhook"), true);
+  assert.equal(isRazorpayWebhookRequest("GET", "/api/donations/webhook"), false);
+  assert.equal(isRazorpayWebhookRequest("PUT", "/api/donations/webhook"), false);
+  assert.equal(isRazorpayWebhookRequest("POST", "/api/donations/webhook/extra"), false);
+  assert.equal(isRazorpayWebhookRequest("POST", "/api/donations/verify"), false);
 });

@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { validateConfig } from "./lib/validateConfig";
+import { isRazorpayWebhookRequest } from "./lib/requestSecurity";
 import { ensureDbSchema, ensureSecuritySchema } from "./lib/ensureDbSchema";
 import { ensureCsrfCookie, requireCsrf } from "./lib/csrf";
 import authRoutes from "./routes/auth";
@@ -83,6 +84,8 @@ if (process.env.VERCEL) {
 }
 
 function requireSafeOrigin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  // Razorpay webhooks are server-to-server. Their route verifies the HMAC signature.
+  if (isRazorpayWebhookRequest(req.method, req.path)) return next();
   if (SAFE_METHODS.has(req.method)) return next();
   if (!MUTATING_METHODS.has(req.method)) return next();
 
@@ -103,7 +106,7 @@ function requireSafeOrigin(req: express.Request, res: express.Response, next: ex
 
 app.use(requireSafeOrigin);
 app.use((req, res, next) => {
-  if (req.method === "POST" && req.path === "/api/auth/logout") return next();
+  if (isRazorpayWebhookRequest(req.method, req.path) || (req.method === "POST" && req.path === "/api/auth/logout")) return next();
   return requireCsrf(req, res, next);
 });
 
