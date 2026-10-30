@@ -1,4 +1,5 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd server && npm install --no-audit --no-fund --legacy-peer-deps && npx prisma generate && cd ../client && npm install --no-audit --no-fund",
   "buildCommand": "cd server && npm run build && cd ../client && npm run build",
   "outputDirectory": "client/dist",
@@ -60,60 +61,150 @@
           "value": "noindex, nofollow, noarchive"
         }
       ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(favicon-.*\\.png|logo-.*\\.svg|mangotyping-wordmark-.*\\.svg)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/index.ts"
+      "source": "/api/:path*",
+      "destination": "/api/index.ts"
     },
     {
-      "src": "/robots\\.txt",
-      "dest": "/robots.txt"
+      "source": "/privacy",
+      "destination": "/privacy.html"
     },
     {
-      "src": "/sitemap\\.xml",
-      "dest": "/sitemap.xml"
+      "source": "/terms",
+      "destination": "/terms.html"
     },
     {
-      "src": "/privacy",
-      "dest": "/privacy.html"
+      "source": "/refund",
+      "destination": "/refund.html"
     },
     {
-      "src": "/terms",
-      "dest": "/terms.html"
+      "source": "/about",
+      "destination": "/about.html"
     },
     {
-      "src": "/refund",
-      "dest": "/refund.html"
+      "source": "/third-party-notice",
+      "destination": "/third-party-notice.html"
     },
     {
-      "src": "/about",
-      "dest": "/about.html"
+      "source": "/home/tests/:sheetId",
+      "destination": "/index.html"
     },
     {
-      "src": "/third-party-notice",
-      "dest": "/third-party-notice.html"
+      "source": "/home/tutor/:lessonId",
+      "destination": "/index.html"
     },
     {
-      "src": "/home/tests/([^/]+)",
-      "dest": "/index.html"
+      "source": "/test/:sheetId",
+      "destination": "/index.html"
     },
     {
-      "src": "/home/tutor/([^/]+)",
-      "dest": "/index.html"
+      "source": "/tutor/:lessonId",
+      "destination": "/index.html"
     },
     {
-      "src": "/(home|home/tests|home/test-result|home/typing-games|home/games/(balloon|car|boss)|home/tutor|download|results|auth|admin|donations|settings|sheets|test/[^/]+|test-result|games|games/(balloon|car|boss)|tutor|tutor/[^/]+)",
-      "dest": "/index.html"
+      "source": "/home/games/balloon",
+      "destination": "/index.html"
     },
     {
-      "src": "/",
-      "dest": "/index.html"
+      "source": "/home/games/car",
+      "destination": "/index.html"
     },
     {
-      "src": "/(.*)",
-      "status": 404
+      "source": "/home/games/boss",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/games/balloon",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/games/car",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/games/boss",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/home",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/home/tests",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/home/test-result",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/home/typing-games",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/home/tutor",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/download",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/results",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/auth",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/donations",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/settings",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/sheets",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/test-result",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/games",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/tutor",
+      "destination": "/index.html"
     }
   ]
 }
