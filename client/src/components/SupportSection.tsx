@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { useNavigate } from "react-router-dom";
-import { FiCheck, FiCheckCircle, FiHeart, FiStar } from "react-icons/fi";
+import { FiCheck, FiCheckCircle, FiHeart } from "react-icons/fi";
 
 declare global {
   interface Window {
