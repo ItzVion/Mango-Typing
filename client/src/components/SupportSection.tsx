@@ -153,7 +153,7 @@ export const SupportSection = () => {
             Help keep typing practice <span className="text-[#f5a623]">free for everyone.</span>
           </h2>
           <p className="mt-5 max-w-lg text-sm leading-7 text-[var(--text-muted)] sm:text-base sm:leading-8">
-            MangoTyping is built to make getting better at typing simple and accessible. Your contribution helps with the everyday costs behind it and gives us room to keep improving.
+            {message}
           </p>
 
           <div className="mt-7 space-y-3.5">
