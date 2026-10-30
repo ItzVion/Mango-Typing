@@ -34,14 +34,16 @@ export const Landing = () => {
   return (
     <main className="w-full text-[var(--text-primary)]">
       <Seo
-        title="MangoTyping: Free Typing Tests, Games & Tutor"
+        title="Mango Typing: Free Online Typing Tests, Games & Tutor"
         brandSuffix={false}
-        description="Practise with timed typing tests, printable passages, typing games, and guided lessons. Check your words per minute and accuracy on MangoTyping."
+        description="Mango Typing (MangoTyping) is a free online typing practice website. Take timed typing tests, practise with printable passages, play typing games, and learn with guided lessons."
         path="/"
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
           name: SITE_NAME,
+          alternateName: "MangoTyping",
+          description: "Mango Typing is a free online typing practice website for timed typing tests, printable passages, typing games, and guided lessons.",
           applicationCategory: "EducationalApplication",
           operatingSystem: "Any (web browser)",
           url: SITE_ORIGIN,
@@ -56,6 +58,7 @@ export const Landing = () => {
         className="mx-auto grid min-h-[70vh] w-full max-w-6xl items-center gap-10 px-1 py-8 sm:gap-14 sm:py-12 md:grid-cols-[1.1fr_0.9fr]"
       >
         <div className="max-w-2xl">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[#f5a623]">Mango Typing</p>
           <TypingHero />
           <motion.p
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}

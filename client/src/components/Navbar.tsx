@@ -105,6 +105,7 @@ export const Navbar = () => {
         <Link
           to="/"
           onClick={(e) => handleNavClick(e, "/")}
+          aria-label="Mango Typing home"
           className="font-bold text-base sm:text-lg tracking-wider shrink-0 flex items-center justify-self-start"
           ref={magnetic.ref as React.RefObject<HTMLAnchorElement>}
           onMouseMove={magnetic.onMouseMove}
@@ -115,7 +116,7 @@ export const Navbar = () => {
             transition={{ type: "spring", stiffness: 150, damping: 12 }}
             whileHover={{ rotate: -6, scale: 1.06 }}
             src="/logo-light-bg.svg"
-            alt="MangoTyping"
+            alt="Mango Typing"
             className="w-9 h-9 rounded-md"
           />
         </Link>
