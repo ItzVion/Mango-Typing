@@ -638,16 +638,16 @@ function PrivacyRequestsSection() {
 
 export const Settings = () => {
   return (
-    <div className="flex flex-col gap-6 max-w-lg mx-auto">
+    <main className="mt-page max-w-3xl">
       <Seo title="Settings" description="Manage your MangoTyping account settings." path="/settings" noindex />
-      <BackButton to="/home" label="Back" />
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <BackButton to="/home" label="Back to practice" />
+      <header className="mt-page-header"><span className="mt-eyebrow">Your account</span><h1 className="mt-page-title">Settings</h1><p className="mt-page-description">Manage your profile, sign-in details and privacy requests.</p></header>
       <AvatarSection />
       <UsernameSection />
       <PasswordSection />
       <EmailSection />
       <PrivacyRequestsSection />
       <DeleteSection />
-    </div>
+    </main>
   );
 };

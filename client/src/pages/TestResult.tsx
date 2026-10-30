@@ -33,7 +33,7 @@ export const TestResult = () => {
       : "—";
 
   return (
-    <div className="flex flex-col items-center gap-8">
+    <div className="mt-page items-center">
       <Seo title="Test Result" description="Your MangoTyping test result." path="/home/test-result" noindex />
       <BackButton to="/home/tests" label="Back" />
 
@@ -189,7 +189,7 @@ const Stat = ({
     animate={{ opacity: 1, y: 0, scale: 1 }}
     transition={{ delay, type: "spring", stiffness: 260, damping: 20 }}
     whileHover={{ y: -3 }}
-    className="card p-4 text-center"
+    className="mt-stat-card"
   >
     <div className="text-2xl font-bold">
       {typeof value === "number" ? (

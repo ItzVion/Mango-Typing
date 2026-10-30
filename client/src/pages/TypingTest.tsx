@@ -260,7 +260,7 @@ export const TypingTest = () => {
         path={`/home/tests/${sheetId}`}
       />
       {sheetLoading ? (
-        <div className="flex flex-col gap-5 mt-16 max-w-lg mx-auto">
+        <div className="mt-page max-w-3xl mx-auto">
           <BackButton to="/home/tests" label="Back" />
           <div className="card p-8 text-center text-black/50">Loading test sheet…</div>
         </div>
@@ -282,7 +282,7 @@ export const TypingTest = () => {
           animate="animate"
           exit="exit"
           transition={{ duration: 0.35, ease: "easeOut" }}
-          className="flex flex-col items-center gap-8 mt-16 w-full max-w-lg mx-auto"
+          className="mt-page items-center max-w-4xl mx-auto"
         >
           <BackButton to="/home/tests" label="Back" />
           <h2 className="text-2xl font-bold">Set up your test</h2>

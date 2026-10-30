@@ -70,7 +70,7 @@ export const LessonRunner = () => {
   };
 
   return (
-    <div className="flex flex-col items-center gap-6 mt-4" onClick={() => inputRef.current?.focus()}>
+    <div className="mt-page items-center" onClick={() => inputRef.current?.focus()}>
       <Seo
         title={`${lesson.title} — Typing Tutor`}
         description={`Practice the "${lesson.title}" typing tutor lesson and build muscle memory for touch typing.`}

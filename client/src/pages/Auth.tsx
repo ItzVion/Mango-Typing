@@ -334,7 +334,7 @@ export const Auth = () => {
   const google = useGoogleSignIn(handleGoogleCredential);
 
   return (
-    <div className="max-w-5xl mx-auto grid md:grid-cols-[0.95fr_1.05fr] min-h-[560px] rounded-3xl overflow-hidden border border-[var(--card-border)] bg-[var(--card-bg)] shadow-2xl shadow-black/20">
+    <div className="mt-auth-layout max-w-5xl mx-auto grid md:grid-cols-[0.95fr_1.05fr] min-h-[560px] rounded-3xl overflow-hidden border border-[var(--card-border)] bg-[var(--card-bg)] shadow-2xl shadow-black/20">
       <Seo title="Sign In" description="Sign in or create a MangoTyping account." path="/auth" noindex />
       {/* Left: branded panel with the tilted keyboard illustration */}
       <div className="hidden md:flex relative min-h-[560px] flex-col justify-between bg-[#080808] text-white p-10 overflow-hidden">
