@@ -587,3 +587,88 @@ html.dark {
 @media (max-width:760px) {
   .mt-page-header { padding-left: 13px; }
 }
+
+
+/* Typing arcade: richer composition, meaningful game art and compact hierarchy. */
+.mt-games-page { gap: 2rem; padding-top: .2rem; }
+.mt-games-heading {
+  display:flex; align-items:flex-end; justify-content:space-between; gap:2rem;
+  padding: .25rem 0 1.4rem;
+  border-bottom:1px solid var(--card-border);
+}
+.mt-games-overline {
+  display:flex; align-items:center; gap:.5rem; margin:0 0 1rem;
+  color:#e7ac5e; font-size:.68rem; font-weight:750; letter-spacing:.16em;
+}
+.mt-games-heading h1 {
+  margin:0; color:var(--text-primary);
+  font-size:clamp(2.5rem,5vw,4rem); line-height:1.02; letter-spacing:-.055em; font-weight:730;
+}
+.mt-games-intro { margin:.85rem 0 0; max-width:610px; color:var(--text-muted); font-size:1rem; line-height:1.7; }
+.mt-games-heading-side { display:flex; align-items:center; gap:.65rem; padding-bottom:.35rem; color:#858d90; }
+.mt-games-heading-side span { color:#e7ac5e; font-size:2.5rem; line-height:1; font-weight:700; letter-spacing:-.06em; font-variant-numeric:tabular-nums; }
+.mt-games-heading-side p { margin:0; font-size:.62rem; line-height:1.45; letter-spacing:.12em; font-weight:700; }
+.mt-games-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; align-items:stretch; }
+.mt-game-card {
+  --game-accent:#e7ac5e;
+  display:flex; min-width:0; flex-direction:column; text-align:left; overflow:hidden;
+  padding:0; border:1px solid #32383a; border-radius:14px;
+  background:#171b1d; color:var(--text-primary);
+  transition:border-color .18s ease,background-color .18s ease,transform .18s ease;
+}
+.mt-game-card:hover { border-color:color-mix(in srgb,var(--game-accent) 60%,#32383a); background:#1a1f21; }
+.mt-game-card.is-active { border-color:var(--game-accent); box-shadow:0 0 0 1px color-mix(in srgb,var(--game-accent) 30%,transparent); }
+.mt-game-card-top { display:flex; justify-content:space-between; align-items:center; padding:15px 18px 0; }
+.mt-game-index { color:#858d90; font-family:ui-monospace,monospace; font-size:.68rem; letter-spacing:.06em; }
+.mt-game-card-icon { display:grid; width:34px; height:34px; place-items:center; color:var(--game-accent); background:color-mix(in srgb,var(--game-accent) 13%,transparent); border-radius:9px; }
+.mt-game-art-wrap { display:grid; min-height:166px; margin:10px 12px 0; place-items:center; overflow:hidden; border-radius:10px; background:var(--game-scene,#24201e); }
+.game-balloon { --game-scene:#2b1e20; }
+.game-car { --game-scene:#1b2a28; }
+.game-boss { --game-scene:#24202d; }
+.mt-game-art { display:block; width:100%; height:166px; }
+.mt-game-card-body { display:flex; flex:1; flex-direction:column; padding:19px 20px 18px; }
+.mt-game-kicker { margin:0; color:var(--game-accent); font-size:.62rem; line-height:1.4; font-weight:750; letter-spacing:.13em; }
+.mt-game-card-body h2 { margin:7px 0 6px; color:var(--text-primary); font-size:1.35rem; line-height:1.2; font-weight:690; letter-spacing:-.035em; }
+.mt-game-description { margin:0; min-height:48px; color:#b4b9b7; font-size:.84rem; line-height:1.65; }
+.mt-game-card-action { display:flex; align-items:center; justify-content:space-between; margin-top:18px; padding-top:13px; border-top:1px solid #303739; color:var(--text-primary); font-size:.78rem; font-weight:650; }
+.mt-game-card-action svg { color:var(--game-accent); }
+.mt-game-setup { border:1px solid #343b3d; border-radius:14px; background:#15191b; padding:22px 24px; }
+.mt-game-setup-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; padding-bottom:19px; border-bottom:1px solid #303739; }
+.mt-game-setup-heading h2 { margin:5px 0 3px; font-size:1.2rem; font-weight:690; letter-spacing:-.02em; }
+.mt-game-setup-heading p:not(.mt-game-kicker) { margin:0; color:var(--text-muted); font-size:.82rem; }
+.mt-game-setup-heading > button { color:#a7aeac; font-size:.75rem; font-weight:600; }
+.mt-game-setup-heading > button:hover { color:var(--game-accent,#e7ac5e); }
+.mt-game-setup-controls { display:grid; grid-template-columns:1fr 1fr; gap:2rem; padding:19px 0; }
+.mt-game-setup-controls label { display:block; margin-bottom:10px; font-size:.8rem; color:#e6e7e2; font-weight:650; }
+.mt-game-pills { display:flex; flex-wrap:wrap; gap:8px; }
+.mt-game-pills button { min-height:37px; padding:0 15px; border:1px solid #343b3d; border-radius:7px; color:#b3b9b7; background:#111516; text-transform:capitalize; font-size:.77rem; font-weight:600; }
+.mt-game-pills button:hover { border-color:#66706e; color:#f3f2ec; }
+.mt-game-pills button[aria-pressed="true"] { border-color:#e7ac5e; background:rgba(231,172,94,.12); color:#f3bb70; }
+.mt-game-setup-footer { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding-top:16px; border-top:1px solid #303739; }
+.mt-game-setup-footer > span { color:#858d90; font-size:.73rem; }
+.mt-game-setup-footer > button { min-height:42px; display:inline-flex; align-items:center; justify-content:center; gap:9px; padding:0 18px; border-radius:8px; background:#e7ac5e; color:#1b1711; font-size:.8rem; font-weight:750; transition:background .15s ease; }
+.mt-game-setup-footer > button:hover { background:#f4c47f; }
+@media(max-width:900px) {
+  .mt-games-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .mt-game-card:last-child { grid-column:span 2; }
+  .mt-game-card:last-child .mt-game-art-wrap { min-height:145px; }
+}
+@media(max-width:640px) {
+  .mt-games-page { gap:1.4rem; }
+  .mt-games-heading { align-items:flex-start; }
+  .mt-games-heading-side { display:none; }
+  .mt-games-grid { grid-template-columns:1fr; gap:12px; }
+  .mt-game-card:last-child { grid-column:auto; }
+  .mt-game-card { display:grid; grid-template-columns:116px minmax(0,1fr); }
+  .mt-game-card-top { grid-column:1/-1; padding-bottom:8px; }
+  .mt-game-art-wrap { grid-column:1; grid-row:2; margin:0 0 14px 12px; min-height:134px; }
+  .mt-game-art { height:134px; }
+  .mt-game-card-body { grid-column:2; grid-row:2; padding:0 14px 14px; }
+  .mt-game-card-body h2 { font-size:1.05rem; }
+  .mt-game-description { min-height:0; font-size:.76rem; }
+  .mt-game-card-action { margin-top:12px; padding-top:9px; font-size:.7rem; }
+  .mt-game-setup { padding:17px 15px; }
+  .mt-game-setup-controls { grid-template-columns:1fr; gap:18px; }
+  .mt-game-setup-footer { align-items:flex-start; flex-direction:column; }
+  .mt-game-setup-footer > button { width:100%; }
+}
