@@ -25,7 +25,7 @@ export const GamesHub = () => {
     <main className="mt-page">
       <Seo title="Typing Games — Balloon Pop, Car Race, Boss Fight" description="Practice typing speed and accuracy with Balloon Pop, Car Race, and Boss Fight on MangoTyping." path="/home/typing-games"/>
       <BackButton to="/home" label="Back to practice"/>
-      <header className="mt-page-header">
+      <header className="mt-page-header tone-games">
         <h1 className="mt-page-title">Typing games</h1>
         <p className="mt-page-description">Choose a challenge. Each game builds a different part of your typing skill.</p>
       </header>
@@ -35,7 +35,7 @@ export const GamesHub = () => {
           const active=selected===game.key;
           const Icon=game.icon;
           return (
-            <button key={game.key} type="button" aria-pressed={active} onClick={()=>setSelected(game.key)} className={"mt-game-option"+(active?" is-selected":"")}>
+            <button key={game.key} type="button" aria-pressed={active} onClick={()=>setSelected(game.key)} className={"mt-game-option tone-"+game.key+(active?" is-selected":"")}>
               <span className="mt-game-icon"><Icon size={24} strokeWidth={1.65}/></span>
               <span className="mt-game-copy">
                 <h2>{game.title}</h2>

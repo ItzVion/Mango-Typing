@@ -470,3 +470,121 @@ footer { border-top:1px solid var(--card-border); padding-top:1.25rem; }
 @media(prefers-reduced-motion:reduce) {
   .mt-game-option,.mt-practice-option,.mt-lesson-option,.mt-button-primary,.mt-button-secondary,.mt-choice-chip,.card { transition:none !important; }
 }
+
+
+/* Semantic colour accents: a small, purposeful palette across the app. */
+:root {
+  --tone-amber: #efad48;
+  --tone-coral: #e87970;
+  --tone-teal: #54b7a6;
+  --tone-blue: #78a9e5;
+  --tone-violet: #a58bd8;
+  --tone-green: #8fbf83;
+  --accent: var(--tone-amber);
+  --accent-strong: #f7c36c;
+  --accent-soft: rgba(239,173,72,.12);
+  --accent-border: rgba(239,173,72,.36);
+}
+html.dark {
+  --bg-main: #101214;
+  --card-bg: #171a1c;
+  --card-border: #303538;
+  --text-primary: #f2f0eb;
+  --text-muted: #b2b0aa;
+  --text-subtle: #858b8d;
+  --nav-bg: #141719;
+  --nav-border: #343a3d;
+}
+.mt-page-header {
+  border-left: 2px solid var(--page-tone, var(--tone-amber));
+  padding-left: 18px;
+}
+.mt-page-header .mt-page-title { color: var(--text-primary); }
+.mt-page-header .mt-page-description { max-width: 670px; }
+.mt-page-header.tone-learning { --page-tone: var(--tone-teal); }
+.mt-page-header.tone-games { --page-tone: var(--tone-coral); }
+.mt-page-header.tone-results { --page-tone: var(--tone-blue); }
+.mt-page-header.tone-settings { --page-tone: var(--tone-violet); }
+
+/* Game selector: the colour identifies each game, not decoration for its own sake. */
+.mt-game-option { --tone: var(--tone-amber); }
+.mt-game-option.tone-balloon { --tone: var(--tone-coral); }
+.mt-game-option.tone-car { --tone: var(--tone-teal); }
+.mt-game-option.tone-boss { --tone: var(--tone-violet); }
+.mt-game-option { border-top: 2px solid var(--tone); }
+.mt-game-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 15%, transparent);
+}
+.mt-game-option:hover,.mt-game-option:focus-visible {
+  background: color-mix(in srgb, var(--tone) 6%, transparent);
+}
+.mt-game-option.is-selected {
+  background: color-mix(in srgb, var(--tone) 9%, transparent);
+  box-shadow: inset 0 -2px 0 var(--tone);
+}
+.mt-game-option.is-selected .mt-game-select-label { color: var(--tone); }
+
+/* Each practice route gets its own clear, consistent accent. */
+.mt-practice-option { --tone: var(--tone-amber); border-top: 2px solid var(--tone); }
+.mt-practice-option.tone-test { --tone: var(--tone-blue); }
+.mt-practice-option.tone-games { --tone: var(--tone-coral); }
+.mt-practice-option.tone-tutor { --tone: var(--tone-teal); }
+.mt-practice-icon { color: var(--tone); }
+.mt-practice-option h2 { color: var(--text-primary); }
+.mt-practice-option:hover { background: color-mix(in srgb, var(--tone) 7%, transparent); }
+.mt-practice-option:hover .mt-practice-icon,
+.mt-practice-option:hover .mt-practice-action { color: var(--tone); }
+.mt-practice-action { color: var(--tone); }
+
+/* Tutor stages use a quiet progression of colours. */
+.mt-lesson-group { --tone: var(--tone-teal); }
+.mt-lesson-group:nth-child(2) { --tone: var(--tone-blue); }
+.mt-lesson-group:nth-child(3) { --tone: var(--tone-violet); }
+.mt-lesson-group:nth-child(4) { --tone: var(--tone-coral); }
+.mt-lesson-group:nth-child(5) { --tone: var(--tone-amber); }
+.mt-lesson-group:nth-child(6) { --tone: var(--tone-green); }
+.mt-lesson-group > div:first-child h2 { color: var(--tone); }
+.mt-lesson-list { border-top-color: color-mix(in srgb, var(--tone) 42%, var(--card-border)); }
+.mt-lesson-option:hover { background: color-mix(in srgb, var(--tone) 7%, transparent); }
+.mt-lesson-number {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
+}
+.mt-lesson-option:hover .mt-lesson-title { color: var(--tone); }
+
+/* Secondary states are colourful but stay legible on the dark surfaces. */
+.mt-choice-chip[aria-pressed="true"] {
+  color: var(--tone-amber);
+  border-color: var(--tone-amber);
+  background: rgba(239,173,72,.13);
+}
+.mt-stat-card:nth-child(1) { border-top: 2px solid var(--tone-blue); }
+.mt-stat-card:nth-child(2) { border-top: 2px solid var(--tone-teal); }
+.mt-stat-card:nth-child(3) { border-top: 2px solid var(--tone-violet); }
+.mt-support-card { border-top: 2px solid var(--tone-amber); }
+.mt-support-card .text-\\[\\#f5a623\\] { color: var(--tone-amber); }
+.mt-button-primary {
+  background: var(--tone-amber);
+  border-color: var(--tone-amber);
+}
+.mt-button-primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+/* Keep the added colour on small screens without introducing visual clutter. */
+@media (max-width:760px) {
+  .mt-page-header { padding-left: 13px; }
+}

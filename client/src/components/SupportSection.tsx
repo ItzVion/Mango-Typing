@@ -134,12 +134,12 @@ export const SupportSection = () => {
     <section id="support" aria-labelledby="support-title" className="w-full scroll-mt-28">
       <div className="grid w-full items-center gap-8 md:grid-cols-[minmax(0,1fr)_minmax(360px,0.88fr)] md:gap-12 lg:gap-20">
         <div className="max-w-xl py-2">
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[rgba(245,166,35,0.28)] bg-[rgba(245,166,35,0.07)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f5a623]">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[rgba(239,173,72,0.30)] bg-[rgba(239,173,72,0.12)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--tone-amber)]">
             <FiHeart size={14} strokeWidth={1.7} />
             Community powered
           </div>
           <h2 id="support-title" className="max-w-lg text-3xl font-semibold leading-tight tracking-[-0.035em] sm:text-4xl lg:text-[2.75rem]">
-            Help keep typing practice <span className="text-[#f5a623]">free for everyone.</span>
+            Help keep typing practice <span className="text-[var(--tone-amber)]">free for everyone.</span>
           </h2>
           <p className="mt-5 max-w-lg text-sm leading-7 text-[var(--text-muted)] sm:text-base sm:leading-8">
             {message}

@@ -12,12 +12,12 @@ export const TutorHub=()=>{
     <main className="mt-page">
       <Seo title="Typing Tutor — Learn to Type, Lesson by Lesson" description="Free typing tutor with step-by-step lessons from home row to full sentences, with an on-screen keyboard to guide you." path="/home/tutor"/>
       <BackButton to="/home" label="Back to practice"/>
-      <header className="mt-page-header">
+      <header className="mt-page-header tone-learning">
         <h1 className="mt-page-title">Typing tutor</h1>
         <p className="mt-page-description">Work through the keyboard in order, from the home row to full words and sentences.</p>
       </header>
       <div className="flex flex-col gap-8">
-        {grouped.map(group=><section key={group.cat} className="flex flex-col gap-3">
+        {grouped.map(group=><section key={group.cat} className="mt-lesson-group flex flex-col gap-3">
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-base font-semibold">{group.cat}</h2>
             <span className="text-xs text-[var(--text-subtle)]">{group.lessons.length} lessons</span>

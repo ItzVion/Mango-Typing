@@ -17,7 +17,7 @@ export const Home = () => {
     <main className="mt-page">
       <Seo title="Choose Your Typing Practice" description="Choose a timed typing test, a typing game, or a guided typing lesson on MangoTyping." path="/home"/>
       <BackButton to="/" label="Back to home"/>
-      <motion.header initial={reduceMotion?false:{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:reduceMotion?0:.28}} className="mt-page-header">
+      <motion.header initial={reduceMotion?false:{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:reduceMotion?0:.28}} className="mt-page-header tone-learning">
         <h1 className="mt-page-title">Choose your practice</h1>
         <p className="mt-page-description">Take a timed test, practise through a game, or build your technique with guided lessons.</p>
       </motion.header>
@@ -27,7 +27,7 @@ export const Home = () => {
           return <motion.button key={option.key} type="button" onClick={()=>navigate(option.to)}
             initial={reduceMotion?false:{opacity:0,y:8}} animate={{opacity:1,y:0}}
             transition={{duration:reduceMotion?0:.24,delay:reduceMotion?0:index*.04}}
-            className="mt-practice-option">
+            className={"mt-practice-option tone-"+option.key}>
             <Icon className="mt-practice-icon" size={23} strokeWidth={1.65}/>
             <h2>{option.title}</h2>
             <p>{option.desc}</p>
