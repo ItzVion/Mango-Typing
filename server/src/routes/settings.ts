@@ -21,6 +21,7 @@ router.get("/public", async (_req: Request, res: Response) => {
     razorpayConfigured: !!(s?.razorpayKeyId && s?.razorpayKeySecret),
     razorpayKeyId: s?.razorpayKeyId ?? null,
     maintenanceMode: s?.maintenanceMode ?? false,
+    qrMode: s?.qrMode ?? false,
     supportEmail: s?.supportEmail ?? "support@mangotyping.fun",
     legalVersion,
   });
@@ -32,10 +33,11 @@ router.get("/", requireOwner, async (_req: AuthRequest, res: Response) => {
 });
 
 router.patch("/", requireOwner, async (req: AuthRequest, res: Response) => {
-  const { razorpayKeyId, razorpayKeySecret, donationMessage, maintenanceMode, supportEmail, smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpFrom, smtpFromName } = req.body || {};
+  const { razorpayKeyId, razorpayKeySecret, donationMessage, maintenanceMode, qrMode, supportEmail, smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpFrom, smtpFromName } = req.body || {};
   const keepSecret = razorpayKeySecret === MASK;
   const keepSmtpPass = smtpPass === MASK;
 
+  if (qrMode !== undefined && typeof qrMode !== "boolean") return res.status(400).json({ error: "Invalid QR mode value." });
   if (supportEmail !== undefined && (typeof supportEmail !== "string" || supportEmail.length > 254 || !EMAIL_RE.test(supportEmail))) return res.status(400).json({ error: "Invalid support email." });
   if (donationMessage !== undefined && (typeof donationMessage !== "string" || donationMessage.length > 4000)) return res.status(400).json({ error: "Donation message is too long." });
   if (smtpHost !== undefined && (typeof smtpHost !== "string" || smtpHost.length > 253)) return res.status(400).json({ error: "Invalid SMTP host." });
@@ -56,6 +58,7 @@ router.patch("/", requireOwner, async (req: AuthRequest, res: Response) => {
       ...(razorpayKeySecret !== undefined && !keepSecret ? { razorpayKeySecret: encryptSecret(razorpayKeySecret) } : {}),
       ...(donationMessage !== undefined ? { donationMessage } : {}),
       ...(maintenanceMode !== undefined ? { maintenanceMode } : {}),
+      ...(qrMode !== undefined ? { qrMode } : {}),
       ...(supportEmail !== undefined ? { supportEmail } : {}),
       ...(smtpHost !== undefined ? { smtpHost } : {}),
       ...(smtpPort !== undefined ? { smtpPort: smtpPort === "" ? null : Number(smtpPort) } : {}),
@@ -66,7 +69,7 @@ router.patch("/", requireOwner, async (req: AuthRequest, res: Response) => {
       ...(smtpFromName !== undefined ? { smtpFromName } : {}),
     },
     create: {
-      id: 1, razorpayKeyId, razorpayKeySecret: keepSecret || !razorpayKeySecret ? null : encryptSecret(razorpayKeySecret), donationMessage, maintenanceMode, supportEmail,
+      id: 1, razorpayKeyId, razorpayKeySecret: keepSecret || !razorpayKeySecret ? null : encryptSecret(razorpayKeySecret), donationMessage, maintenanceMode, qrMode: qrMode ?? false, supportEmail,
       smtpHost, smtpPort: smtpPort ? Number(smtpPort) : null, smtpSecure, smtpUser,
       smtpPass: keepSmtpPass || !smtpPass ? null : encryptSecret(smtpPass), smtpFrom, smtpFromName,
     },

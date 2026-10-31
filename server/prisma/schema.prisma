@@ -69,6 +69,7 @@ model Settings {
   razorpayKeySecret     String?
   donationMessage       String   @default("Every rupee helps keep the servers running, the domains renewed, and new features shipping. Thank you for supporting MangoTyping!")
   maintenanceMode       Boolean  @default(false)
+  qrMode                Boolean  @default(false)
   supportEmail          String   @default("support@mangotyping.fun")
   smtpHost              String?
   smtpPort              Int?
