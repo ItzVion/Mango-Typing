@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { useNavigate } from "react-router-dom";
-import { FiCheck, FiCheckCircle, FiHeart, FiCopy, FiExternalLink, FiQrCode } from "react-icons/fi";
+import { FiCheck, FiCheckCircle, FiHeart, FiCopy, FiExternalLink, FiGrid } from "react-icons/fi";
 
 declare global {
   interface Window {
@@ -268,7 +268,7 @@ export const SupportSection = () => {
 
                   {qrMode ? (
                     <div className="mt-5 rounded-xl border border-[var(--card-border)] bg-[var(--surface-soft)] p-4 sm:p-5">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><FiQrCode size={17} className="text-[var(--tone-amber)]"/> Pay using any UPI app</div>
+                      <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><FiGrid size={17} className="text-[var(--tone-amber)]"/> Pay using any UPI app</div>
                       <div className="mx-auto mt-4 flex w-fit rounded-xl bg-white p-3">
                         <img src={qrImage} alt="UPI payment QR code for MangoTyping" width="220" height="220" loading="lazy" className="block h-[220px] w-[220px]"/>
                       </div>
