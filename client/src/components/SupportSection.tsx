@@ -50,6 +50,8 @@ export const SupportSection = () => {
   const [qrMode, setQrMode] = useState(false);
   const [claimBusy, setClaimBusy] = useState(false);
   const [claimStatus, setClaimStatus] = useState<any>(null);
+  const [upiStep, setUpiStep] = useState<"amount" | "qr" | "utr" | "submitted">("amount");
+  const [utrNumber, setUtrNumber] = useState("");
   const upiId = "khushichauhan688@oksbi";
   const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent("MangoTyping")}&am=${encodeURIComponent(amount)}&cu=INR&tn=${encodeURIComponent("Support MangoTyping")}`;
   const qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=12&data=${encodeURIComponent(upiUri)}`;
@@ -67,7 +69,10 @@ export const SupportSection = () => {
   useEffect(() => {
     if (user) {
       setShowAmountPicker(true);
-      api.myUpiClaim().then(setClaimStatus).catch(() => {});
+      api.myUpiClaim().then((claim) => {
+        setClaimStatus(claim);
+        setUpiStep(claim?.status === "PENDING" || claim?.status === "APPROVED" ? "submitted" : "amount");
+      }).catch(() => {});
     } else setClaimStatus(null);
   }, [user]);
 
@@ -78,19 +83,54 @@ export const SupportSection = () => {
     return () => { document.body.style.overflow = previousOverflow; };
   }, [paymentVerifying]);
 
+  const startUpiPayment = () => {
+    setError("");
+    const rupees = Number(amount);
+    if (!Number.isSafeInteger(rupees) || rupees < 1 || rupees > 100000) {
+      setError("Enter a whole amount between ₹1 and ₹1,00,000.");
+      return;
+    }
+    if (!user) {
+      navigate("/auth", { state: { from: "/donations" } });
+      return;
+    }
+    setUpiStep("qr");
+  };
+
   const submitUpiClaim = async () => {
     setError("");
     const rupees = Number(amount);
-    if (!user) { navigate("/auth", { state: { from: "/donations" } }); return; }
-    if (!Number.isSafeInteger(rupees) || rupees < 1 || rupees > 100000) { setError("Enter a whole amount between ₹1 and ₹1,00,000."); return; }
+    const utr = utrNumber.trim().toUpperCase();
+    if (!Number.isSafeInteger(rupees) || rupees < 1 || rupees > 100000) {
+      setError("Enter a whole amount between ₹1 and ₹1,00,000.");
+      setUpiStep("amount");
+      return;
+    }
+    if (!/^[A-Z0-9]{8,22}$/.test(utr)) {
+      setError("Enter a valid UTR / bank reference number (8–22 letters or numbers).");
+      return;
+    }
+    if (!user) {
+      navigate("/auth", { state: { from: "/donations" } });
+      return;
+    }
     setClaimBusy(true);
     try {
-      const result = await api.submitUpiClaim(rupees);
+      const result = await api.submitUpiClaim(rupees, utr);
       setClaimStatus(result.claim);
+      setUtrNumber("");
+      setUpiStep("submitted");
     } catch (err: any) {
       setError(err?.message || "Couldn't submit your payment for review.");
-      if (err?.status === 409) api.myUpiClaim().then(setClaimStatus).catch(() => {});
-    } finally { setClaimBusy(false); }
+      if (err?.status === 409) {
+        api.myUpiClaim().then((claim) => {
+          setClaimStatus(claim);
+          if (claim?.status === "PENDING" || claim?.status === "APPROVED") setUpiStep("submitted");
+        }).catch(() => {});
+      }
+    } finally {
+      setClaimBusy(false);
+    }
   };
 
   const donate = async () => {
@@ -239,78 +279,82 @@ export const SupportSection = () => {
                   transition={{ duration: 0.2 }}
                   className="pt-5"
                 >
-                  <label htmlFor="support-amount" className="mb-2 block text-xs font-semibold text-[var(--text-muted)]">
-                    Contribution amount (INR)
-                  </label>
-                  <div className="flex min-h-14 items-center overflow-hidden rounded-xl border border-[var(--card-border)] bg-[var(--bg-main)] transition-colors focus-within:border-[#f5a623]">
-                    <span className="border-r border-[var(--card-border)] px-4 py-3.5 text-base font-semibold text-[var(--text-muted)]">₹</span>
-                    <input
-                      id="support-amount"
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      max={100000}
-                      step={1}
-                      value={amount}
-                      disabled={busy}
-                      onChange={(e) => { setAmount(e.target.value); setError(""); }}
-                      className="min-w-0 flex-1 bg-transparent px-4 py-3.5 text-base font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] disabled:opacity-60"
-                      placeholder="Enter amount"
-                      aria-describedby="support-amount-hint"
-                    />
-                  </div>
-                  <p id="support-amount-hint" className="mt-2 text-xs text-[var(--text-muted)]">Choose a preset or enter any whole amount up to ₹1,00,000.</p>
-
-                  <div className="mt-4 grid grid-cols-4 gap-2">
-                    {[49, 99, 199, 499].map((value) => {
-                      const selected = amount === String(value);
-                      return (
-                        <button
-                          key={value}
-                          type="button"
-                          aria-pressed={selected}
-                          disabled={busy}
-                          onClick={() => { setAmount(String(value)); setError(""); }}
-                          className={[
-                            "min-h-11 rounded-lg border px-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-                            selected
-                              ? "border-[#f5a623] bg-[rgba(245,166,35,0.1)] text-[#f5a623]"
-                              : "border-[var(--card-border)] text-[var(--text-primary)] hover:border-[#f5a623]",
-                          ].join(" ")}
-                        >
-                          ₹{value}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {error && <p role="alert" aria-live="polite" className="mt-4 rounded-lg border border-[var(--error)]/30 bg-[var(--error)]/5 px-3 py-2.5 text-xs leading-5 text-[var(--error)]">{error}</p>}
-
                   {qrMode ? (
-                    <div className="mt-5 rounded-xl border border-[var(--card-border)] bg-[var(--surface-soft)] p-4 sm:p-5">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><FiGrid size={17} className="text-[var(--tone-amber)]"/> Pay using any UPI app</div>
-                      <div className="mx-auto mt-4 flex w-fit rounded-xl bg-white p-3">
-                        <img src={qrImage} alt="UPI payment QR code for MangoTyping" width="220" height="220" loading="lazy" className="block h-[220px] w-[220px]"/>
-                      </div>
-                      <p className="mt-3 text-center text-xs text-[var(--text-muted)]">Scan with Google Pay, PhonePe, Paytm or another UPI app.</p>
-                      <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-[var(--card-border)] px-3 py-3">
-                        <div className="min-w-0"><p className="text-[10px] uppercase tracking-wider text-[var(--text-subtle)]">UPI ID</p><p className="truncate text-sm font-semibold text-[var(--text-primary)]">{upiId}</p></div>
-                        <button type="button" onClick={() => { void navigator.clipboard?.writeText(upiId); }} className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-[var(--tone-amber)]"><FiCopy size={14}/> Copy</button>
-                      </div>
-                      <a href={upiUri} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#e7ac5e] px-4 py-3 text-sm font-bold text-[#17130c] hover:bg-[#f4c47f]">Open UPI app <FiExternalLink size={15}/></a>
+                    <div className="mt-5">
                       {claimStatus?.status === "PENDING" ? (
-  <div className="mt-4 rounded-lg border border-[#9c7840]/40 bg-[#9c7840]/10 p-3 text-center"><p className="text-sm font-semibold text-[var(--text-primary)]">Payment submitted for review</p><p className="mt-1 text-xs text-[var(--text-muted)]">Amount: ₹{claimStatus.amountRupees}. Your star appears after the owner approves it.</p></div>
-) : claimStatus?.status === "APPROVED" ? (
-  <p className="mt-4 rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-center text-xs font-semibold text-green-600">Your contribution has been approved. Thank you!</p>
-) : (
-  <>
-    <p className="mt-3 text-center text-[11px] leading-5 text-[var(--text-muted)]">After paying, submit the amount for manual review. The star is added only after approval.</p>
-    <button type="button" onClick={submitUpiClaim} disabled={claimBusy || !user} className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#e7ac5e] px-4 py-3 text-sm font-bold text-[#17130c] disabled:opacity-50">{claimBusy ? "Submitting…" : user ? "I've paid — submit for review" : "Sign in to submit payment"}</button>
-  </>
-)}
+                        <div className="rounded-xl border border-[#9c7840]/50 bg-[#9c7840]/10 p-5 text-center">
+                          <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#9c7840]/15 text-[#e6b66f]"><FiCheckCircle size={22}/></div>
+                          <h4 className="text-base font-semibold text-[var(--text-primary)]">Payment details submitted</h4>
+                          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">Your ₹{claimStatus.amountRupees} contribution and UTR have been sent for manual verification. We’ll add the supporter star after the payment is matched and approved by the site owner.</p>
+                          <p className="mt-3 text-xs text-[var(--text-subtle)]">You can safely close this page. Please don’t submit the same payment again.</p>
+                          <span className="mt-4 inline-flex rounded-full border border-[#9c7840]/40 px-3 py-1 text-[11px] font-semibold text-[#e6b66f]">Awaiting review</span>
+                        </div>
+                      ) : claimStatus?.status === "APPROVED" ? (
+                        <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-5 text-center">
+                          <FiCheckCircle size={26} className="mx-auto text-green-500"/>
+                          <h4 className="mt-3 text-base font-semibold text-[var(--text-primary)]">Contribution approved</h4>
+                          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">Thank you for supporting MangoTyping. Your supporter star has been enabled for your account.</p>
+                        </div>
+                      ) : upiStep === "amount" ? (
+                        <div className="rounded-xl border border-[var(--card-border)] bg-[var(--surface-soft)] p-4 sm:p-5">
+                          {claimStatus?.status === "REJECTED" && <p className="mb-3 rounded-lg border border-[var(--error)]/30 bg-[var(--error)]/5 p-3 text-xs leading-5 text-[var(--error)]">Your previous claim was not approved. Check your UPI payment details before submitting a new one.</p>}
+                          <label htmlFor="support-amount" className="mb-2 block text-xs font-semibold text-[var(--text-muted)]">Contribution amount (INR)</label>
+                          <div className="flex min-h-14 items-center overflow-hidden rounded-xl border border-[var(--card-border)] bg-[var(--bg-main)] transition-colors focus-within:border-[#f5a623]">
+                            <span className="border-r border-[var(--card-border)] px-4 py-3.5 text-base font-semibold text-[var(--text-muted)]">₹</span>
+                            <input id="support-amount" type="number" inputMode="numeric" min={1} max={100000} step={1} value={amount} onChange={e=>{setAmount(e.target.value);setError("");}} className="min-w-0 flex-1 bg-transparent px-4 py-3.5 text-base font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]" placeholder="Enter amount"/>
+                          </div>
+                          <p className="mt-2 text-xs text-[var(--text-muted)]">Choose a preset or enter any whole amount up to ₹1,00,000.</p>
+                          <div className="mt-4 grid grid-cols-4 gap-2">
+                            {[49,99,199,499].map(value=><button key={value} type="button" aria-pressed={amount===String(value)} onClick={()=>{setAmount(String(value));setError("");}} className={["min-h-11 rounded-lg border px-2 text-xs font-semibold transition-colors",amount===String(value)?"border-[#f5a623] bg-[rgba(245,166,35,0.1)] text-[#f5a623]":"border-[var(--card-border)] text-[var(--text-primary)] hover:border-[#f5a623]"].join(" ")}>₹{value}</button>)}
+                          </div>
+                          {error&&<p role="alert" className="mt-4 rounded-lg border border-[var(--error)]/30 bg-[var(--error)]/5 px-3 py-2.5 text-xs leading-5 text-[var(--error)]">{error}</p>}
+                          <button type="button" onClick={startUpiPayment} className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#f5a623] px-5 py-3.5 text-sm font-bold text-[#18140b] transition-colors hover:bg-[#ffc15b]">{user?"Continue to UPI payment":"Sign in to continue"} <span className="ml-2" aria-hidden="true">→</span></button>
+                          <p className="mt-3 text-center text-[11px] leading-5 text-[var(--text-muted)]">You’ll see the QR code on the next step. Your supporter star is added only after manual approval.</p>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-[var(--card-border)] bg-[var(--surface-soft)] p-4 sm:p-5">
+                          <div className="flex items-center justify-between gap-3">
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">UPI PAYMENT</p><h4 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">Pay ₹{Number(amount).toLocaleString("en-IN")}</h4></div>
+                            <button type="button" onClick={()=>{setUpiStep("amount");setError("");}} className="text-xs font-semibold text-[var(--tone-amber)]">Change amount</button>
+                          </div>
+                          <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><FiGrid size={17} className="text-[var(--tone-amber)]"/> Scan with any UPI app</div>
+                          <div className="mx-auto mt-4 flex w-fit rounded-xl bg-white p-3">
+                            <img src={qrImage} alt={`UPI payment QR code for ₹${amount} to MangoTyping`} width="220" height="220" className="block h-[220px] w-[220px]"/>
+                          </div>
+                          <p className="mt-3 text-center text-xs leading-5 text-[var(--text-muted)]">Scan this QR and pay the exact amount of <b className="text-[var(--text-primary)]">₹{Number(amount).toLocaleString("en-IN")}</b>.</p>
+                          <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-[var(--card-border)] px-3 py-3">
+                            <div className="min-w-0"><p className="text-[10px] uppercase tracking-wider text-[var(--text-subtle)]">UPI ID</p><p className="truncate text-sm font-semibold text-[var(--text-primary)]">{upiId}</p></div>
+                            <button type="button" onClick={()=>{void navigator.clipboard?.writeText(upiId);}} className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-[var(--tone-amber)]"><FiCopy size={14}/> Copy</button>
+                          </div>
+                          <a href={upiUri} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[var(--card-border)] px-4 py-3 text-sm font-semibold text-[var(--text-primary)] hover:border-[#f5a623]">Open UPI app <FiExternalLink size={15}/></a>
+                          {upiStep === "qr" ? (
+                            <button type="button" onClick={()=>{setUpiStep("utr");setError("");}} className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-[#e7ac5e] px-4 py-3 text-sm font-bold text-[#17130c] hover:bg-[#f4c47f]">I’ve paid <span className="ml-2">→</span></button>
+                          ) : (
+                            <div className="mt-4 border-t border-[var(--card-border)] pt-4">
+                              <h4 className="text-sm font-semibold text-[var(--text-primary)]">Enter your UTR number</h4>
+                              <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">Find the UTR / bank reference number in your UPI app’s transaction details. It is usually a 12-digit number; letters are also accepted for bank-specific references.</p>
+                              <label htmlFor="upi-utr" className="mt-3 block text-xs font-semibold text-[var(--text-muted)]">UTR / transaction reference</label>
+                              <input id="upi-utr" value={utrNumber} onChange={e=>{setUtrNumber(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,22));setError("");}} minLength={8} maxLength={22} autoComplete="off" placeholder="Enter UTR / reference number" className="mt-2 min-h-12 w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg-main)] px-3 py-2 text-sm font-semibold tracking-wider text-[var(--text-primary)] outline-none focus:border-[#f5a623]"/>
+                              {error&&<p role="alert" className="mt-2 rounded-lg border border-[var(--error)]/30 bg-[var(--error)]/5 px-3 py-2 text-xs leading-5 text-[var(--error)]">{error}</p>}
+                              <button type="button" onClick={submitUpiClaim} disabled={claimBusy} className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-[#e7ac5e] px-4 py-3 text-sm font-bold text-[#17130c] disabled:opacity-50">{claimBusy?"Submitting…":"Submit payment for verification"}</button>
+                              <button type="button" onClick={()=>{setUpiStep("qr");setError("");}} className="mt-2 min-h-9 w-full text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)]">← Back to QR code</button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <>
+                      <label htmlFor="support-amount" className="mb-2 block text-xs font-semibold text-[var(--text-muted)]">Contribution amount (INR)</label>
+                      <div className="flex min-h-14 items-center overflow-hidden rounded-xl border border-[var(--card-border)] bg-[var(--bg-main)] transition-colors focus-within:border-[#f5a623]">
+                        <span className="border-r border-[var(--card-border)] px-4 py-3.5 text-base font-semibold text-[var(--text-muted)]">₹</span>
+                        <input id="support-amount" type="number" inputMode="numeric" min={1} max={100000} step={1} value={amount} disabled={busy} onChange={e=>{setAmount(e.target.value);setError("");}} className="min-w-0 flex-1 bg-transparent px-4 py-3.5 text-base font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] disabled:opacity-60" placeholder="Enter amount"/>
+                      </div>
+                      <p className="mt-2 text-xs text-[var(--text-muted)]">Choose a preset or enter any whole amount up to ₹1,00,000.</p>
+                      <div className="mt-4 grid grid-cols-4 gap-2">
+                        {[49,99,199,499].map(value=><button key={value} type="button" aria-pressed={amount===String(value)} disabled={busy} onClick={()=>{setAmount(String(value));setError("");}} className={["min-h-11 rounded-lg border px-2 text-xs font-semibold transition-colors disabled:opacity-60",amount===String(value)?"border-[#f5a623] bg-[rgba(245,166,35,0.1)] text-[#f5a623]":"border-[var(--card-border)] text-[var(--text-primary)] hover:border-[#f5a623]"].join(" ")}>₹{value}</button>)}
+                      </div>
+                      {error&&<p role="alert" className="mt-4 rounded-lg border border-[var(--error)]/30 bg-[var(--error)]/5 px-3 py-2.5 text-xs leading-5 text-[var(--error)]">{error}</p>}
                       <button type="button" onClick={donate} disabled={busy} className="mt-5 inline-flex min-h-13 w-full items-center justify-center rounded-xl bg-[#f5a623] px-5 py-3.5 text-sm font-bold text-[#18140b] transition-colors hover:bg-[#ffc15b] disabled:cursor-not-allowed disabled:opacity-60">
                         {loading ? "Preparing secure checkout…" : paymentVerifying ? "Confirming payment…" : user ? "Continue to secure payment" : "Tip anonymously"}
                         {!busy && <span className="ml-2" aria-hidden="true">→</span>}
@@ -324,6 +368,7 @@ export const SupportSection = () => {
                       </div>
                     </>
                   )}
+
 
                   {!user && (
                     <button
