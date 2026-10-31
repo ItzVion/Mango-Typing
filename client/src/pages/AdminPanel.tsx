@@ -23,7 +23,7 @@ type AdminDonation = {
   username: string; email: string | null; anonymous: boolean;
 };
 type UpiClaim = {
-  id: string; amountRupees: number; status: "PENDING" | "APPROVED" | "REJECTED";
+  id: string; amountRupees: number; utrNumber: string; status: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: string; reviewedAt?: string | null; reviewNote?: string | null;
   username: string; email: string; hasDonated: boolean;
 };
@@ -340,7 +340,7 @@ function DonationsTab() {
       <div className="mt-admin-section-head"><div><p className="mt-admin-eyebrow">MANUAL UPI</p><h2>Pending payment claims</h2><p>Compare the exact amount and time in your UPI app before approving.</p></div><StatusPill status={pending.length+" pending"}/></div>
       {pending.length===0 ? <div className="mt-admin-empty compact"><FiCheckCircle/><b>All caught up</b><p>There are no UPI claims waiting for review.</p></div> :
         <div className="mt-admin-claim-list">{pending.map(claim=><article className="mt-admin-claim" key={claim.id}>
-          <div className="claim-identity"><span className="mt-admin-avatar">{claim.username.slice(0,1).toUpperCase()}</span><div><b>{claim.username}</b><small>{claim.email}</small><small>Submitted {formatDateTime(claim.createdAt)}</small></div></div>
+          <div className="claim-identity"><span className="mt-admin-avatar">{claim.username.slice(0,1).toUpperCase()}</span><div><b>{claim.username}</b><small>{claim.email}</small><small>Submitted {formatDateTime(claim.createdAt)}</small><small className="mt-admin-utr">UTR · {claim.utrNumber}</small></div></div>
           <div className="claim-amount"><small>CLAIMED AMOUNT</small><b>₹{claim.amountRupees.toLocaleString("en-IN")}</b><StatusPill status="Pending"/></div>
           <Field label="Verification note" hint="Optional — record the matching UPI reference or note"><input className="mt-admin-input" value={notes[claim.id]??""} maxLength={500} onChange={e=>setNotes(v=>({...v,[claim.id]:e.target.value}))} placeholder="UPI transaction matched…"/></Field>
           <div className="claim-actions"><button className="mt-admin-button approve" disabled={busyId===claim.id} onClick={()=>review(claim.id,"approve")}><FiCheck/> {busyId===claim.id?"Saving…":"Approve"}</button><button className="mt-admin-button danger-outline" disabled={busyId===claim.id} onClick={()=>review(claim.id,"reject")}><FiX/> Reject</button></div>
@@ -350,8 +350,8 @@ function DonationsTab() {
     <section className="mt-admin-table-panel">
       <div className="mt-admin-section-head"><div><p className="mt-admin-eyebrow">UPI TRANSFER RECORDS</p><h2>Reviewed claims</h2><p>Approved claims grant the supporter star; rejected claims remain in history.</p></div></div>
       {history.length===0?<div className="mt-admin-empty compact"><p>No reviewed UPI claims yet.</p></div>:
-        <div className="mt-admin-table-wrap"><table className="mt-admin-table"><thead><tr><th>ACCOUNT</th><th>AMOUNT</th><th>SUBMITTED</th><th>REVIEWED</th><th>STATUS</th></tr></thead><tbody>
-          {history.map(c=><tr key={c.id}><td><div className="mt-admin-table-account"><b>{c.username}</b><small>{c.email}</small></div></td><td className="amount-cell">₹{c.amountRupees.toLocaleString("en-IN")}</td><td>{formatDateTime(c.createdAt)}</td><td>{c.reviewedAt?formatDateTime(c.reviewedAt):"—"}</td><td><StatusPill status={c.status}/></td></tr>)}
+        <div className="mt-admin-table-wrap"><table className="mt-admin-table"><thead><tr><th>ACCOUNT</th><th>AMOUNT</th><th>UTR</th><th>SUBMITTED</th><th>REVIEWED</th><th>STATUS</th></tr></thead><tbody>
+          {history.map(c=><tr key={c.id}><td><div className="mt-admin-table-account"><b>{c.username}</b><small>{c.email}</small></div></td><td className="amount-cell">₹{c.amountRupees.toLocaleString("en-IN")}</td><td className="mt-admin-utr">{c.utrNumber}</td><td>{formatDateTime(c.createdAt)}</td><td>{c.reviewedAt?formatDateTime(c.reviewedAt):"—"}</td><td><StatusPill status={c.status}/></td></tr>)}
         </tbody></table></div>}
     </section>
 
