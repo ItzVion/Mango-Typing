@@ -20,12 +20,6 @@ const REQUIRED_TABLES = [
 
 async function connectAndVerify(): Promise<void> {
   await prisma.$connect();
-  const result = await prisma.$queryRaw<{ tablename: string }[]>`
-    SELECT tablename
-    FROM pg_catalog.pg_tables
-    WHERE schemaname = 'public'
-      AND tablename = ANY(${REQUIRED_TABLES})
-  `;
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "UpiDonationClaim" (
       "id" TEXT PRIMARY KEY,
@@ -40,6 +34,12 @@ async function connectAndVerify(): Promise<void> {
   `);
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "UpiDonationClaim_status_createdAt_idx" ON "UpiDonationClaim" ("status", "createdAt")`);
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "UpiDonationClaim_userId_createdAt_idx" ON "UpiDonationClaim" ("userId", "createdAt")`);
+  const result = await prisma.$queryRaw<{ tablename: string }[]>`
+    SELECT tablename
+    FROM pg_catalog.pg_tables
+    WHERE schemaname = 'public'
+      AND tablename = ANY(${REQUIRED_TABLES})
+  `;
   const found = new Set(result.map((row) => row.tablename));
   found.add("UpiDonationClaim");
   const missing = REQUIRED_TABLES.filter((name) => !found.has(name));
