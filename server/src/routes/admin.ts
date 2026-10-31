@@ -30,7 +30,7 @@ router.get("/donations", requireOwner, async (_req: AuthRequest, res: Response) 
 
 router.get("/upi-claims", requireOwner, async (_req: AuthRequest, res: Response) => {
   const claims = await prisma.upiDonationClaim.findMany({ orderBy: [{ status: "asc" }, { createdAt: "desc" }], include: { user: { select: { username: true, email: true, hasDonated: true } } } });
-  res.json(claims.map(c => ({ id: c.id, amountRupees: c.amountRupees, status: c.status, createdAt: c.createdAt, reviewedAt: c.reviewedAt, reviewNote: c.reviewNote, username: c.user.username, email: c.user.email, hasDonated: c.user.hasDonated })));
+  res.json(claims.map(c => ({ id: c.id, amountRupees: c.amountRupees, utrNumber: c.utrNumber, status: c.status, createdAt: c.createdAt, reviewedAt: c.reviewedAt, reviewNote: c.reviewNote, username: c.user.username, email: c.user.email, hasDonated: c.user.hasDonated })));
 });
 router.patch("/upi-claims/:id/review", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => {
   const action = req.body?.action;
