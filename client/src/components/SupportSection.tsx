@@ -48,6 +48,8 @@ export const SupportSection = () => {
   const [celebrate, setCelebrate] = useState(false);
   const [letterOpen, setLetterOpen] = useState(false);
   const [qrMode, setQrMode] = useState(false);
+  const [claimBusy, setClaimBusy] = useState(false);
+  const [claimStatus, setClaimStatus] = useState<any>(null);
   const upiId = "khushichauhan688@oksbi";
   const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent("MangoTyping")}&am=${encodeURIComponent(amount)}&cu=INR&tn=${encodeURIComponent("Support MangoTyping")}`;
   const qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=12&data=${encodeURIComponent(upiUri)}`;
@@ -63,7 +65,10 @@ export const SupportSection = () => {
   }, []);
 
   useEffect(() => {
-    if (user) setShowAmountPicker(true);
+    if (user) {
+      setShowAmountPicker(true);
+      api.myUpiClaim().then(setClaimStatus).catch(() => {});
+    } else setClaimStatus(null);
   }, [user]);
 
   useEffect(() => {
@@ -72,6 +77,21 @@ export const SupportSection = () => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = previousOverflow; };
   }, [paymentVerifying]);
+
+  const submitUpiClaim = async () => {
+    setError("");
+    const rupees = Number(amount);
+    if (!user) { navigate("/auth", { state: { from: "/donations" } }); return; }
+    if (!Number.isSafeInteger(rupees) || rupees < 1 || rupees > 100000) { setError("Enter a whole amount between ₹1 and ₹1,00,000."); return; }
+    setClaimBusy(true);
+    try {
+      const result = await api.submitUpiClaim(rupees);
+      setClaimStatus(result.claim);
+    } catch (err: any) {
+      setError(err?.message || "Couldn't submit your payment for review.");
+      if (err?.status === 409) api.myUpiClaim().then(setClaimStatus).catch(() => {});
+    } finally { setClaimBusy(false); }
+  };
 
   const donate = async () => {
     setError("");
@@ -278,7 +298,16 @@ export const SupportSection = () => {
                         <button type="button" onClick={() => { void navigator.clipboard?.writeText(upiId); }} className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-[var(--tone-amber)]"><FiCopy size={14}/> Copy</button>
                       </div>
                       <a href={upiUri} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#e7ac5e] px-4 py-3 text-sm font-bold text-[#17130c] hover:bg-[#f4c47f]">Open UPI app <FiExternalLink size={15}/></a>
-                      <p className="mt-3 text-center text-[11px] leading-5 text-[var(--text-muted)]">Manual UPI transfer. This payment is not verified automatically and will not immediately appear in donation history.</p>
+                      {claimStatus?.status === "PENDING" ? (
+  <div className="mt-4 rounded-lg border border-[#9c7840]/40 bg-[#9c7840]/10 p-3 text-center"><p className="text-sm font-semibold text-[var(--text-primary)]">Payment submitted for review</p><p className="mt-1 text-xs text-[var(--text-muted)]">Amount: ₹{claimStatus.amountRupees}. Your star appears after the owner approves it.</p></div>
+) : claimStatus?.status === "APPROVED" ? (
+  <p className="mt-4 rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-center text-xs font-semibold text-green-600">Your contribution has been approved. Thank you!</p>
+) : (
+  <>
+    <p className="mt-3 text-center text-[11px] leading-5 text-[var(--text-muted)]">After paying, submit the amount for manual review. The star is added only after approval.</p>
+    <button type="button" onClick={submitUpiClaim} disabled={claimBusy || !user} className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#e7ac5e] px-4 py-3 text-sm font-bold text-[#17130c] disabled:opacity-50">{claimBusy ? "Submitting…" : user ? "I've paid — submit for review" : "Sign in to submit payment"}</button>
+  </>
+)}
                     </div>
                   ) : (
                     <>

@@ -25,6 +25,7 @@ model User {
 
   tests                  TypingTest[]
   donations              Donation[]
+  upiDonationClaims      UpiDonationClaim[]
   privacyRequests        PrivacyRequest[]
   auditLogs              AuditLog[]
 }
@@ -90,6 +91,22 @@ model Donation {
 
   user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   @@index([userId])
+}
+
+model UpiDonationClaim {
+  id           String   @id @default(uuid())
+  userId       String
+  amountRupees Int
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now())
+  reviewedAt   DateTime?
+  reviewedBy   String?
+  reviewNote   String?
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
 }
 
 model LegalPage {

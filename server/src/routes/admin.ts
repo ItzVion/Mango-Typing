@@ -27,6 +27,34 @@ router.post("/users", requireOwner, async (req: AuthRequest, res: Response): Pro
 });
 router.delete("/users/:id", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => { const target = await prisma.user.findUnique({ where: { id: req.params.id } }); if (!target) return res.status(404).json({ error: "User not found" }); if (target.role === "OWNER") return res.status(400).json({ error: "Can't delete an owner account" }); await prisma.user.delete({ where: { id: req.params.id } }); await audit(req.userId, "ADMIN_USER_DELETE", "User", target.id, { username: target.username }); res.json({ ok: true }); });
 router.get("/donations", requireOwner, async (_req: AuthRequest, res: Response) => { const donations = await prisma.donation.findMany({ orderBy: { createdAt: "desc" }, include: { user: { select: { username: true, email: true } } } }); res.json(donations.map((d) => ({ id: d.id, amountRupees: d.amountRupees, status: d.status, createdAt: d.createdAt, razorpayPaymentId: d.razorpayPaymentId, username: d.user?.username ?? "Anonymous", email: d.user?.email ?? null, anonymous: !d.user }))); });
+
+router.get("/upi-claims", requireOwner, async (_req: AuthRequest, res: Response) => {
+  const claims = await prisma.upiDonationClaim.findMany({ orderBy: [{ status: "asc" }, { createdAt: "desc" }], include: { user: { select: { username: true, email: true, hasDonated: true } } } });
+  res.json(claims.map(c => ({ id: c.id, amountRupees: c.amountRupees, status: c.status, createdAt: c.createdAt, reviewedAt: c.reviewedAt, reviewNote: c.reviewNote, username: c.user.username, email: c.user.email, hasDonated: c.user.hasDonated })));
+});
+router.patch("/upi-claims/:id/review", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => {
+  const action = req.body?.action;
+  const note = typeof req.body?.note === "string" ? req.body.note.trim().slice(0, 500) : null;
+  if (action !== "approve" && action !== "reject") return res.status(400).json({ error: "Choose approve or reject." });
+  try {
+    const status = action === "approve" ? "APPROVED" : "REJECTED";
+    const reviewed = await prisma.$transaction(async tx => {
+      const claim = await tx.upiDonationClaim.findUnique({ where: { id: req.params.id } });
+      if (!claim) throw Object.assign(new Error("UPI claim not found."), { statusCode: 404 });
+      if (claim.status !== "PENDING") throw Object.assign(new Error("This claim has already been reviewed."), { statusCode: 409 });
+      const changed = await tx.upiDonationClaim.updateMany({ where: { id: claim.id, status: "PENDING" }, data: { status, reviewedAt: new Date(), reviewedBy: req.userId!, reviewNote: note } });
+      if (changed.count !== 1) throw Object.assign(new Error("This claim has already been reviewed."), { statusCode: 409 });
+      if (action === "approve") await tx.user.update({ where: { id: claim.userId }, data: { hasDonated: true } });
+      await tx.auditLog.create({ data: { actorUserId: req.userId!, action: action === "approve" ? "UPI_DONATION_APPROVE" : "UPI_DONATION_REJECT", targetType: "UpiDonationClaim", targetId: claim.id, metadata: JSON.stringify({ userId: claim.userId, amountRupees: claim.amountRupees, note }) } });
+      return { id: claim.id, amountRupees: claim.amountRupees, status };
+    });
+    return res.json({ ok: true, claim: reviewed });
+  } catch (err: any) {
+    const status = Number(err?.statusCode);
+    if (status === 404 || status === 409) return res.status(status).json({ error: err.message });
+    throw err;
+  }
+});
 router.get("/legal/:slug", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => { const slug = req.params.slug; if (!DEFAULT_LEGAL[slug]) return res.status(404).json({ error: "Unknown page" }); const row = await prisma.legalPage.findUnique({ where: { slug } }); const version = await getCurrentLegalVersion(); res.json({ slug, version, updatedAt: row?.updatedAt ?? null, content: row?.content ?? DEFAULT_LEGAL[slug] }); });
 router.put("/legal/:slug", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => {
   const slug = req.params.slug; if (!DEFAULT_LEGAL[slug]) return res.status(404).json({ error: "Unknown page" });

@@ -208,5 +208,21 @@ router.post("/webhook", async (req: Request, res: Response): Promise<any> => {
   const inserted = await recordWebhookEvent(eventId, String(event.event));
   return res.json({ ok: true, duplicate: !inserted });
 });
+
+router.post("/upi-claim", requireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  const ipLimit = await checkRateLimit(`upi-claim:ip:${clientIp(req)}`, 5, 60 * 60 * 1000);
+  if (!ipLimit.ok) return res.status(429).json({ error: "Too many UPI claims. Please try again later." });
+  const raw = Number(req.body?.amountRupees);
+  if (!Number.isSafeInteger(raw) || raw < 1 || raw > 100000) return res.status(400).json({ error: "Enter a whole amount between ₹1 and ₹1,00,000." });
+  const existing = await prisma.upiDonationClaim.findFirst({ where: { userId: req.userId!, status: "PENDING" }, orderBy: { createdAt: "desc" } });
+  if (existing) return res.status(409).json({ error: "You already have a UPI payment awaiting review.", claim: { id: existing.id, amountRupees: existing.amountRupees, status: existing.status, createdAt: existing.createdAt } });
+  const claim = await prisma.upiDonationClaim.create({ data: { userId: req.userId!, amountRupees: raw }, select: { id: true, amountRupees: true, status: true, createdAt: true } });
+  return res.status(201).json({ ok: true, claim });
+});
+router.get("/upi-claim/me", requireAuth, async (req: AuthRequest, res: Response) => {
+  const claim = await prisma.upiDonationClaim.findFirst({ where: { userId: req.userId! }, orderBy: { createdAt: "desc" }, select: { id: true, amountRupees: true, status: true, createdAt: true, reviewedAt: true, reviewNote: true } });
+  res.json(claim);
+});
+
 router.get("/me", requireAuth, async (req: AuthRequest, res: Response) => { const donations = await prisma.donation.findMany({ where: { userId: req.userId, status: "paid" }, orderBy: { createdAt: "desc" }, select: { id: true, amountRupees: true, status: true, createdAt: true } }); res.json(donations); });
 export default router;
