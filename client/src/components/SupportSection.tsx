@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { useNavigate } from "react-router-dom";
-import { FiCheck, FiCheckCircle, FiHeart } from "react-icons/fi";
+import { FiCheck, FiCheckCircle, FiHeart, FiCopy, FiExternalLink, FiQrCode } from "react-icons/fi";
 
 declare global {
   interface Window {
@@ -46,14 +46,14 @@ export const SupportSection = () => {
   const [paymentVerifying, setPaymentVerifying] = useState(false);
   const [error, setError] = useState("");
   const [celebrate, setCelebrate] = useState(false);
-  const [letterOpen, setLetterOpen] = useState(false);
+  const [letterOpen, setLetterOpen] = useState(false);\n  const [qrMode, setQrMode] = useState(false);\n  const upiId = "khushichauhan688@oksbi";\n  const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent("MangoTyping")}&am=${encodeURIComponent(amount)}&cu=INR&tn=${encodeURIComponent("Support MangoTyping")}`;\n  const qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=12&data=${encodeURIComponent(upiUri)}`;
   const [showAmountPicker, setShowAmountPicker] = useState(false);
   const { user, setUser } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
     api.publicSettings().then((s) => {
-      if (s.donationMessage) setMessage(s.donationMessage);
+      if (s.donationMessage) setMessage(s.donationMessage);\n      setQrMode(!!s.qrMode);
     }).catch(() => {});
   }, []);
 
@@ -261,23 +261,35 @@ export const SupportSection = () => {
 
                   {error && <p role="alert" aria-live="polite" className="mt-4 rounded-lg border border-[var(--error)]/30 bg-[var(--error)]/5 px-3 py-2.5 text-xs leading-5 text-[var(--error)]">{error}</p>}
 
-                  <button
-                    type="button"
-                    onClick={donate}
-                    disabled={busy}
-                    className="mt-5 inline-flex min-h-13 w-full items-center justify-center rounded-xl bg-[#f5a623] px-5 py-3.5 text-sm font-bold text-[#18140b] transition-colors hover:bg-[#ffc15b] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {loading ? "Preparing secure checkout…" : paymentVerifying ? "Confirming payment…" : user ? "Continue to secure payment" : "Tip anonymously"}
-                    {!busy && <span className="ml-2" aria-hidden="true">→</span>}
-                  </button>
-
-                  <div className="mt-4 flex items-center justify-center gap-2 text-xs text-[var(--text-muted)]">
-                    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
-                      <rect x="3.5" y="8" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.4" />
-                      <path d="M6.5 8V5.8a3.5 3.5 0 0 1 7 0V8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                    </svg>
-                    Secure one-time checkout powered by Razorpay
-                  </div>
+                  {qrMode ? (
+                    <div className="mt-5 rounded-xl border border-[var(--card-border)] bg-[var(--surface-soft)] p-4 sm:p-5">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><FiQrCode size={17} className="text-[var(--tone-amber)]"/> Pay using any UPI app</div>
+                      <div className="mx-auto mt-4 flex w-fit rounded-xl bg-white p-3">
+                        <img src={qrImage} alt="UPI payment QR code for MangoTyping" width="220" height="220" loading="lazy" className="block h-[220px] w-[220px]"/>
+                      </div>
+                      <p className="mt-3 text-center text-xs text-[var(--text-muted)]">Scan with Google Pay, PhonePe, Paytm or another UPI app.</p>
+                      <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-[var(--card-border)] px-3 py-3">
+                        <div className="min-w-0"><p className="text-[10px] uppercase tracking-wider text-[var(--text-subtle)]">UPI ID</p><p className="truncate text-sm font-semibold text-[var(--text-primary)]">{upiId}</p></div>
+                        <button type="button" onClick={() => { void navigator.clipboard?.writeText(upiId); }} className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-[var(--tone-amber)]"><FiCopy size={14}/> Copy</button>
+                      </div>
+                      <a href={upiUri} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#e7ac5e] px-4 py-3 text-sm font-bold text-[#17130c] hover:bg-[#f4c47f]">Open UPI app <FiExternalLink size={15}/></a>
+                      <p className="mt-3 text-center text-[11px] leading-5 text-[var(--text-muted)]">Manual UPI transfer. This payment is not verified automatically and will not immediately appear in donation history.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <button type="button" onClick={donate} disabled={busy} className="mt-5 inline-flex min-h-13 w-full items-center justify-center rounded-xl bg-[#f5a623] px-5 py-3.5 text-sm font-bold text-[#18140b] transition-colors hover:bg-[#ffc15b] disabled:cursor-not-allowed disabled:opacity-60">
+                        {loading ? "Preparing secure checkout…" : paymentVerifying ? "Confirming payment…" : user ? "Continue to secure payment" : "Tip anonymously"}
+                        {!busy && <span className="ml-2" aria-hidden="true">→</span>}
+                      </button>
+                      <div className="mt-4 flex items-center justify-center gap-2 text-xs text-[var(--text-muted)]">
+                        <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
+                          <rect x="3.5" y="8" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.4" />
+                          <path d="M6.5 8V5.8a3.5 3.5 0 0 1 7 0V8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        </svg>
+                        Secure one-time checkout powered by Razorpay
+                      </div>
+                    </>
+                  )}
 
                   {!user && (
                     <button
