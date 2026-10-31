@@ -140,7 +140,7 @@ export const api = {
     return result;
   },
   testSmtp: (to?: string) => request("/settings/smtp-test", { method: "POST", body: JSON.stringify(to ? { to } : {}) }),
-  createDonationOrder: (amountRupees: number) => request("/donations/create-order", { method: "POST", body: JSON.stringify({ amountRupees }) }), verifyDonation: (payload: unknown) => request("/donations/verify", { method: "POST", body: JSON.stringify(payload) }), myDonations: () => request("/donations/me"), submitUpiClaim: (amountRupees: number) => request("/donations/upi-claim", { method: "POST", body: JSON.stringify({ amountRupees }) }), myUpiClaim: () => request("/donations/upi-claim/me"),
+  createDonationOrder: (amountRupees: number) => request("/donations/create-order", { method: "POST", body: JSON.stringify({ amountRupees }) }), verifyDonation: (payload: unknown) => request("/donations/verify", { method: "POST", body: JSON.stringify(payload) }), myDonations: () => request("/donations/me"), submitUpiClaim: (amountRupees: number, utrNumber: string) => request("/donations/upi-claim", { method: "POST", body: JSON.stringify({ amountRupees, utrNumber }) }), myUpiClaim: () => request("/donations/upi-claim/me"),
   legalPage: (slug: string) => request(`/legal/${slug}`), privacyExport: () => request("/privacy/export"), privacyRequests: () => request("/privacy/requests"),
   createPrivacyRequest: (type: string, details?: string) => request("/privacy/requests", { method: "POST", body: JSON.stringify({ type, details: details ?? "" }) }),
   adminPrivacyRequests: () => request("/privacy/admin-requests"), adminUpdatePrivacyRequest: (id: string, status: string) => request(`/privacy/admin-requests/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
