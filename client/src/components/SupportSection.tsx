@@ -46,14 +46,19 @@ export const SupportSection = () => {
   const [paymentVerifying, setPaymentVerifying] = useState(false);
   const [error, setError] = useState("");
   const [celebrate, setCelebrate] = useState(false);
-  const [letterOpen, setLetterOpen] = useState(false);\n  const [qrMode, setQrMode] = useState(false);\n  const upiId = "khushichauhan688@oksbi";\n  const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent("MangoTyping")}&am=${encodeURIComponent(amount)}&cu=INR&tn=${encodeURIComponent("Support MangoTyping")}`;\n  const qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=12&data=${encodeURIComponent(upiUri)}`;
+  const [letterOpen, setLetterOpen] = useState(false);
+  const [qrMode, setQrMode] = useState(false);
+  const upiId = "khushichauhan688@oksbi";
+  const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent("MangoTyping")}&am=${encodeURIComponent(amount)}&cu=INR&tn=${encodeURIComponent("Support MangoTyping")}`;
+  const qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=12&data=${encodeURIComponent(upiUri)}`;
   const [showAmountPicker, setShowAmountPicker] = useState(false);
   const { user, setUser } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
     api.publicSettings().then((s) => {
-      if (s.donationMessage) setMessage(s.donationMessage);\n      setQrMode(!!s.qrMode);
+      if (s.donationMessage) setMessage(s.donationMessage);
+      setQrMode(!!s.qrMode);
     }).catch(() => {});
   }, []);
 
