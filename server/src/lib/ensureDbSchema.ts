@@ -33,6 +33,8 @@ async function connectAndVerify(): Promise<void> {
       "reviewNote" TEXT
     )
   `);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "UpiDonationClaim" ADD COLUMN IF NOT EXISTS "utrNumber" TEXT`);
+  await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "UpiDonationClaim_utrNumber_key" ON "UpiDonationClaim" ("utrNumber")`);
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "UpiDonationClaim_status_createdAt_idx" ON "UpiDonationClaim" ("status", "createdAt")`);
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "UpiDonationClaim_userId_createdAt_idx" ON "UpiDonationClaim" ("userId", "createdAt")`);
   const result = await prisma.$queryRaw<{ tablename: string }[]>`
