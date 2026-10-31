@@ -798,60 +798,104 @@ const UsersTab = () => {
 // ── Donations ────────────────────────────────────────────────────────────
 const DonationsTab = () => {
   const [donations, setDonations] = useState<AdminDonation[] | null>(null);
+  const [claims, setClaims] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState("");
 
   const load = () => {
     setLoading(true);
     setLoadError(false);
-    api.adminDonations().then(setDonations).catch((err) => {
-      console.error("Failed to load admin donations:", err);
-      setLoadError(true);
-    }).finally(() => setLoading(false));
+    Promise.all([api.adminDonations(), api.adminUpiClaims()])
+      .then(([paid, upi]) => { setDonations(paid); setClaims(upi); })
+      .catch((err) => { console.error("Failed to load donations:", err); setLoadError(true); })
+      .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
+
+  const review = async (id: string, action: "approve" | "reject") => {
+    setBusyId(id);
+    setMessage("");
+    try {
+      await api.adminReviewUpiClaim(id, action, notes[id]);
+      setMessage(action === "approve"
+        ? "UPI contribution approved. The user's star is now enabled."
+        : "UPI claim rejected.");
+      load();
+    } catch (err: any) {
+      setMessage(err?.message || "Couldn't review this claim.");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   if (loading) return <p className="text-black/40 text-sm">Loading donations…</p>;
   if (loadError) return (
     <div className="card p-5 flex flex-col items-start gap-3">
-      <p className="text-[var(--error)] text-sm">Couldn't load donation records.</p>
+      <p className="text-[var(--error)] text-sm">Couldn't load donation records and UPI claims.</p>
       <button onClick={load} className="px-4 py-2 rounded-xl card text-sm font-semibold">Retry</button>
     </div>
   );
-  if (!donations || donations.length === 0) return <p className="text-black/40 text-sm">No donations yet.</p>;
+
+  const pending = (claims ?? []).filter((claim) => claim.status === "PENDING");
+  const history = (claims ?? []).filter((claim) => claim.status !== "PENDING");
 
   return (
-    <div className="flex flex-col gap-2">
-      {donations.map((d) => (
-        <motion.div
-          key={d.id}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card p-4 flex items-center justify-between gap-3"
-        >
-          <div className="min-w-0">
-            <p className="font-semibold text-sm">
-              {d.anonymous ? "Anonymous" : d.username}
-              {!d.anonymous && " "}
-              {!d.anonymous && <span>⭐</span>}
-            </p>
-            <p className="text-black/40 text-xs">{new Date(d.createdAt).toLocaleString()}</p>
+    <div className="flex flex-col gap-7">
+      <section className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-lg font-bold">UPI claims awaiting review</h2>
+          <p className="text-xs text-black/45">Match each amount against your UPI app before approving.</p>
+        </div>
+        {pending.length === 0 && <p className="card p-4 text-sm text-black/45">No pending UPI claims.</p>}
+        {pending.map((claim) => (
+          <motion.div key={claim.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} className="card p-4 flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-semibold text-sm">{claim.username}</p>
+                <p className="text-xs text-black/45 break-all">{claim.email}</p>
+                <p className="text-xs text-black/45 mt-1">{new Date(claim.createdAt).toLocaleString("en-IN")}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-xl font-bold">₹{claim.amountRupees}</p>
+                <span className="text-[10px] font-bold text-amber-600">PENDING</span>
+              </div>
+            </div>
+            <label className="flex flex-col gap-1 text-xs text-black/55">
+              Review note (optional)
+              <input value={notes[claim.id] ?? ""} onChange={(e)=>setNotes(v=>({...v,[claim.id]:e.target.value}))} maxLength={500} placeholder="e.g. matched UPI transaction" className="rounded-lg border border-[var(--card-border)] bg-transparent px-3 py-2 text-sm"/>
+            </label>
+            <div className="flex gap-2">
+              <button disabled={busyId===claim.id} onClick={()=>review(claim.id,"approve")} className="flex-1 rounded-lg bg-green-600 px-3 py-2.5 text-xs font-bold text-white disabled:opacity-50">{busyId===claim.id?"Saving…":"Approve payment"}</button>
+              <button disabled={busyId===claim.id} onClick={()=>review(claim.id,"reject")} className="rounded-lg border border-[var(--card-border)] px-4 py-2.5 text-xs font-semibold disabled:opacity-50">Reject</button>
+            </div>
+          </motion.div>
+        ))}
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-lg font-bold">UPI claim history</h2>
+        {history.length===0 ? <p className="text-xs text-black/45">No reviewed UPI claims yet.</p> : history.map((claim)=>(
+          <div key={claim.id} className="card p-3 flex items-center justify-between gap-3">
+            <div><p className="text-sm font-semibold">{claim.username} · ₹{claim.amountRupees}</p><p className="text-xs text-black/45">{new Date(claim.createdAt).toLocaleString("en-IN")}</p></div>
+            <span className={claim.status==="APPROVED"?"text-xs font-bold text-green-600":"text-xs font-bold text-red-500"}>{claim.status}</span>
           </div>
-          <div className="text-right shrink-0">
-            <p className="font-bold">₹{d.amountRupees}</p>
-            <p
-              className={`text-xs font-semibold ${
-                d.status === "paid" ? "text-green-500" : d.status === "failed" ? "text-red-500" : "text-black/40"
-              }`}
-            >
-              {d.status}
-            </p>
-          </div>
-        </motion.div>
-      ))}
+        ))}
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-lg font-bold">Razorpay donations</h2>
+        {(donations ?? []).length===0 ? <p className="text-xs text-black/45">No Razorpay donations yet.</p> : (donations ?? []).map((d)=>(
+          <motion.div key={d.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} className="card p-4 flex items-center justify-between gap-3">
+            <div className="min-w-0"><p className="font-semibold text-sm">{d.anonymous?"Anonymous":d.username}{!d.anonymous&&" ⭐"}</p><p className="text-black/40 text-xs">{new Date(d.createdAt).toLocaleString()}</p></div>
+            <div className="text-right shrink-0"><p className="font-bold">₹{d.amountRupees}</p><p className={`text-xs font-semibold ${d.status==="paid"?"text-green-500":d.status==="failed"?"text-red-500":"text-black/40"}`}>{d.status}</p></div>
+          </motion.div>
+        ))}
+      </section>
+      {message && <p role="status" className="text-xs text-black/55">{message}</p>}
     </div>
   );
 };
