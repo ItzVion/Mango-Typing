@@ -34,9 +34,10 @@ MangoTyping does not intentionally use targeted advertising or behavioural profi
 
 ## Database hardening status
 
-- Row-level security is enabled on every current public table in the production Neon database.
-- The production application still connects with the table-owning Neon role. PostgreSQL table owners normally bypass RLS, and there are currently no RLS policies. Therefore, RLS is **not** a per-user isolation boundary yet; application authorization and ownership filters remain mandatory.
-- Do not enable FORCE ROW LEVEL SECURITY or add permissive policies as a shortcut. A future least-privilege role must be demonstrably NOSUPERUSER, NOCREATEDB, NOCREATEROLE, and NOBYPASSRLS, and Prisma request scoping must be implemented and tested before switching production credentials.
+- Row-level security is enabled on all 13 production public tables.
+- Vercel production now uses the dedicated `mangotyping_app` login role. It is `NOSUPERUSER`, `NOCREATEDB`, `NOCREATEROLE`, `NOBYPASSRLS`, and `NOINHERIT`, with a 10-connection limit. It has DML privileges only; the table-owning `neondb_owner` role is reserved for migrations and database administration.
+- RLS policies exist for the application role, but they are currently service-level policies that allow the application role to access all rows. They are **not** per-user row isolation. Application authorization and ownership filters remain mandatory.
+- Do not enable FORCE ROW LEVEL SECURITY or replace the service policies with user policies until Prisma request scoping is securely implemented and all routes, auth flows, background jobs, public pages, and admin operations have been tested.
 - Production startup verifies the schema only. Schema changes must be applied as reviewed migrations, not from HTTP requests or serverless cold starts.
 
 ## Backup and recovery
