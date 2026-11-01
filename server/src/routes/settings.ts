@@ -9,6 +9,12 @@ import { resolvePublicSmtpHost } from "../lib/smtpSecurity";
 
 const router = Router();
 const MASK = "••••••••";
+const isDiscordWebhookUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && (url.hostname === "discord.com" || url.hostname === "discordapp.com") && !url.port && !url.username && !url.password && !url.search && !url.hash && /^\\/api\\/webhooks\\/\\d+\\/[A-Za-z0-9_.-]+$/.test(url.pathname);
+  } catch { return false; }
+};
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 router.get("/public", async (_req: Request, res: Response) => {
@@ -29,15 +35,17 @@ router.get("/public", async (_req: Request, res: Response) => {
 
 router.get("/", requireOwner, async (_req: AuthRequest, res: Response) => {
   const s = await prisma.settings.findUnique({ where: { id: 1 } });
-  res.json({ ...s, razorpayKeySecret: s?.razorpayKeySecret ? MASK : "", smtpPass: s?.smtpPass ? MASK : "" });
+  res.json({ ...s, razorpayKeySecret: s?.razorpayKeySecret ? MASK : "", smtpPass: s?.smtpPass ? MASK : "", discordBugWebhook: s?.discordBugWebhook || process.env.DISCORD_BUG_WEBHOOK ? MASK : "" });
 });
 
 router.patch("/", requireOwner, async (req: AuthRequest, res: Response) => {
-  const { razorpayKeyId, razorpayKeySecret, donationMessage, maintenanceMode, qrMode, supportEmail, smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpFrom, smtpFromName } = req.body || {};
+  const { razorpayKeyId, razorpayKeySecret, donationMessage, maintenanceMode, qrMode, supportEmail, smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpFrom, smtpFromName, discordBugWebhook } = req.body || {};
   const keepSecret = razorpayKeySecret === MASK;
   const keepSmtpPass = smtpPass === MASK;
+  const keepDiscordBugWebhook = discordBugWebhook === MASK;
 
   if (qrMode !== undefined && typeof qrMode !== "boolean") return res.status(400).json({ error: "Invalid QR mode value." });
+  if (discordBugWebhook !== undefined && !keepDiscordBugWebhook && discordBugWebhook !== "" && (typeof discordBugWebhook !== "string" || discordBugWebhook.length > 500 || !isDiscordWebhookUrl(discordBugWebhook.trim()))) return res.status(400).json({ error: "Enter a valid Discord webhook URL." });
   if (supportEmail !== undefined && (typeof supportEmail !== "string" || supportEmail.length > 254 || !EMAIL_RE.test(supportEmail))) return res.status(400).json({ error: "Invalid support email." });
   if (donationMessage !== undefined && (typeof donationMessage !== "string" || donationMessage.length > 4000)) return res.status(400).json({ error: "Donation message is too long." });
   if (smtpHost !== undefined && (typeof smtpHost !== "string" || smtpHost.length > 253)) return res.status(400).json({ error: "Invalid SMTP host." });
@@ -60,6 +68,7 @@ router.patch("/", requireOwner, async (req: AuthRequest, res: Response) => {
       ...(maintenanceMode !== undefined ? { maintenanceMode } : {}),
       ...(qrMode !== undefined ? { qrMode } : {}),
       ...(supportEmail !== undefined ? { supportEmail } : {}),
+      ...(discordBugWebhook !== undefined && !keepDiscordBugWebhook ? { discordBugWebhook: discordBugWebhook.trim() ? encryptSecret(discordBugWebhook.trim()) : null } : {}),
       ...(smtpHost !== undefined ? { smtpHost } : {}),
       ...(smtpPort !== undefined ? { smtpPort: smtpPort === "" ? null : Number(smtpPort) } : {}),
       ...(smtpSecure !== undefined ? { smtpSecure } : {}),
@@ -70,11 +79,12 @@ router.patch("/", requireOwner, async (req: AuthRequest, res: Response) => {
     },
     create: {
       id: 1, razorpayKeyId, razorpayKeySecret: keepSecret || !razorpayKeySecret ? null : encryptSecret(razorpayKeySecret), donationMessage, maintenanceMode, qrMode: qrMode ?? false, supportEmail,
+      discordBugWebhook: keepDiscordBugWebhook || !discordBugWebhook ? null : encryptSecret(discordBugWebhook.trim()),
       smtpHost, smtpPort: smtpPort ? Number(smtpPort) : null, smtpSecure, smtpUser,
       smtpPass: keepSmtpPass || !smtpPass ? null : encryptSecret(smtpPass), smtpFrom, smtpFromName,
     },
   });
-  res.json({ ...s, razorpayKeySecret: s.razorpayKeySecret ? MASK : "", smtpPass: s.smtpPass ? MASK : "" });
+  res.json({ ...s, razorpayKeySecret: s.razorpayKeySecret ? MASK : "", smtpPass: s.smtpPass ? MASK : "", discordBugWebhook: s.discordBugWebhook || process.env.DISCORD_BUG_WEBHOOK ? MASK : "" });
 });
 
 router.post("/smtp-test", requireOwner, async (req: AuthRequest, res: Response): Promise<any> => {
