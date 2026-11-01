@@ -40,6 +40,8 @@ router.post("/register", async (req: Request, res: Response): Promise<any> => {
   if (legalVersion !== currentLegalVersion) return res.status(400).json({ error: "Please accept the current legal policies before creating an account." });
   const normalEmail = String(email).trim().toLowerCase();
   if (normalEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalEmail)) return res.status(400).json({ error: "Enter a valid email address." });
+  const emailLimit = await checkRateLimit(`register:email:${normalEmail}`, 4, 60 * 60 * 1000);
+  if (!emailLimit.ok) return res.status(429).json({ error: "Too many registration attempts. Please try again later." });
   const existingUsername = await prisma.user.findUnique({ where: { username: username.trim() } });
   if (existingUsername) return res.status(400).json({ error: "That username is already taken." });
   const existingEmail = await prisma.user.findUnique({ where: { email: normalEmail } });
@@ -136,6 +138,9 @@ router.post("/resend-otp", async (req: Request, res: Response): Promise<any> => 
   const ip = clientIp(req); const ipLimit = await checkRateLimit(`resend-otp:ip:${ip}`, 5, 15 * 60 * 1000);
   if (!ipLimit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
   const { email } = req.body; const normalEmail = String(email || "").trim().toLowerCase();
+  if (normalEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalEmail)) return res.status(400).json({ error: "Enter a valid email address." });
+  const emailLimit = await checkRateLimit(`resend-otp:email:${normalEmail}`, 4, 60 * 60 * 1000);
+  if (!emailLimit.ok) return res.status(429).json({ error: "Too many attempts. Please try again later." });
   const currentLegalVersion = await getCurrentLegalVersion();
   const row = await prisma.otpToken.findUnique({ where: { email: normalEmail } });
   if (!row) return res.status(400).json({ error: "No pending registration found." });
