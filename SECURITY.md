@@ -31,3 +31,18 @@ MangoTyping does not intentionally use targeted advertising or behavioural profi
 - Keep legal/privacy content versioned and require current legal acceptance where applicable.
 - Review third-party processors, international processing, retention, and contractual safeguards before launch.
 - Test account recovery, logout/session invalidation, privacy requests, payment webhooks, and breach-response procedures after material changes.
+
+## Database hardening status
+
+- Row-level security is enabled on every current public table in the production Neon database.
+- The production application still connects with the table-owning Neon role. PostgreSQL table owners normally bypass RLS, and there are currently no RLS policies. Therefore, RLS is **not** a per-user isolation boundary yet; application authorization and ownership filters remain mandatory.
+- Do not enable FORCE ROW LEVEL SECURITY or add permissive policies as a shortcut. A future least-privilege role must be demonstrably NOSUPERUSER, NOCREATEDB, NOCREATEROLE, and NOBYPASSRLS, and Prisma request scoping must be implemented and tested before switching production credentials.
+- Production startup verifies the schema only. Schema changes must be applied as reviewed migrations, not from HTTP requests or serverless cold starts.
+
+## Backup and recovery
+
+The current Neon Free plan has a six-hour restore-history window and no scheduled snapshot schedule configured. A manual snapshot has a storage charge. Keep an independent export of critical data and test restoration before relying on a backup. Do not describe the database as having a 180-day backup.
+
+## Log retention
+
+Security/audit records are useful evidence but are not a substitute for the complete system logs that may be required by applicable CERT-In directions. Confirm the actual retention and location of Vercel, Neon, and email/payment-provider logs. For covered incidents, follow the applicable reporting timeline and preserve relevant evidence.
