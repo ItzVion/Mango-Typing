@@ -103,6 +103,7 @@ router.post("/verify", optionalAuth, async (req: AuthRequest, res: Response): Pr
   if (!keyId || !keySecret) return res.status(503).json({ error: "Donations aren't set up yet." });
   const existing = await prisma.donation.findUnique({ where: { razorpayOrderId: orderId } });
   if (!existing) return res.status(404).json({ error: "Unknown order." });
+  if (existing.userId && existing.userId !== req.userId) return res.status(404).json({ error: "Unknown order." });
 
   const expectedSignature = crypto.createHmac("sha256", keySecret)
     .update(orderId + "|" + paymentId).digest("hex");
