@@ -3,6 +3,8 @@ import multer from "multer";
 import { optionalAuth, AuthRequest } from "../middleware/auth";
 import { checkRateLimit, clientIp } from "../lib/rateLimit";
 import { sniffImageMime } from "../lib/imageSniff";
+import { prisma } from "../lib/db";
+import { decryptSecret } from "../lib/secretCrypto";
 
 const router = Router();
 
@@ -31,7 +33,6 @@ function safeFilename(mime: string, i: number): string {
   return `screenshot-${Date.now()}-${i}.${ext}`;
 }
 
-const WEBHOOK_URL = process.env.DISCORD_BUG_WEBHOOK;
 
 async function preUploadRateLimit(req: Request, res: Response, next: NextFunction) {
   const ip = clientIp(req);
@@ -46,7 +47,9 @@ router.post(
   optionalAuth,
   upload.array("screenshots", 5),
   async (req: AuthRequest, res: Response): Promise<any> => {
-    if (!WEBHOOK_URL) {
+    const savedSettings = await prisma.settings.findUnique({ where: { id: 1 }, select: { discordBugWebhook: true } });
+    const webhookUrl = (savedSettings?.discordBugWebhook ? decryptSecret(savedSettings.discordBugWebhook) : null) || process.env.DISCORD_BUG_WEBHOOK || null;
+    if (!webhookUrl) {
       console.error("DISCORD_BUG_WEBHOOK is not set");
       return res.status(500).json({ error: "Bug reporting is not configured." });
     }
@@ -85,7 +88,7 @@ router.post(
       const timeout = setTimeout(() => controller.abort(), 8_000);
       let discordRes: globalThis.Response;
       try {
-        discordRes = await fetch(WEBHOOK_URL, { method: "POST", body: form, signal: controller.signal });
+        discordRes = await fetch(webhookUrl, { method: "POST", body: form, signal: controller.signal });
       } finally {
         clearTimeout(timeout);
       }
