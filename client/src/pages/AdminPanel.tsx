@@ -5,13 +5,13 @@ import {
   FiActivity, FiUsers, FiCreditCard, FiMail, FiFileText, FiGift, FiGlobe,
   FiExternalLink, FiShield, FiSearch, FiPlus, FiTrash2, FiStar, FiCheck,
   FiAlertCircle, FiRefreshCw, FiEye, FiEyeOff, FiSave, FiLock, FiChevronRight,
-  FiX, FiClock, FiUserPlus, FiSettings, FiCheckCircle, FiArrowUpRight,
+  FiX, FiClock, FiUserPlus, FiSettings, FiCheckCircle, FiArrowUpRight, FiBug,
 } from "react-icons/fi";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { Seo } from "../components/Seo";
 
-type Tab = "overview" | "users" | "donations" | "payments" | "site" | "email" | "editor";
+type Tab = "overview" | "users" | "donations" | "payments" | "site" | "email" | "bugs" | "editor";
 type LegalSlug = "privacy" | "refund" | "terms";
 
 type AdminUser = {
@@ -38,6 +38,7 @@ const NAV_GROUPS: { label: string; items: { key: Tab; label: string; icon: React
     { key: "payments", label: "Payments", icon: <FiCreditCard/> },
     { key: "site", label: "Site status", icon: <FiGlobe/> },
     { key: "email", label: "Email delivery", icon: <FiMail/> },
+    { key: "bugs", label: "Bug reports", icon: <FiBug/> },
     { key: "editor", label: "Legal content", icon: <FiFileText/> },
   ]},
 ];
@@ -49,6 +50,7 @@ const PAGE_META: Record<Tab, { title: string; description: string; eyebrow: stri
   payments: { title: "Payments", description: "Configure Razorpay checkout and the alternative UPI QR payment method.", eyebrow: "CONFIGURATION / PAYMENTS" },
   site: { title: "Site status", description: "Control public availability without mixing it into payment settings.", eyebrow: "CONFIGURATION / AVAILABILITY" },
   email: { title: "Email delivery", description: "Configure SMTP and verify that account emails can be delivered.", eyebrow: "CONFIGURATION / EMAIL" },
+  bugs: { title: "Bug reports", description: "Choose the private Discord destination for visitor bug reports.", eyebrow: "CONFIGURATION / REPORTING" },
   editor: { title: "Legal content", description: "Edit the policy pages displayed to visitors.", eyebrow: "CONFIGURATION / CONTENT" },
 };
 
@@ -140,6 +142,7 @@ export const AdminPanel = () => {
               {tab === "payments" && <PaymentsTab/>}
               {tab === "site" && <SiteStatusTab/>}
               {tab === "email" && <EmailTab/>}
+              {tab === "bugs" && <BugReportsTab/>}
               {tab === "editor" && <EditorTab/>}
             </motion.div>
           </AnimatePresence>
@@ -445,6 +448,46 @@ function SiteStatusTab() {
       <label className="mt-admin-setting-switch"><span><b>Website down / maintenance mode</b><small>When enabled, regular visitors see the maintenance page. The owner can still access the admin console.</small></span><input type="checkbox" checked={maintenance} onChange={e=>setMaintenance(e.target.checked)}/><i/></label>
       {maintenance&&<Notice tone="danger">The public site will be unavailable to regular visitors after you save this change.</Notice>}
       <div className="mt-admin-savebar"><div>{message&&<span role="status">{message}</span>}</div><button className="mt-admin-button primary" onClick={save} disabled={saving}><FiSave/>{saving?"Saving…":"Save site status"}</button></div>
+    </section>
+  </div>;
+}
+
+function BugReportsTab() {
+  const [webhook,setWebhook]=useState("");
+  const [status,setStatus]=useState("");
+  const [saving,setSaving]=useState(false);
+  const [ready,setReady]=useState(false);
+  const [loadError,setLoadError]=useState(false);
+  const load=()=>{
+    setReady(false);setLoadError(false);
+    api.ownerSettings()
+      .then(s=>setWebhook(s.discordBugWebhook??""))
+      .catch(e=>{console.error("Failed to load bug report settings",e);setLoadError(true);})
+      .finally(()=>setReady(true));
+  };
+  useEffect(()=>{load();},[]);
+  const save=async()=>{
+    if(saving)return;
+    setSaving(true);setStatus("");
+    try{
+      await api.updateSettings({discordBugWebhook:webhook.trim()});
+      const saved=await api.ownerSettings();
+      setWebhook(saved.discordBugWebhook??"");
+      setStatus("Discord bug report webhook saved securely.");
+    }catch(e:any){setStatus(e?.message||"Couldn't save the Discord webhook.");}
+    finally{setSaving(false);}
+  };
+  if(!ready)return <div className="mt-admin-loading"><span className="mt-admin-loader"/>Loading bug report settings…</div>;
+  if(loadError)return <div className="mt-admin-empty"><FiAlertCircle/><b>Couldn't load bug report settings</b><button className="mt-admin-button secondary" onClick={load}><FiRefreshCw/> Retry</button></div>;
+  return <div className="mt-admin-page">
+    <div className="mt-admin-page-heading"><div><p className="mt-admin-eyebrow">CONFIGURATION / REPORTING</p><h1>Bug report destination</h1><p>Control where reports submitted from the floating Report a bug button are delivered.</p></div></div>
+    <section className="mt-admin-panel">
+      <div className="mt-admin-panel-head"><div><p className="mt-admin-eyebrow">DISCORD INTEGRATION</p><h2>Discord webhook</h2><p>Only the server uses this URL. It is encrypted before being stored and is never sent to public settings or the browser in readable form.</p></div><StatusPill status={webhook?"Configured":"Not configured"}/></div>
+      <Field label="Discord webhook URL" hint="Paste a Discord channel webhook URL. The saved value is masked; replace it by pasting a new URL.">
+        <input className="mt-admin-input" type="password" value={webhook} onChange={e=>{setWebhook(e.target.value);setStatus("");}} placeholder="https://discord.com/api/webhooks/…" autoComplete="new-password" spellCheck={false}/>
+      </Field>
+      <Notice tone="info">Leave the masked value unchanged to keep the current webhook. Clear the field and save to remove the saved override and fall back to the DISCORD_BUG_WEBHOOK server environment variable, if set.</Notice>
+      <div className="mt-admin-savebar"><div>{status&&<span role="status">{status}</span>}</div><button className="mt-admin-button primary" onClick={save} disabled={saving}><FiSave/>{saving?"Saving…":"Save webhook"}</button></div>
     </section>
   </div>;
 }
