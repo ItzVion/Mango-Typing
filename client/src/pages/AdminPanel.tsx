@@ -5,7 +5,7 @@ import {
   FiActivity, FiUsers, FiCreditCard, FiMail, FiFileText, FiGift, FiGlobe,
   FiExternalLink, FiShield, FiSearch, FiPlus, FiTrash2, FiStar, FiCheck,
   FiAlertCircle, FiRefreshCw, FiEye, FiEyeOff, FiSave, FiLock, FiChevronRight,
-  FiX, FiClock, FiUserPlus, FiSettings, FiCheckCircle, FiArrowUpRight, FiBug,
+  FiX, FiClock, FiUserPlus, FiSettings, FiCheckCircle, FiArrowUpRight,
 } from "react-icons/fi";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
@@ -38,7 +38,7 @@ const NAV_GROUPS: { label: string; items: { key: Tab; label: string; icon: React
     { key: "payments", label: "Payments", icon: <FiCreditCard/> },
     { key: "site", label: "Site status", icon: <FiGlobe/> },
     { key: "email", label: "Email delivery", icon: <FiMail/> },
-    { key: "bugs", label: "Bug reports", icon: <FiBug/> },
+    { key: "bugs", label: "Bug reports", icon: <FiAlertCircle/> },
     { key: "editor", label: "Legal content", icon: <FiFileText/> },
   ]},
 ];
