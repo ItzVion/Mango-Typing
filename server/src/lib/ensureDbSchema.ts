@@ -20,24 +20,8 @@ const REQUIRED_TABLES = [
 
 async function connectAndVerify(): Promise<void> {
   await prisma.$connect();
-  await prisma.$executeRawUnsafe(`ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "qrMode" BOOLEAN NOT NULL DEFAULT false`);
-  await prisma.$executeRawUnsafe(`ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "discordBugWebhook" TEXT`);
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS "UpiDonationClaim" (
-      "id" TEXT PRIMARY KEY,
-      "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
-      "amountRupees" INTEGER NOT NULL CHECK ("amountRupees" BETWEEN 1 AND 100000),
-      "status" TEXT NOT NULL DEFAULT 'PENDING' CHECK ("status" IN ('PENDING','APPROVED','REJECTED')),
-      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "reviewedAt" TIMESTAMP(3),
-      "reviewedBy" TEXT,
-      "reviewNote" TEXT
-    )
-  `);
-  await prisma.$executeRawUnsafe(`ALTER TABLE "UpiDonationClaim" ADD COLUMN IF NOT EXISTS "utrNumber" TEXT`);
-  await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "UpiDonationClaim_utrNumber_key" ON "UpiDonationClaim" ("utrNumber")`);
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "UpiDonationClaim_status_createdAt_idx" ON "UpiDonationClaim" ("status", "createdAt")`);
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "UpiDonationClaim_userId_createdAt_idx" ON "UpiDonationClaim" ("userId", "createdAt")`);
+  // Production application credentials are deliberately DML-only. Schema changes
+  // must be applied as reviewed migrations, never by an HTTP request or cold start.
   const result = await prisma.$queryRaw<{ tablename: string }[]>`
     SELECT tablename
     FROM pg_catalog.pg_tables
