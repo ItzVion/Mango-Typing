@@ -71,6 +71,7 @@ model Settings {
   maintenanceMode       Boolean  @default(false)
   qrMode                Boolean  @default(false)
   supportEmail          String   @default("support@mangotyping.fun")
+  discordBugWebhook     String?
   smtpHost              String?
   smtpPort              Int?
   smtpSecure            Boolean?
