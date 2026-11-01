@@ -108,6 +108,7 @@ model UpiDonationClaim {
 
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Partial unique index is maintained by the SQL migration; Prisma schema cannot express its WHERE clause.
   @@index([status, createdAt])
   @@index([userId, createdAt])
 }
