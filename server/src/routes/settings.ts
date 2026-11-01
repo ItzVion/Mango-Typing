@@ -12,7 +12,7 @@ const MASK = "••••••••";
 const isDiscordWebhookUrl = (value: string) => {
   try {
     const url = new URL(value);
-    return url.protocol === "https:" && (url.hostname === "discord.com" || url.hostname === "discordapp.com") && !url.port && !url.username && !url.password && !url.search && !url.hash && /^\\/api\\/webhooks\\/\\d+\\/[A-Za-z0-9_.-]+$/.test(url.pathname);
+    return url.protocol === "https:" && (url.hostname === "discord.com" || url.hostname === "discordapp.com") && !url.port && !url.username && !url.password && !url.search && !url.hash && /^\/api\/webhooks\/\d+\/[A-Za-z0-9_.-]+$/.test(url.pathname);;
   } catch { return false; }
 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
