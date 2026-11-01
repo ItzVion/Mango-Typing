@@ -21,6 +21,7 @@ const REQUIRED_TABLES = [
 async function connectAndVerify(): Promise<void> {
   await prisma.$connect();
   await prisma.$executeRawUnsafe(`ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "qrMode" BOOLEAN NOT NULL DEFAULT false`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "discordBugWebhook" TEXT`);
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "UpiDonationClaim" (
       "id" TEXT PRIMARY KEY,
